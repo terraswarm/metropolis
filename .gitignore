@@ -1,0 +1,11 @@
+*.class
+*.o
+*.tbl
+*~
+.classpath
+.classpath.in
+.eclipse.epf
+.glimpse_exclude
+autom4te.cache/
+config.log
+config.status

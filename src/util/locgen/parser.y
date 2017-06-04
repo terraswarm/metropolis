@@ -40,7 +40,7 @@ ENHANCEMENTS, OR MODIFICATIONS.
 #include <stdio.h>
 #include "term_type.h"
 
-void yyerror(char* _mesg);
+void yyerror(const char* _mesg);
 int yylex();
 
 namespace Parser 
@@ -472,7 +472,7 @@ float_term: FLOAT_CONST  {$<str>$ = strdup($<str>1); delete $<str>1;}
 
 extern FILE *yyin;
 
-void yyerror(char* _mesg)
+void yyerror(const char* _mesg)
 {
   cout << "Error at line " << yylineno << " before " 
 	    << yytext << " : " << _mesg << std::endl;

@@ -424,7 +424,7 @@ if [ "$CLASSPATH" != "" ]; then
         # FIXME: Need to have /bin/sed instead of sed in case the
         # user is under Windows + Cygwin but does not have c:/cygwin/bin
         # in the Windows path.
-    CLASSPATH="$METRO_DIR/src${CLASSPATHSEPARATOR}$jarfile${CLASSPATHSEPARATOR}`echo "${CLASSPATH}" | /bin/sed 's/"/\\\\"/g'`"
+    CLASSPATH="$METRO_DIR/src${CLASSPATHSEPARATOR}$jarfile${CLASSPATHSEPARATOR}`echo "${CLASSPATH}" | sed 's/"/\\\\"/g'`"
 else
     CLASSPATH="$METRO_DIR/src${CLASSPATHSEPARATOR}$jarfile"
 fi

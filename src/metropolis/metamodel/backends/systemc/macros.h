@@ -114,7 +114,7 @@
         if (stuck_flag) throw STUCK();
 
 #define sc_stop sc_sim_stop
-#define sc_start sc_sim_start
+//#define sc_start sc_sim_start
 #define updateSynchEventInfo(eventGroupID, pc) \
         _sb.updateSynchEventInfo(eventGroupID, pc)
 
