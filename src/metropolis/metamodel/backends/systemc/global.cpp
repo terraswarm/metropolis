@@ -143,5 +143,6 @@ void sc_sim_start(double duration = -1) {
         SMSchedulingTime = 0;
     }
 
-    sc_start( duration );
+    //sc_start( duration );
+    sc_start();
 } // end sc_sim_start

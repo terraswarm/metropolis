@@ -48,7 +48,7 @@ import java.util.LinkedList;
  */
 
 /**
- * $Id: PeriodNode.java,v 1.6 2006/10/13 03:39:55 cxh Exp $
+ * $Id$
  */
 public class PeriodNode extends BuiltInActionNode {
     /** Construct a PeriodNode.

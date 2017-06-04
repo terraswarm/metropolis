@@ -28,7 +28,12 @@
 
 */
 #include "argsutil.h"
-#include <iostream.h>
+
+//#include <iostream.h>
+
+#include <iostream>                                                                                    
+using namespace std;   
+
 #include <stdlib.h>
 
 int getArgc() {

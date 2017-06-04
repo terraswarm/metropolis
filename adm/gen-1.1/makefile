@@ -51,13 +51,13 @@
 # Variables.
 # If you change the version number, update $METRO/README.txt 
 MAJOR_VERSION = 	1.1
-MINOR_VERSION =	        
+MINOR_VERSION =	        4
 
 #VERSION=	$(MAJOR_VERSION).$(MINOR_VERSION)
 VERSION=	$(MAJOR_VERSION)
 
 # Version string for lame filesystems that don't like more than one .
-WINDOWS_VERSION =	1_1
+WINDOWS_VERSION =	1_1_4
 
 RELEASE_VERSION =	metropolis-$(VERSION)
 

@@ -40,6 +40,8 @@
 #include <set>
 #include <vector>
 
+#include <string.h>
+
 #include "SAT.h"
 
 using namespace std;

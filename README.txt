@@ -24,6 +24,16 @@ language generates files that describe the meta-model design in the
 language.
 
 
+HISTORY
+-------
+In June, 2017, the Metropolis-1.1.3 release was updated and placed on
+github as https://github.com/terraswarm/metropolis.
+
+The updates were made to support SystemC-2.3.1.
+
+Very minimal updates to the documentation were made.
+
+
 INSTALLATION
 ------------
 The meta-model compiler requires Java Development Kit (JDK) and a C

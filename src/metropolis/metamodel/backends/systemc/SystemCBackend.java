@@ -957,7 +957,7 @@ public class SystemCBackend extends ElaboratorBackend {
         setup_builtin_loc_constraints();
 
         code.addLast("\n  //Start simulation\n");
-        code.addLast("  sc_start(-1);\n");
+        code.addLast("  sc_start();\n");
 
         // xichen_loc_beg
         code.addLast("  //Simulation end\n");

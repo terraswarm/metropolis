@@ -65,56 +65,16 @@ to always do this as follows:
  </ol>
 </ol>
 
-<h2>Check Out Metropolis from the CVS Repository</h1>
-<p>
-Eclipse will manage your metro code tree as a <em>project</em> called
-the metro project.  Assuming Eclipse is running:
-<ol>
-<li> Set up the CVS connection:
 
-<ol>
-<li> Expose the CVS repositories view by selecting
-     Window-&gt;Show View-&gt;Other in the menus.
-     Then select CVS->CVS Repositories.
-<li> In the CVS Repositories Panel, right mouse click
-     and select New-&gt;Repository Location:
-
- <br>&nbsp;&nbsp;&nbsp;Host: <CODE>source.eecs.berkeley.edu</CODE>
- <br>&nbsp;&nbsp;&nbsp;Repository path: <CODE>/home/cvs</CODE>
- <br>&nbsp;&nbsp;&nbsp;Your user name
-are given <a href="http://embedded.eecs.berkeley.edu/concurrency/private/4.html">here</a>. To get access to that page, you must be a member of
-the "concurrency" group.
-
- <br>ConnectionType
-	<ul>
-	<li> If you have CVS read only access, select <CODE>pserver</CODE>
-	<li> If you have CVS read/write access and have an external ssh
-	binary installed, select <CODE>ext</CODE>.  The
-	Cygwin installation can optionally include an appropriate ssh
-	binary.  If you have Cygwin installed, startup bash and type
-	<CODE>ssh -v</CODE> to see if ssh is installed.
-	<li> <CODE>extssh</CODE> is not recommended because it
-	uses version 1 of the SSH protocol which is implemented
-	by a version of ssh that is built in to Eclipse.
-	 <b>SSH V1 is not as likely to be supported as SSH V2.</b>
-	 <br>Note further that if you select <CODE>extssh</CODE>,
-	then to run cvs from within
-	Cygwin bash on the same directory tree as the Eclipse tree
-	you will need to use the <CODE>-d</CODE> option
-	 <br><CODE>cvs -d :ext:<i>yourlogin</i>@ic.eecs.berkeley.edu:/projects/hwsw/hwsw/common/src</CODE>
-	 <br>The <CODE>-d</CODE> option is necessary because the Cygwin bash
-	<CODE>cvs</CODE> binary does not understand the <CODE>extssh</CODE>
-	protocol
-	</ul>
-<li> Click Finish.
-</ol>
-
-<p>
-<li> In the CVS Repositories View window, click on the repository and then on
-HEAD until you see the <CODE>metro</CODE> Head.
-
-<p>
-<li> Right mouse click on the <CODE>metro</CODE> Head,
+<h2>Check Out Metropolis</h1>
+<p>The non-public master repository is at
+  <a href="https://repo.eecs.berkeley.edu/svn/projects/asv/metro/"><code>https://repo.eecs.berkeley.edu/svn/projects/asv/metro/</code></a>.</p>
+<p> There is a public repository at
+  <a href="https://github.com/terraswarm/metropolis"><code>https://github.com/terraswarm/metropolis</code></a> that was created from the Metropolis-1.1.3 release and updated for SystemC-2.3.1
+  
+<ul>
+<li> Check out the appropriate repository</li>
+<li> Right mouse click on the <CODE>metro</CODE> or <code>metropolis>Head,
 then Select the "Check Out As..." option.  Follow the wizard,
 creating selections as follows:
 <ul>

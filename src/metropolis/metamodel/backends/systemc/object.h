@@ -46,7 +46,10 @@ Object(DUMMY_CTOR_ARG _arg, int *index) {}
     virtual bool operator>= (const Object &ob) const { return false; }
     virtual bool operator<= (const Object &ob) const { return false; }
     virtual bool equals(Object ob) { return false; }
-    virtual int hashCode(process * caller) { return (int)this; }
+
+    //virtual int hashCode(process * caller) { return (int)this; }
+    virtual int hashCode(process * caller) { return *((int*)this); }
+
     // do not use this function to clone your derived class objects
     virtual Object* clone(process * caller) { return NULL; }
 };

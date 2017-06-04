@@ -34,6 +34,7 @@
 *********************************************************************/
 
 #include "zchaff_dbase.h"
+#include <stdlib.h>
 
 CDatabase::CDatabase()
 {

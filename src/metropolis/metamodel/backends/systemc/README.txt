@@ -117,7 +117,7 @@ processes register themselves to scoreboard; information of
 defines that port and all synchronization information are stored
 in the scoreboard.
 
-After initialization, a SystemC command sc_start(-1) is called 
+After initialization, a SystemC command sc_start() is called 
 to start simulation. Then, the execution is transfered between 
 processes and simulation manager, therefore the simulation proceeds.
 
