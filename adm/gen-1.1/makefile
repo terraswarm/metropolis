@@ -53,8 +53,8 @@
 MAJOR_VERSION = 	1.1
 MINOR_VERSION =	        4
 
-#VERSION=	$(MAJOR_VERSION).$(MINOR_VERSION)
-VERSION=	$(MAJOR_VERSION)
+VERSION=	$(MAJOR_VERSION).$(MINOR_VERSION)
+#VERSION=	$(MAJOR_VERSION)
 
 # Version string for lame filesystems that don't like more than one .
 WINDOWS_VERSION =	1_1_4
@@ -126,6 +126,9 @@ clean:
 	@echo "#"
 	rm -f $(METRO_SRC)
 	rm -rf $(METRODIST) src test
+
+mac:
+	$(MAKE) USER=$USER METROHOME=$METRO TAR=gtar
 
 FINDCLEAN = $(GENDIR)/findclean
 
