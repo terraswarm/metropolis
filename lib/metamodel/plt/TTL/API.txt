@@ -1,0 +1,301 @@
+Package metamodel.plt.yapiintdoublescaled
+
+======================================================================
+
+Class Summary:
+	      
+boundedfifo	 : implements two interfaces
+		   -boundedfifoininterface
+		   -boundedfifooutinterface
+		   is a first in first out channel that implements
+		   methods to access the data structure
+
+yapi2TTLchannel  : implements yapioutinterface and provides a
+		   consistent interface to a yapi writer process. This
+		   medium implements the yapi write function using the
+		   boundedfifo primitives.
+
+TTL2yapichannel  : implements yapiininterface and provides a
+		   consistent interface to a yapi reader process. This
+		   medium implements the yapi read function using the
+		   boundedfifo primitives.
+
+
+rdwrthreshold	 : implements a medium for the synchronization of a
+		   yapi2TTL medium and a TTL2yapi medium.        
+
+TTLmediumnetlist : this netlist is the connection of the medium
+		   described above in the following way
+
+		    yapi2TTL  rdwrthreshold    TTL2yapi
+		      O----------->O<-----------O
+                      |                         |		
+		      |                         |
+		       ----------->O<-----------
+			      boundedfifo
+		   This netlist can be used to directly refine a
+		   ypichannel.
+		      
+======================================================================
+
+Class boundedfifo
+
+implements boundedfifoininterface,boundedfifooutinterface,semaphore
+
+
+Ports:  NA	
+----------------------------------------------------------------------
+
+Version: 1.1
+Author: Alessandro Pinto 
+	EECS Grad Student
+	211 Cory Hall #1772
+	Ph.: +1-510-642-6876
+	mailto:apinto@eecs.berkeley.edu
+
+----------------------------------------------------------------------
+
+Constructors:
+
+boundedfifo(int ts,int nt,int it)
+
+A FIFO contains nt tokens. Each token has a size of ts. The size is
+measured in the number of integers/doubles that a token contains. It is
+possible to initialize the FIFO with it initial tokens.
+
+----------------------------------------------------------------------
+
+Methods:
+
+(convention: <name><type1/type2...> means that many different functions are
+defined: <name>type1, <name>type2...)
+
+All the operations are token based.
+
+eval int claim_space<int/double>()
+     
+     This function checks if there is at least one space available in
+     the FIFO. A process that calls this function will be blocked
+     until there is at least one space available. The functions return
+     the number of spaces in the FIFO
+     
+
+eval int query_space<int/double>()
+     
+     The same as claim_space but it's not blocking
+
+
+update void release_data(<int/int[]/double/double[]> data)
+       
+     It is used to write one token in the fifo. The user must be very
+     careful in defining the data argument. It's length must be equal
+     to the token size.
+       
+
+eval void claim_data(<int/int[]/double/double[]> data)
+     
+     This function check if there is at least one token in the FIFO
+     and in this case will copy it's content in the data filed. The
+     token is not removed from the fifo (to remove a token use
+     release_space). If the FIFO is empty the calling process will be
+     blocked.
+
+     
+eval int query_data<int/double>()
+
+     This method is a non blocking function call used to check if
+     there is at least one token available in the FIFO. It returns
+     the number of tokens in the fifo.
+
+
+update void release_space<int/double>()
+       
+     This method is used to free the space of one token in the FIFO.
+
+
+
+======================================================================
+
+Class yapi2TTL 
+
+implements yapiininterface
+	   Please see the yapi documentation for the API
+
+----------------------------------------------------------------------
+
+Version: 1.1
+Author: Alessandro Pinto 
+	EECS Grad Student
+	211 Cory Hall #1772
+	Ph.: +1-510-642-6876
+	mailto:apinto@eecs.berkeley.edu
+
+----------------------------------------------------------------------
+Constructors:
+
+public yapi2TTLchannel(int ts,int nt,stfunc stf)
+
+ts and nt are the parameter of the boundedfifo this medium it
+connected to. stfunc is a class that is defined in the package and
+that the user can redefine. It must contain the method f(int,int).
+This function is used in deciding how many tokens to write in the FIFO
+depending on how many spaces are available and how many data must be
+eventually written.
+
+----------------------------------------------------------------------
+
+
+
+
+
+======================================================================
+
+Class rdwrthreshold
+
+implements rdwrthresholdinterface, rdthresholdsemaphore,
+wrthresholdsemaphore, wkrdsemaphore, wkwrsemaphore
+
+
+Ports:  NA	
+----------------------------------------------------------------------
+
+Version: 1.1
+Author: Alessandro Pinto 
+	EECS Grad Student
+	211 Cory Hall #1772
+	Ph.: +1-510-642-6876
+	mailto:apinto@eecs.berkeley.edu
+
+----------------------------------------------------------------------
+
+Constructors:
+
+rdwrthreshold ()
+
+The constructor is used only for fields initialization. The two
+fields rth and wth are both assigned to zero 
+
+----------------------------------------------------------------------
+
+Methods:
+
+update void setwritethreshold(int th)
+       
+       The value of the write threshold is set to th
+
+
+update void setreadthreshold(int th)
+       
+       The value of the read threshold is set to th
+
+
+eval int getwritethreshold()
+     
+       The value of the write threshold is returned
+
+
+eval int getreadthreshold()
+
+       The value of the read threshold is returned
+
+
+update void wakeuprd()/wakeupwr()
+
+       A flag is set indicating that the reader/writer can go ahead in
+       reading/writing from the bounded fifo.
+
+
+eval boolean testwakeuprd()/testwakeupwr()
+
+       If the flag set by wakeuprd()/wakeupwr() this method returns true
+
+
+update void resetwakeuprd()/resetwakeupwr()
+       
+       This method reset the flag, set by wakeuprd()/wakeupwr(), to 0.
+
+
+
+----------------------------------------------------------------------
+
+
+
+======================================================================
+
+Class TTL2yapi 
+
+implements yapioutinterface
+	   Please see the yapi documentation for the API
+
+----------------------------------------------------------------------
+
+Version: 1.1
+Author: Alessandro Pinto 
+	EECS Grad Student
+	211 Cory Hall #1772
+	Ph.: +1-510-642-6876
+	mailto:apinto@eecs.berkeley.edu
+
+----------------------------------------------------------------------
+Constructors:
+
+public TTL2channel(int ts,int nt,stfunc stf)
+
+ts and nt are the parameter of the boundedfifo this medium it
+connected to. stfunc is a class that is defined in the package and
+that the user can redefine. It must contain the method f(int,int).
+This function is used in deciding how many tokens to read form the FIFO
+depending on how many tokens are available and how many data must be
+eventually read.
+
+----------------------------------------------------------------------
+
+
+
+
+======================================================================
+
+Class TTLmediumnetlist
+
+----------------------------------------------------------------------
+
+Version: 1.1
+Author: Alessandro Pinto 
+	EECS Grad Student
+	211 Cory Hall #1772
+	Ph.: +1-510-642-6876
+	mailto:apinto@eecs.berkeley.edu
+
+----------------------------------------------------------------------
+
+Constructors:
+
+TTLmediumnetlist(yapichannel ch,int ts,int nt,int it,stfunc f)
+
+When this netlist is instantiated in it takes as parameter a
+yapichannel.This channel will be refined in the following way
+
+
+			      yapichannel
+				  O
+                               /     \	
+                              /       \
+                             /         \ 
+                            /           \
+
+
+		    yapi2TTL  rdwrthreshold    TTL2yapi
+		      O----------->O<-----------O
+                      |                         |		
+		      |                         |
+		       ----------->O<-----------
+			      boundedfifo
+
+
+ts, nt, and it will be passed directly to the constructor of the
+bounded fifo.
+Also the user can define his/her own function to be used in the
+yapi2TTL and TTL2yapi interface.
+
+----------------------------------------------------------------------
+

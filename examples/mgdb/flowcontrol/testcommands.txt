@@ -1,0 +1,115 @@
+# $Id: testcommands.txt,v 1.2 2004/09/09 18:13:54 allenh Exp $
+# mgdb commands for examples/mgdb/flowcontrol test
+# Author: Allen Hopkins
+#
+set pagination off
+set width 1000
+break Tests.mmm:43
+break Tests.mmm:51
+break Tests.mmm:64
+break Tests.mmm:75
+break Tests.mmm:92
+run
+printf ">>>>\n"
+printf "While-loop test:\n"
+next
+next
+next
+next
+next
+next
+next
+next
+next
+next
+next
+next
+next
+next
+next
+printf "Do-loop test:\n"
+next
+next
+next
+next
+next
+next
+next
+next
+next
+next
+next
+next
+next
+next
+printf "For-loop test:\n"
+next
+next
+next
+next
+next
+next
+next
+next
+next
+next
+next
+next
+next
+next
+next
+next
+next
+next
+next
+next
+next
+next
+printf "Switch test:\n"
+next
+next
+next
+next
+next
+next
+next
+next
+next
+next
+next
+next
+next
+next
+next
+next
+next
+next
+next
+next
+next
+next
+next
+next
+next
+next
+next
+next
+next
+next
+next
+next
+next
+next
+next
+next
+next
+next
+next
+next
+next
+next
+next
+next
+next
+printf "<<<<\n"
+quit

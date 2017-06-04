@@ -1,0 +1,3 @@
+loc: t(Stimuli[i]) - t(Display[i-5]) <= 45
+annotation: event val t
+trace: "%s : %d at time %d"

@@ -1,0 +1,117 @@
+/* Node of the network
+
+Copyright (c) 2004-2005 The Regents of the University of California.
+All rights reserved.
+
+Permission is hereby granted, without written agreement and without
+license or royalty fees, to use, copy, modify, and distribute this
+software and its documentation for any purpose, provided that the
+above copyright notice and the following two paragraphs appear in all
+copies of this software and that appropriate acknowledgments are made
+to the research of the Metropolis group.
+
+IN NO EVENT SHALL THE UNIVERSITY OF CALIFORNIA BE LIABLE TO ANY PARTY
+FOR DIRECT, INDIRECT, SPECIAL, INCIDENTAL, OR CONSEQUENTIAL DAMAGES
+ARISING OUT OF THE USE OF THIS SOFTWARE AND ITS DOCUMENTATION, EVEN IF
+THE UNIVERSITY OF CALIFORNIA HAS BEEN ADVISED OF THE POSSIBILITY OF
+SUCH DAMAGE.
+
+THE UNIVERSITY OF CALIFORNIA SPECIFICALLY DISCLAIMS ANY WARRANTIES,
+INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. THE SOFTWARE
+PROVIDED HEREUNDER IS ON AN "AS IS" BASIS, AND THE UNIVERSITY OF
+CALIFORNIA HAS NO OBLIGATION TO PROVIDE MAINTENANCE, SUPPORT, UPDATES,
+ENHANCEMENTS, OR MODIFICATIONS.
+
+METROPOLIS_COPYRIGHT_VERSION_1
+COPYRIGHTENDKEY
+
+@ProposedRating yellow apinto@eecs.berkeley.edu
+
+*/
+
+package leaderelection;
+
+import metamodel.plt.polychronyscaled.*;
+
+//////////////////////////////////////////////////////////////////////////
+//// NetNode
+/** This precess represents a node in a network. If implements the
+ *  FloodMax distributed algorithm for leader election.
+
+ @author Alessandro Pinto
+ @version $Id: NetNode.mmm,v 1.13 2006/10/12 15:09:47 cxh Exp $
+*/
+
+process NetNode extends SynchProcess {
+
+    ////////////////////////////////////////////////////////////////////////////
+    ////////////////            Constructor                 ///////////////////
+
+    /**The constructor takes the node name, number of inputs and outputs,
+     * unique identifier, network diameter rate and priority. If calls
+     * constructor of the base class and sets some internal variables.*/
+
+    public NetNode(String _n,int nin, int nout,int uid,int diam,int clock,int p) {
+        super(_n,nin,nout,clock,p);
+        _uid = uid;
+        _diam = diam;
+        _maxuid = uid;
+        _isleader = false;
+    }
+
+    ////////////////////////////////////////////////////////////////////////////
+    ////////////////         Public Methods                 ////////////////////
+
+    /**Execute function implements the algorithm. If the number of iterations
+     * is less than the network diameter, then the current maximum identifier
+     * is posted to the output. Then a new maximum identifier is selected
+     * among the current inputs and the old maximum identifier. Finally if
+     * the number of iterations is equald to the network diameter the
+     * decision wether this process is the leader or not is taken.*/
+
+    public void execute() {
+        int i;
+        if (_rounds < _diam) {
+            for (i=0;i<_numberofoutput;i++) {
+                Post(i,new Integer(_maxuid));
+            };
+        };
+        for (i=0;i<_numberofinput;i++) {
+            if (isPresent(i)) {
+                if (((Integer)Value(i)).intValue() > _maxuid) {
+                    _maxuid = ((Integer)Value(i)).intValue();
+                };
+            };
+        };
+        if (_rounds == _diam) {
+            if (_maxuid == _uid) {
+                _isleader = true;
+                blackbox(SystemCSim)%%
+                    cout << "I am the leader with UID = " << _uid << endl;
+                sc_stop();
+                %%;
+            };
+        };
+    }
+
+
+    ///////////////////////////////////////////////////////////////////
+    ////                         private variables                 ////
+
+    /**A unique node identifier*/
+    int _uid;
+
+    /**The network diameter*/
+    int _diam;
+
+    /**An internal variable storing the maximum identifier
+     *seen until now*/
+    int _maxuid;
+
+    /**A falg indicating if this process is the network leader*/
+    boolean _isleader;
+
+
+
+}

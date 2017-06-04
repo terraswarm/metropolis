@@ -1,0 +1,105 @@
+/* The base class for math operations
+
+Metropolis: Design Environment for Heterogeneus Systems.
+
+Copyright (c) 1998-2005 The Regents of the University of California.
+All rights reserved.
+
+Permission is hereby granted, without written agreement and without
+license or royalty fees, to use, copy, modify, and distribute this
+software and its documentation for any purpose, provided that the
+above copyright notice and the following two paragraphs appear in all
+copies of this software and that appropriate acknowledgments are made
+to the research of the Metropolis group.
+
+IN NO EVENT SHALL THE UNIVERSITY OF CALIFORNIA BE LIABLE TO ANY PARTY
+FOR DIRECT, INDIRECT, SPECIAL, INCIDENTAL, OR CONSEQUENTIAL DAMAGES
+ARISING OUT OF THE USE OF THIS SOFTWARE AND ITS DOCUMENTATION, EVEN IF
+THE UNIVERSITY OF CALIFORNIA HAS BEEN ADVISED OF THE POSSIBILITY OF
+SUCH DAMAGE.
+
+THE UNIVERSITY OF CALIFORNIA SPECIFICALLY DISCLAIMS ANY WARRANTIES,
+INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. THE SOFTWARE
+PROVIDED HEREUNDER IS ON AN "AS IS" BASIS, AND THE UNIVERSITY OF
+CALIFORNIA HAS NO OBLIGATION TO PROVIDE MAINTENANCE, SUPPORT, UPDATES,
+ENHANCEMENTS, OR MODIFICATIONS.
+
+METROPOLIS_COPYRIGHT_VERSION_1
+COPYRIGHTENDKEY
+
+*/
+
+package metamodel.lang;
+
+blackbox(SystemCSim)%%
+#include <math.h>
+%%;
+
+public final class Math extends Object {
+    public static final double E = 2.71828182845904523536028747135266249775724709369995;
+    public static final double PI = 3.14159265358979323846264338327950288419716939937510;
+
+    public static double cos(double a) {
+        double r = 0;
+
+        blackbox(SystemCSim)%%
+            r = (double) ::cos(a);
+        %%;
+        return r;
+    }
+
+    public static double exp(double a) {
+        double r = 0;
+
+        blackbox(SystemCSim)%%
+            r = (double) ::exp(a);
+        %%;
+        return r;
+    }
+
+    public static double log(double a) {
+        double r = 0;
+
+        blackbox(SystemCSim)%%
+            r = (double) ::log(a);
+        %%;
+        return r;
+    }
+
+    public static double pow(double a, double b) {
+        double r = 0;
+
+        blackbox(SystemCSim)%%
+            r = (double) ::pow(a, b);
+        %%;
+        return r;
+    }
+
+    public static double sin(double a) {
+        double r = 0;
+
+        blackbox(SystemCSim)%%
+            r = (double) ::sin(a);
+        %%;
+        return r;
+    }
+
+    public static double sqrt(double a) {
+        double r = 0;
+
+        blackbox(SystemCSim)%%
+            r = (double) ::sqrt(a);
+        %%;
+        return r;
+    }
+
+    public static double tan(double a) {
+        double r = 0;
+
+        blackbox(SystemCSim)%%
+            r = (double) ::tan(a);
+        %%;
+        return r;
+    }
+}

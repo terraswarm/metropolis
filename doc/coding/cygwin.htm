@@ -1,0 +1,285 @@
+<!-- $Id: cygwin.htm,v 1.13 2005/02/15 01:10:37 cxh Exp $ -->
+<html>
+<head>
+<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=iso-8859-1">
+<title>Compiling Metropolis with Cygwin</title>
+</head>
+<body>
+<H1>Compiling Metropolis with Cygwin</H1>
+
+Metropolis can be use with Cygwin and SystemC-2.1.
+
+>p>At this time, we do not recommend running Metropolis models under
+Cygwin with SystemC-2.0.1, but Cygwin with SystemC-2.0.1 can be used
+to generate the code that is compiled under Microsoft Visual C.
+
+
+ <p>Note that many of the SystemC-2.0.1 regression tests fail under Cygwin.
+<menu>
+<li> <a href="http://www.systemc.org/forum/forum.php?thread_id=1125&forum_id=15"><CODE>http://www.systemc.org/forum/forum.php?thread_id=1125&forum_id=15</CODE></a> - Cygwin port of SCV and TBSC
+</menu>
+
+<h2>SystemC-2.1 Under Cygwin</h2>
+SystemC-2.1 can be built using pthreads
+by running <code>make pthreads</code>.
+
+<h3>Installation</h3>
+<ol>
+<li>Obtain SystemC-2.1 from
+<a href="http://www.systemc.org" target="_top"><code>http://www.systemc.org</code></a>
+<br>In January, 2005, we downloaded 
+<CODE>SystemC_2.1_oct_12_2004.tgz</CODE>
+which created a <code>systemc_2_1.oct_12_2004.eta</code>
+directory.
+<li> Follow the instructions in the SystemC-2.1 
+<code>INSTALL</code> file.
+<pre>
+cd systemc_2_1.oct_12_2004.beta
+mkdir objdir
+cd objdir
+export CXX=g++
+../configure
+make pthreads
+make install
+</pre>
+</ol>
+Then follow the installation instructions in 
+<code>$METRO/README.txt</code>
+
+<h3>Tests</h3>
+
+Run the SystemC examples with:
+<pre>
+cd systemc_2_1.oct_12_2004.beta/objdir/examples
+make check
+</pre>
+
+
+<h2>SystemC Regression tests Under Cygwin </h2>
+To compile Metropolis, it is <b>not</b> 
+necessary to run the SystemC regression test.  
+<p>However, you may want to run the SystemC regression test
+to verify your SystemC installation.  Note that running
+the SystemC regression test may take a few hours.
+
+<ol>
+<li> Download <CODE>SystemC_2_1_tests.oct_12_2004.tgz</CODE> from
+<a href="http://www.systemc.org">http://www.systemc.org</a>
+and untar it
+<li> Edit <CODE>regtests-2.1beta11/scripts/verify.pl</CODE> 
+and change the Cygwin version check line to
+<pre>
+    } elsif ($uname_s eq "CYGWIN_NT-5.1" ) {
+</pre>
+
+<li> Set <CODE>SYSTEMC_HOME</CODE> to point to your 
+<CODE>systemc-2.1</CODE> directory.  I did:
+<pre>
+export SYSTEMC_HOME=c:/cxh/src/systemc_2_1.oct_12_2004.beta
+</pre>
+
+<li> Run a test with
+<pre>
+c:/cxh/src/systemc_2_1.oct_12_2004.tests/scripts/verify.pl fx
+</pre>
+
+<li> To run all the tests, in theory 
+<pre>
+c:/cxh/src/regtests-2.1beta11/scripts/verify.pl systemc
+
+</pre>
+will do it; but for us, that ran only one test.  The problem
+seems to be that the cleanup Perl function is removing each test
+directory  and then the rmdir command is failing.  Thus,
+each time we run the above command, the number of
+remaining tests goes down by one.
+ <p>To skip cleaning up, run:
+<pre>
+c:/cxh/src/regtests-2.1beta11/scripts/verify.pl -no-cleanup -v systemc
+</pre>
+
+In fx, the 3 of 7 tests failed.  The tests were:
+<pre>
+                diff                : systemc/datatypes/fx/constructors/files.f
+                diff                : systemc/datatypes/fx/fast_constructors/test.f
+                diff                : systemc/datatypes/fx/fast_limits/test.f
+</pre>
+See below for a better description.
+
+<h3>SystemC-2.1beta11 regression test case failures</h3>
+10 of 682 tests failed:
+<ol>
+<li><pre>
+diff                : systemc/datatypes/fx/constructors/files.f
+</pre>
+<pre>
+1033c1033
+< b[1] : 4294934528 : 0x0ffff8000
+---
+> b[1] : 0 : 0x000000000
+1035c1035
+< b[2] : 4294934528 : 0x0ffff8000
+---
+> b[2] : 0 : 0x000000000
+1037c1037
+< b[3] : 4294934528 : 0x0ffff8000
+---
+> b[3] : 0 : 0x000000000
+</pre>
+
+<li><pre>
+diff                : systemc/datatypes/fx/fast_constructors/test.f
+</pre>
+<pre>
+1033c1033
+< b[1] : 4294934528 : 0x0ffff8000
+---
+> b[1] : 0 : 0x000000000
+1035c1035
+< b[2] : 4294934528 : 0x0ffff8000
+---
+> b[2] : 0 : 0x000000000
+1037c1037
+< b[3] : 4294934528 : 0x0ffff8000
+---
+> b[3] : 0 : 0x000000000
+</pre>
+
+<li><pre>
+diff                : systemc/datatypes/fx/fast_limits/test.f
+</pre>
+<pre>
+1567c1567
+< long_min / double_max : 0x.8e-248
+---
+> long_min / double_max : 0x.f7ffffffffffff8e-247
+1941c1941
+< int_min / double_max : 0x.8e-248
+---
+> int_min / double_max : 0x.f7ffffffffffff8e-247
+</pre>
+
+
+<li><pre>
+diff                : systemc/kernel/dynamic_processes/test01/test01.cpp
+</pre>
+< Error: (E519) wait() is only allowed in SC_THREADs and SC_CTHREADs: 
+<         in SC_METHODs use next_trigger() instead
+< In file: <removed by verify.pl>
+---
+> 260 ns: Top1.main_0.thread_p_11: void_function sees 1.2345
+> 
+> 260 ns: Top1.main_0.thread_p_12: ref_function sees 9.8765
+> Returned int is 9
+> 
+> Done.
+</pre>
+
+<li><pre>
+running               : systemc/kernel/sc_module/test10/test10.cpp</pre>
+</pre>
+hangs
+<pre>
+
+             SystemC 2.1beta11 --- Jan  5 2005 16:32:33
+        Copyright (c) 1996-2004 by all Contributors
+                    ALL RIGHTS RESERVED
+SystemC Simulation
+</pre>
+
+<li><pre>
+diff                : systemc/misc/sim_tests/biquad/biquad1/biquad1.f
+diff                : systemc/misc/sim_tests/biquad/biquad3/biquad3.f
+diff                : systemc/misc/user_guide/chpt4.1/chpt4.1.f
+diff                : systemc/misc/user_guide/chpt4.2/chpt4.2.f
+diff                : systemc/misc/user_guide/chpt4.4/chpt4.4.f
+</pre>
+Rounding errors in the last decimal place, for example:
+<pre>
+< Result = 6570959918.812002
+---
+> Result = 6570959918.812003
+</pre>
+</ol>
+
+
+<h3>SystemC-2.0.1 regression test case failures</h3>
+
+As of 2/04, with Systemc-2.01, 81 tests fail, 557 pass.
+ <p>Some of the failures are overflow errors, and are not that
+big a problem
+ <p>However, some of the failures are because we got
+an <CODE>UNKNOWN EXCEPTION OCURRED</CODE> message
+
+ <p>For example <CODE>systemc/kernel/watching/test01/test01.log</CODE>
+says:
+
+<pre>
+-------------------------------------------------------------------------------
+  diff failed on 'systemc/kernel/watching/test01/test01.log'
+-------------------------------------------------------------------------------
+24,25c24,101
+&lt; 
+&lt; UNKNOWN EXCEPTION OCCURED
+---
+&gt; main_action
+&gt; 1
+&gt; 2
+&gt; 3
+&gt; 4
+&gt; 5
+&gt; 6
+</pre>
+
+Running the binary yields the following:
+<pre>
+bash-2.05b$ cd ~/src/regtests-2.0.1/systemc/kernel/watching/test01
+bash-2.05b$ ls
+systemc.exe
+test01
+test01.diff
+test01.log
+test01.log.stripped
+test01.o
+bash-2.05b$ ./systemc.exe
+
+             SystemC 2.0.1 --- Nov 13 2003 15:15:26
+        Copyright (c) 1996-2004 by all Contributors
+                    ALL RIGHTS RESERVED
+main_action
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+
+UNKNOWN EXCEPTION OCCURED
+bash-2.05b$ 
+</pre>
+
+The error message occurs at:
+systemc-2.0.1/src/systemc/kernel/sc_main.cpp:
+<pre>
+	      message_function( "UNKNOWN EXCEPTION OCCURED" );
+</pre>
+
+
+
+</body>
+</html>

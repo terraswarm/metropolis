@@ -1,0 +1,314 @@
+/*
+
+Copyright (c) 2004-2005 The Regents of the University of California.
+All rights reserved.
+
+Permission is hereby granted, without written agreement and without
+license or royalty fees, to use, copy, modify, and distribute this
+software and its documentation for any purpose, provided that the
+above copyright notice and the following two paragraphs appear in all
+copies of this software and that appropriate acknowledgments are made
+to the research of the Metropolis group.
+
+IN NO EVENT SHALL THE UNIVERSITY OF CALIFORNIA BE LIABLE TO ANY PARTY
+FOR DIRECT, INDIRECT, SPECIAL, INCIDENTAL, OR CONSEQUENTIAL DAMAGES
+ARISING OUT OF THE USE OF THIS SOFTWARE AND ITS DOCUMENTATION, EVEN IF
+THE UNIVERSITY OF CALIFORNIA HAS BEEN ADVISED OF THE POSSIBILITY OF
+SUCH DAMAGE.
+
+THE UNIVERSITY OF CALIFORNIA SPECIFICALLY DISCLAIMS ANY WARRANTIES,
+INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. THE SOFTWARE
+PROVIDED HEREUNDER IS ON AN "AS IS" BASIS, AND THE UNIVERSITY OF
+CALIFORNIA HAS NO OBLIGATION TO PROVIDE MAINTENANCE, SUPPORT, UPDATES,
+ENHANCEMENTS, OR MODIFICATIONS.
+
+METROPOLIS_COPYRIGHT_VERSION_1
+COPYRIGHTENDKEY
+
+*/
+
+package pip.architecture.simple;
+
+class ProcessAccount
+{
+    HashMap _ProcessID_To_ProcessRecord;
+    HashMap RequestEvents;
+    ArrayList _DUMMYLIST_; // For iterating HashMap
+
+    ProcessAccount()
+    {
+        _ProcessID_To_ProcessRecord = new HashMap();
+        RequestEvents = new HashMap();
+        _DUMMYLIST_ = new ArrayList();
+    }
+
+    void clear()
+    {
+        _ProcessID_To_ProcessRecord.clear();
+        RequestEvents.clear();
+        _DUMMYLIST_.clear();
+    }
+
+    void addToProcessAccount(event e, SchedReqClass rc)
+    {
+        if (rc.getOwnerID()!= null) {
+            if (_ProcessID_To_ProcessRecord.get(rc.getOwnerID()) == null)
+                {
+                    blackbox(SystemCSim)%%
+                        %%;
+                    ProcessRecord _ProcessRecord = new ProcessRecord(rc.getOwnerID());
+                    _ProcessRecord.setRequest((SchedReqClass)rc);
+                    _ProcessID_To_ProcessRecord.put(rc.getOwnerID(), _ProcessRecord);
+                    _DUMMYLIST_.add((Object)rc.getOwnerID());
+                    RequestEvents.put((Object)e, (Object)rc.getOwnerID());
+                }
+            else
+                {
+                    ProcessRecord temp = (ProcessRecord)_ProcessID_To_ProcessRecord.get(rc.getOwnerID());
+                    event etemp = (temp.getRequest()).getReqEvent();
+                    if ((etemp != e) || ((temp.getRequest()).getServiceID() != rc.getServiceID())) {
+                        blackbox(SystemCSim)%%
+                            %%;
+                        double cpuusage1 = temp.getCpuUsage_acc();
+                        blackbox(SystemCSim)%%
+                            //cout << caller->name() << " used " << cpuusage1 << endl;
+                            %%;
+
+                        temp.setCpuUsage(0);
+                        RequestEvents.remove((Object)etemp);
+                        temp.setRequest((SchedReqClass)rc);
+                        RequestEvents.put((Object)e, (Object)rc.getOwnerID());
+                    }
+                    else {
+                        blackbox(SystemCSim)%%
+                            //cout << "its the same " << e << " vs. " << etemp << endl;
+                            %%;
+                    }
+                }
+        }
+    }
+
+    void removeFromProcessAccount(event e)
+    {
+        process temp = RequestEvents.get((Object)e);
+        _ProcessID_To_ProcessRecord.remove((Object)temp);
+        RequestEvents.remove((Object)e);
+        int index = _DUMMYLIST_.indexOf((Object)temp);
+        _DUMMYLIST_.remove(index);
+    }
+
+    int size()
+    {
+        return _ProcessID_To_ProcessRecord.size();
+    }
+
+    void updatePriorities()
+    {
+        int i=0;
+        while ( i < _DUMMYLIST_.size())
+            {
+                ProcessRecord _ProcessRecord = _ProcessID_To_ProcessRecord.get((Object)_DUMMYLIST_.get(i));
+                _ProcessRecord.setDynamicPriority(
+                        _ProcessRecord.getCpuUsage_acc()/2 + _ProcessRecord.getBasePriority());
+                i++;
+            }
+    }
+
+    SchedReqClass getHighestPriorityReleaseRequest()
+    {
+        int highest_priority = -1000;
+        ArrayList selected_proc_list = new ArrayList();
+        process selected_process;
+        ProcessRecord _ProcessRecord;
+        int i;
+        selected_process = null;
+        i = 0;
+        if (_ProcessID_To_ProcessRecord.size() <= 0 )
+            {
+                return null;
+            }
+        else
+            {
+                while (i < _ProcessID_To_ProcessRecord.size())
+                    {
+                        _ProcessRecord = (ProcessRecord) _ProcessID_To_ProcessRecord.get(_DUMMYLIST_.get(i));
+                        if (((SchedReqClass)_ProcessRecord.getRequest()).isRelease() )
+                            {
+                                highest_priority = _ProcessRecord.getDynamicPriority();
+                                selected_proc_list.add((Object)_ProcessRecord.getProcessID());
+                            }
+                        i++;
+                    }
+                if (highest_priority==-1000)
+                    {
+                        return null;
+                    }
+
+                while (i < _ProcessID_To_ProcessRecord.size())
+                    {
+                        _ProcessRecord = (ProcessRecord) _ProcessID_To_ProcessRecord.get(_DUMMYLIST_.get(i));
+                        if (((SchedReqClass)_ProcessRecord.getRequest()).isRelease() )
+                            {
+                                if (_ProcessRecord.getDynamicPriority() < highest_priority)
+                                    {
+                                        selected_proc_list.clear();
+                                        selected_proc_list.add((Object)_ProcessRecord.getProcessID());
+                                        highest_priority = _ProcessRecord.getDynamicPriority();
+                                    }
+                                else if (_ProcessRecord.getDynamicPriority() == highest_priority)
+                                    {
+                                        selected_proc_list.add((Object)_ProcessRecord.getProcessID());
+                                    }
+                            }
+                        i++;
+                    }
+
+                if (selected_proc_list.size() >= 1)
+                    {
+                        double least_cpu_usage=-1000;
+                        int count=0;
+                        selected_process = selected_proc_list.get(count);;
+                        least_cpu_usage =
+                            ((ProcessRecord)_ProcessID_To_ProcessRecord.get((Object)selected_process)).getCpuUsage_acc();
+                        count++;
+                        while (count < selected_proc_list.size())
+                            {
+                                process selected_process_temp = selected_proc_list.get(count);
+                                _ProcessRecord =
+                                    (ProcessRecord)_ProcessID_To_ProcessRecord.get((Object)selected_process_temp);
+
+                                if (_ProcessRecord.getCpuUsage_acc() <= least_cpu_usage  )
+                                    {
+                                        selected_process = selected_process_temp;
+                                    }
+                                count++;
+                            }
+                    }
+                else
+                    {
+                        blackbox(SystemCSim)%%
+                            cout << "Alas! Selected_proc_list <= 0" << endl;
+                        exit(1);
+                        %%;
+                    }
+
+                SchedReqClass temp_req = ((ProcessRecord)_ProcessID_To_ProcessRecord.get((Object)selected_process)).getRequest();
+                return temp_req;
+            }
+    }
+
+    SchedReqClass getHighestPriorityRequest()
+    {
+        int highest_priority = -1000;
+        ArrayList selected_proc_list = new ArrayList();
+        process selected_process;
+        ProcessRecord _ProcessRecord;
+        int i;
+
+        i = 0;
+        selected_process = null;
+        int temp = _ProcessID_To_ProcessRecord.size();
+
+        blackbox(SystemCSim)%%
+            //cout << "ProcessIDToProcessRecord size is :- " << temp << endl;
+            %%;
+
+        if (_ProcessID_To_ProcessRecord.size() <= 0 )
+            {
+                return null;
+            }
+        else
+            {
+
+                //while (i < _ProcessID_To_ProcessRecord.size())
+                //{
+                _ProcessRecord = (ProcessRecord) _ProcessID_To_ProcessRecord.get(_DUMMYLIST_.get(i));
+                if (!((SchedReqClass)_ProcessRecord.getRequest()).isRelease() )
+                    {
+                        highest_priority = _ProcessRecord.getDynamicPriority();
+                        selected_proc_list.add((Object)_ProcessRecord.getProcessID());
+                    }
+                i++;
+                //}
+
+                if (highest_priority==-1000)
+                    {
+                        return null;
+                    }
+
+                while (i < _ProcessID_To_ProcessRecord.size())
+                    {
+                        _ProcessRecord = (ProcessRecord) _ProcessID_To_ProcessRecord.get(_DUMMYLIST_.get(i));
+                        if (!((SchedReqClass)_ProcessRecord.getRequest()).isRelease() )
+                            {
+                                if (_ProcessRecord.getDynamicPriority() < highest_priority)
+                                    {
+                                        selected_proc_list.clear();
+                                        selected_proc_list.add((Object)_ProcessRecord.getProcessID());
+                                        highest_priority = _ProcessRecord.getDynamicPriority();
+                                    }
+                                else if (_ProcessRecord.getDynamicPriority() == highest_priority)
+                                    {
+                                        selected_proc_list.add((Object)_ProcessRecord.getProcessID());
+                                    }
+                            }
+                        i++;
+                    }
+
+                if (selected_proc_list.size() >= 1)
+                    {
+                        double least_cpu_usage=-1000;
+                        int count=0;
+                        selected_process = selected_proc_list.get(count);
+                        least_cpu_usage =
+                            ((ProcessRecord)_ProcessID_To_ProcessRecord.get(selected_process)).getCpuUsage_acc();
+                        count++;
+                        //count = selected_proc_list.size();
+                        blackbox(SystemCSim) %%
+                            //cout << "Selected process size = " << count << endl;
+                            %%;
+
+                        while (count < selected_proc_list.size())
+                            {
+                                process selected_process_temp = selected_proc_list.get(count);
+                                _ProcessRecord =
+                                    (ProcessRecord)_ProcessID_To_ProcessRecord.get(selected_process_temp);
+
+                                if (_ProcessRecord.getCpuUsage_acc() <= least_cpu_usage  )
+                                    {
+                                        selected_process = selected_process_temp;
+                                    }
+                                count++;
+                            }
+
+                    }
+                else
+                    {
+                        blackbox(SystemCSim)%%
+                            cout << "Alas2! Selected_proc_list <= 0" << endl;
+                        exit(1);
+                        %%;
+                    }
+
+                SchedReqClass temp_req = ((ProcessRecord)_ProcessID_To_ProcessRecord.get((Object)selected_process)).getRequest();
+                return temp_req;
+            }
+    }
+
+    void setCpuUsage(process _pID, double _CpuUsage)
+    {
+        ((ProcessRecord)_ProcessID_To_ProcessRecord.get((Object)_pID)).setCpuUsage(_CpuUsage);
+    }
+
+    void rollbackCpuUsage(process _pID, double _CpuUsage)
+    {
+        ((ProcessRecord)_ProcessID_To_ProcessRecord.get((Object)_pID)).rollbackCpuUsage(_CpuUsage);
+    }
+    double getCpuUsage(process _pID)
+    {
+        double cpuUsage;
+        cpuUsage = ((ProcessRecord)_ProcessID_To_ProcessRecord.get((Object)_pID)).getCpuUsage();
+        return cpuUsage;
+    }
+}

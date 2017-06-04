@@ -1,0 +1,26 @@
+#define p	(vByteM_bytem0_write == true)
+#define q	(vByteM_bytem0_n == 0)
+
+	/*
+	 * Formula As Typed: []  ( p  ->  q )
+	 * The Never Claim Below Corresponds
+	 * To The Negated Formula !([]  ( p  ->  q ))
+	 * (formalizing violations of the original)
+	 */
+
+never {    /* !([]  ( p  ->  q )) */
+T0_init:
+	if
+	:: (! ((q)) && (p)) -> goto accept_all
+	:: (1) -> goto T0_init
+	fi;
+accept_all:
+	skip
+}
+
+#ifdef NOTES
+Use Load to open a file or a template.
+#endif
+#ifdef RESULT
+
+#endif

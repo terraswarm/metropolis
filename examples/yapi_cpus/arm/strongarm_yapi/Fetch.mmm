@@ -1,0 +1,345 @@
+/*
+  @Copyright (c) 2004-2005 The Regents of the University of California.
+  All rights reserved.
+
+  Permission is hereby granted, without written agreement and without
+  license or royalty fees, to use, copy, modify, and distribute this
+  software and its documentation for any purpose, provided that the
+  above copyright notice and the following two paragraphs appear in all
+  copies of this software and that appropriate acknowledgments are made
+  to the research of the Metropolis group.
+
+  IN NO EVENT SHALL THE UNIVERSITY OF CALIFORNIA BE LIABLE TO ANY PARTY
+  FOR DIRECT, INDIRECT, SPECIAL, INCIDENTAL, OR CONSEQUENTIAL DAMAGES
+  ARISING OUT OF THE USE OF THIS SOFTWARE AND ITS DOCUMENTATION, EVEN IF
+  THE UNIVERSITY OF CALIFORNIA HAS BEEN ADVISED OF THE POSSIBILITY OF
+  SUCH DAMAGE.
+
+  THE UNIVERSITY OF CALIFORNIA SPECIFICALLY DISCLAIMS ANY WARRANTIES,
+  INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+  MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. THE SOFTWARE
+  PROVIDED HEREUNDER IS ON AN "AS IS" BASIS, AND THE UNIVERSITY OF
+  CALIFORNIA HAS NO OBLIGATION TO PROVIDE MAINTENANCE, SUPPORT, UPDATES,
+  ENHANCEMENTS, OR MODIFICATIONS.
+
+  METROPOLIS_COPYRIGHT_VERSION_1
+  COPYRIGHTENDKEY
+*/
+import metamodel.plt.yapitemplate.*;
+
+blackbox(SystemCSim)%%
+// include file for inputing the trace
+#include "tracesim.h"
+#include "argsutil.h"
+%%;
+
+// AUTHOR: Trevor Meyerowitz (tcm@eecs.berkeley.edu)
+//
+// OVERVIEW:
+// Fetch unit for microarchitectural models, reads in program
+// exectuion trace file.
+// Models issue delays, pipeline delays between fetch and exec,
+// and branch prediction
+
+// NOTES:
+//  3. multiplier logic (variable latency, maybe have non-det. here)
+//     - resource constraints for multiplier, value dependent execution
+//     - currently fixed length delay
+//  4. inter-instruction dependendencies for execution times
+//     - what to put here?? Keep track of current AND prev. inst?
+//  5. Currently doesn't use target addresses in BTB
+
+process Fetch extends yapiprocess-<Instruction;Instruction;Instruction;Instruction>- {
+    // PORTS
+    ////////////////////////////////////
+
+    // Port that the fetched instruction is written to
+    port yapioutinterface-<Instruction>- FetchedInstruction;
+
+    // Port from execution unit indicating an operand stall
+    port yapiininterface-<yapiint>- DoStall;
+
+    // Port to execution unit to pass it the number of instructions in
+    // the trace
+    port yapioutinterface-<yapiint>- DoConfig;
+
+
+    // PARAMETERS
+    ///////////////////////////////////////
+    parameter int ExecutionPipelineDepth;
+    parameter boolean DO_PREDICTION; // do branch prediction
+    parameter boolean REAL_BTB; // use real (or simulated) BTB
+
+
+    // INTERNAL VARIABLES
+    int PC, OP_F, IW_F; // program counter, instruction type, instruction word
+    boolean op_stall;   // stall from execution unit
+    int issue_stall;    // issue stall for branches + other instructions
+    int inst_num;       // the number of the instruction
+    boolean inst_executes; // status of if instruction executes
+
+
+    // STATISTIC VARIABLES
+    int CYCLE_COUNT, NUM_STALLS, NUM_BRANCHES, NUM_MISPREDICTS;
+    int num_inst_in_trace;
+
+    // VARIABLES to track the current instruction + state
+    boolean has_selected_inst;
+    Instruction selected_inst, bubble_inst;
+
+    // Branch prediction variables
+    boolean prediction;
+    private static final int BTB_SIZE = 128;
+    BTB_Entry[] BTB;
+
+    // the trace list
+    // FIXME: Can't have trailing semicolon after %% here, or we get:
+    // "Syntax error"
+    blackbox(SystemCSim)%%
+        TraceList *tl;
+    CTraceInst *tinst;
+    %%//;
+
+
+        // Contructor for doing configuration
+        Fetch(String n, int PD, boolean predict, boolean real_btb) {
+            super(n);
+            ExecutionPipelineDepth=PD;
+            DO_PREDICTION = predict;
+            REAL_BTB = real_btb;
+
+            inst_num=0;
+            IW_F=0;
+            CYCLE_COUNT=0;
+            NUM_STALLS=0;
+            NUM_BRANCHES=NUM_MISPREDICTS=0;
+            op_stall = false;
+            issue_stall = 0;
+            num_inst_in_trace=0;
+            has_selected_inst = false;
+
+            // initialize branch_target buffer
+            BTB = new BTB_Entry[BTB_SIZE];
+            for (int i=0; i<BTB_SIZE; i++)
+                BTB[i] = new BTB_Entry();
+        }
+
+        // Main execution code
+        public void execute() {
+            // Initialize an empty instruction for writing bubbles to Exec
+            bubble_inst = new Instruction();
+
+            // initialize the pipeline w/ bubbles
+            for (int x=0;x<ExecutionPipelineDepth;x++) {
+                FetchedInstruction.write(bubble_inst);
+            }
+
+
+
+            // load in the instruction trace
+            blackbox(SystemCSim)%%
+                if (getArgc() <= 1) {
+                    tl=new TraceList("trace.txt");
+                }
+                else {
+                    cout << "TRACE FILE IS:" << getArgv(1) << endl;
+                    tl=new TraceList(getArgv(1));
+                }
+            num_inst_in_trace = tl->getSize();
+            %%;
+
+            // send the number of messages to the execute process
+            yapiint tempint = new yapiint(num_inst_in_trace);
+            DoConfig.write(tempint);
+            blackbox(SystemCSim)%%delete tempint;%%
+
+                // Main execution loop
+                while (true) {
+                    blackbox(SystemCSim)%%
+#ifdef CPU_DEBUG
+                        cout << "### FETCH Cycle:" << CYCLE_COUNT << "###\n";
+#endif
+                    %%;
+
+                    fetch_inst();
+
+                    if (!op_stall)
+                        dispatch_inst();
+
+                    next_pc();
+                }
+        }
+
+        // If not stalled read instruction from the trace, determine stall state
+        private void fetch_inst() {
+
+            // Check Stall for operands
+            blackbox(SystemCSim)%%
+#ifdef CPU_DEBUG
+                cout << "DoStall.readint()\n";
+#endif
+            %%;
+            yapiint temp = DoStall.read();
+            op_stall = (temp.d > 0);
+            blackbox(SystemCSim)%% delete temp; // cleanup %%
+
+            // for normal operation we dispatch new instructions
+            // for issue/branch stalls we have bubbles
+            // for operation stalls we don't issue anything
+            if (!op_stall) {
+                if ( !has_selected_inst ) {
+                    // Get the next instruction in the trace
+                    if (inst_num < num_inst_in_trace) {
+                        selected_inst = getInst(inst_num);
+                        has_selected_inst = true;
+                        if (selected_inst.isBranch()) {
+                            NUM_BRANCHES++;
+                            branch_pred();
+                        }
+                        blackbox(SystemCSim)%%
+                            issue_stall += tinst->getExtraIssueCycles();
+#ifdef CPU_DEBUG
+                        cout << "Issue stall: " << issue_stall << endl;
+#endif
+                        %%;
+                    }
+                }
+            }
+        }
+
+        // If not stalled write out the proper instruction (or bubble)
+        private void dispatch_inst() {
+            if ((issue_stall == 0)) {
+                if (inst_num < num_inst_in_trace) {
+                    FetchedInstruction.write(selected_inst);
+                    has_selected_inst = false;
+                    blackbox(SystemCSim) %%
+                        delete selected_inst;
+                    %%;
+                }
+                else { // to prevent deadlocking
+                    FetchedInstruction.write(bubble_inst);
+                }
+
+            }
+            else {
+                if (inst_num <= num_inst_in_trace) {
+                    FetchedInstruction.write(bubble_inst);
+                }
+            }
+
+        }
+
+        // Calculate the next program counter, and update stall information
+        private void next_pc() {
+            // Stall Information
+            if (!op_stall && (issue_stall == 0) ) {
+                inst_num++;
+                blackbox(SystemCSim)%%
+#ifdef CPU_DEBUG
+                    cout << "Inst_num:" << inst_num << " Size:" <<
+                    tl->getSize() << endl;
+#endif
+                if (inst_num >= tl->getSize()) {
+                    // Print out exit information if done
+                    cout << "Fetch--- Cycles: " << CYCLE_COUNT << " Stalls:" <<
+                        NUM_STALLS << "\n";
+                    cout << "Fetch--- Branches: " << NUM_BRANCHES << " Mispredicts:" <<
+                        NUM_MISPREDICTS << "\n\n";
+                }
+                %%;
+            }else {
+                // count a stall!
+                NUM_STALLS++;
+                // update issue stalls
+                if (issue_stall > 0) {
+                    issue_stall--;
+                }
+            }
+
+            // cycle counting
+            CYCLE_COUNT++;
+        }
+
+
+        // returns an instruction from the instruction trace, OR,
+        // returns a bubble instruction if the trace is finished
+        private Instruction getInst(int inum) {
+            int PC=0;
+            int OP_F=0;
+            int IW_F=0;
+
+            boolean inst_executes=false;
+
+            if (inst_num < num_inst_in_trace) {
+                blackbox(SystemCSim)%%
+                    tinst = tl->getInst(inum);
+#ifdef CPU_DEBUG
+                cout << "\nFetched Instruction:\n";
+                tinst->print();
+                cout << endl;
+#endif
+                PC = tinst->getPC();
+                IW_F = tinst->getInst();
+                OP_F = tinst->getInstType();
+                inst_executes = tinst->executes();
+                %%;
+                return new Instruction(inum, PC, IW_F, inst_executes);
+            } else {
+                return new Instruction();
+            }
+        }
+
+
+        // handle the branch prediction, specific to the xscale
+        // (the strongarm model overwrites this)
+        private void branch_pred() {
+            if (DO_PREDICTION == false) {
+                selected_inst.has_prediction = false;
+                selected_inst.predict_taken = false;
+                if (selected_inst.executes)
+                    issue_stall=ExecutionPipelineDepth-1; // Or mispredict penalty?
+            } else {
+                selected_inst.has_prediction = true;
+                selected_inst.predict_taken = do_prediction();
+                if ( (selected_inst.executes ^ selected_inst.predict_taken)
+                        | (selected_inst.in_btb==false) ) {
+                    issue_stall = ExecutionPipelineDepth; // Or mispredict penalty?
+                    // Should penalty handled on the execute side if a mispredict?
+                }
+            }
+        }
+
+        // returns a branch-prediction, either from BTB or predict-taken
+        private boolean do_prediction() {
+            if ( REAL_BTB ) {
+                int btb_addr = getBTBAddr(selected_inst.PC);
+
+                selected_inst.in_btb = BTB[btb_addr].sameAddress(selected_inst.PC);
+                if (!selected_inst.in_btb) {
+                    BTB[btb_addr].setValues(selected_inst.PC, 0);
+                }
+                boolean prediction = BTB[btb_addr].getPrediction();
+                BTB[btb_addr].updateState(selected_inst.executes);
+                return prediction;
+                //loaded_btb = 0;
+                //return true;
+            } else {
+                return true;
+            }
+        }
+
+        // Get the appropriate branch target buffer address for the prediction
+        private int getBTBAddr(int inst_addr) {
+            int temp_addr = inst_addr;
+            temp_addr = temp_addr & 0x1FC;
+            temp_addr = temp_addr >> 2;
+            blackbox(SystemCSim)%%
+#ifdef CPU_DEBUG
+                printf("GET BTB ADDR: 0x%08X (inst_addr:0x%08X)\n",
+                        temp_addr, inst_addr);
+#endif
+            %%;
+            return temp_addr;
+        }
+}

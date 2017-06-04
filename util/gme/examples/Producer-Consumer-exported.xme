@@ -1,0 +1,265 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE project SYSTEM "mga.dtd">
+
+<project guid="{27001575-3417-4C5D-8AA1-E46CEC96B746}" cdate="Thu Apr 07 15:38:12 2005" mdate="Thu Apr 07 15:38:12 2005" version="" metaguid="{DAA71A00-D2CB-4C88-9A4B-736D47C396E2}" metaversion="" metaname="Metropolis">
+	<name>Root Folder</name>
+	<comment></comment>
+	<author></author>
+	<folder id="id-006a-00000001" relid="0x1" childrelidcntr="0x2" kind="RootFolder">
+		<name>Root Folder</name>
+		<folder id="id-006a-00000002" relid="0x2" childrelidcntr="0x2" kind="Repositories">
+			<name>NewRepositories</name>
+			<model id="id-0065-00000001" kind="InterfaceRepository" relid="0x1" childrelidcntr="0x9">
+				<name>NewInterfaces</name>
+				<atom id="id-0066-00000001" kind="Interface" role="Interface" relid="0x1">
+					<name>Reader</name>
+					<regnode name="PartRegs" isopaque="yes">
+						<value></value>
+						<regnode name="Aspect" isopaque="yes">
+							<value></value>
+							<regnode name="Position" isopaque="yes">
+								<value>695,121</value>
+							</regnode>
+						</regnode>
+						<regnode name="InterfaceAspect">
+							<value></value>
+							<regnode name="Position" isopaque="yes">
+								<value>66,51</value>
+							</regnode>
+						</regnode>
+					</regnode>
+					<regnode name="namePosition" isopaque="yes">
+						<value>0</value>
+					</regnode>
+					<attribute kind="Functions">
+						<value>eval int read();</value>
+					</attribute>
+				</atom>
+				<atom id="id-0066-00000002" kind="Interface" role="Interface" relid="0x2">
+					<name>Writer</name>
+					<regnode name="PartRegs" isopaque="yes">
+						<value></value>
+						<regnode name="Aspect" isopaque="yes">
+							<value></value>
+							<regnode name="Position" isopaque="yes">
+								<value>737,303</value>
+							</regnode>
+						</regnode>
+						<regnode name="InterfaceAspect">
+							<value></value>
+							<regnode name="Position" isopaque="yes">
+								<value>290,51</value>
+							</regnode>
+						</regnode>
+					</regnode>
+					<regnode name="namePosition" isopaque="yes">
+						<value>0</value>
+					</regnode>
+					<attribute kind="Functions">
+						<value>update void write( int );</value>
+					</attribute>
+				</atom>
+				<atom id="id-0066-00000003" kind="Interface" role="Interface" relid="0x3">
+					<name>ShadowReader</name>
+					<regnode name="PartRegs" isopaque="yes">
+						<value></value>
+						<regnode name="Aspect" isopaque="yes">
+							<value></value>
+							<regnode name="Position" isopaque="yes">
+								<value>310,184</value>
+							</regnode>
+						</regnode>
+						<regnode name="InterfaceAspect">
+							<value></value>
+							<regnode name="Position" isopaque="yes">
+								<value>136,247</value>
+							</regnode>
+						</regnode>
+					</regnode>
+					<attribute kind="Functions">
+						<value>eval int readFromShadows();
+</value>
+					</attribute>
+				</atom>
+				<atom id="id-0066-00000004" kind="Interface" role="Interface" relid="0x5">
+					<name>ShadowWriter</name>
+					<regnode name="PartRegs" isopaque="yes">
+						<value></value>
+						<regnode name="Aspect" isopaque="yes">
+							<value></value>
+							<regnode name="Position" isopaque="yes">
+								<value>310,184</value>
+							</regnode>
+						</regnode>
+						<regnode name="InterfaceAspect">
+							<value></value>
+							<regnode name="Position" isopaque="yes">
+								<value>346,247</value>
+							</regnode>
+						</regnode>
+					</regnode>
+					<attribute kind="Functions">
+						<value>update void writeWithBlowtorch( int );</value>
+					</attribute>
+				</atom>
+				<connection id="id-0068-00000004" kind="InterfaceInheritance" role="InterfaceInheritance" relid="0x4">
+					<name>InterfaceInheritance</name>
+					<connpoint role="dst" target="id-0066-00000001"/>
+					<connpoint role="src" target="id-0066-00000003"/>
+				</connection>
+				<connection id="id-0068-00000005" kind="InterfaceInheritance" role="InterfaceInheritance" relid="0x6">
+					<name>InterfaceInheritance</name>
+					<connpoint role="dst" target="id-0066-00000002"/>
+					<connpoint role="src" target="id-0066-00000004"/>
+				</connection>
+			</model>
+			<model id="id-0065-00000007" kind="MediaRepository" relid="0x2" childrelidcntr="0x1">
+				<name>NewMediaRepository</name>
+				<model id="id-0065-00000008" kind="Media" role="Media" relid="0x1" childrelidcntr="0x2">
+					<name>Memory</name>
+					<regnode name="PartRegs">
+						<value></value>
+						<regnode name="MediaAspect">
+							<value></value>
+							<regnode name="Position" isopaque="yes">
+								<value>177,170</value>
+							</regnode>
+						</regnode>
+					</regnode>
+					<reference id="id-0067-00000007" kind="InterfaceRef" role="InterfaceRef" relid="0x1" referred="id-0066-00000002">
+						<name>Writer</name>
+						<regnode name="PartRegs">
+							<value></value>
+							<regnode name="NetList">
+								<value></value>
+								<regnode name="Position" isopaque="yes">
+									<value>836,135</value>
+								</regnode>
+							</regnode>
+						</regnode>
+					</reference>
+					<reference id="id-0067-00000008" kind="InterfaceRef" role="InterfaceRef" relid="0x2" referred="id-0066-00000001">
+						<name>Reader</name>
+						<regnode name="PartRegs">
+							<value></value>
+							<regnode name="NetList">
+								<value></value>
+								<regnode name="Position" isopaque="yes">
+									<value>787,296</value>
+								</regnode>
+							</regnode>
+						</regnode>
+					</reference>
+				</model>
+			</model>
+		</folder>
+		<model id="id-0065-00000002" kind="NetList" relid="0x1" childrelidcntr="0x11">
+			<name>NewNetList</name>
+			<model id="id-0065-00000004" kind="Process" role="Process" relid="0x2" childrelidcntr="0x3">
+				<name>Producer1</name>
+				<regnode name="PartRegs" isopaque="yes">
+					<value></value>
+					<regnode name="NetList" isopaque="yes">
+						<value></value>
+						<regnode name="Position" isopaque="yes">
+							<value>35,42</value>
+						</regnode>
+					</regnode>
+				</regnode>
+				<reference id="id-0067-00000003" kind="PortRef" role="PortRef" relid="0x2" referred="id-0066-00000002">
+					<name>Writer</name>
+					<regnode name="PartRegs" isopaque="yes">
+						<value></value>
+						<regnode name="NetList" isopaque="yes">
+							<value></value>
+							<regnode name="Position" isopaque="yes">
+								<value>843,254</value>
+							</regnode>
+						</regnode>
+					</regnode>
+				</reference>
+			</model>
+			<model id="id-0065-00000005" kind="Process" role="Process" relid="0x3" childrelidcntr="0x2">
+				<name>Producer2</name>
+				<regnode name="PartRegs" isopaque="yes">
+					<value></value>
+					<regnode name="NetList" isopaque="yes">
+						<value></value>
+						<regnode name="Position" isopaque="yes">
+							<value>357,42</value>
+						</regnode>
+					</regnode>
+				</regnode>
+				<reference id="id-0067-00000004" kind="PortRef" role="PortRef" relid="0x2" referred="id-0066-00000002">
+					<name>Writer</name>
+					<regnode name="PartRegs" isopaque="yes">
+						<value></value>
+						<regnode name="NetList" isopaque="yes">
+							<value></value>
+							<regnode name="Position" isopaque="yes">
+								<value>80,268</value>
+							</regnode>
+						</regnode>
+					</regnode>
+				</reference>
+			</model>
+			<model id="id-0065-00000006" kind="Process" role="Process" relid="0x4" childrelidcntr="0x2">
+				<name>Consumer</name>
+				<regnode name="PartRegs" isopaque="yes">
+					<value></value>
+					<regnode name="NetList" isopaque="yes">
+						<value></value>
+						<regnode name="Position" isopaque="yes">
+							<value>175,259</value>
+						</regnode>
+					</regnode>
+				</regnode>
+				<reference id="id-0067-00000005" kind="PortRef" role="PortRef" relid="0x2" referred="id-0066-00000001">
+					<name>Reader</name>
+					<regnode name="PartRegs" isopaque="yes">
+						<value></value>
+						<regnode name="NetList" isopaque="yes">
+							<value></value>
+							<regnode name="Position" isopaque="yes">
+								<value>829,261</value>
+							</regnode>
+						</regnode>
+					</regnode>
+				</reference>
+			</model>
+			<model id="id-0065-00000009" kind="Media" role="Media" derivedfrom="id-0065-00000008" isinstance="yes" isprimary="yes" relid="0xc" childrelidcntr="0x0">
+				<name>Memory</name>
+				<regnode name="PartRegs">
+					<value></value>
+					<regnode name="NetList">
+						<value></value>
+						<regnode name="Position" isopaque="yes">
+							<value>175,147</value>
+						</regnode>
+					</regnode>
+				</regnode>
+				<reference id="id-0067-00000009" kind="InterfaceRef" role="InterfaceRef" derivedfrom="id-0067-00000007" isinstance="yes" isprimary="no" referred="id-0066-00000002" isbound="yes">
+					<name>Writer</name>
+				</reference>
+				<reference id="id-0067-0000000a" kind="InterfaceRef" role="InterfaceRef" derivedfrom="id-0067-00000008" isinstance="yes" isprimary="no" referred="id-0066-00000001" isbound="yes">
+					<name>Reader</name>
+				</reference>
+			</model>
+			<connection id="id-0068-00000009" kind="Port2InterfaceConn" role="Port2InterfaceConn" relid="0xd">
+				<name>Port2InterfaceConn</name>
+				<connpoint role="src" target="id-0067-00000003"/>
+				<connpoint role="dst" target="id-0067-00000009"/>
+			</connection>
+			<connection id="id-0068-0000000b" kind="Port2InterfaceConn" role="Port2InterfaceConn" relid="0xf">
+				<name>Port2InterfaceConn</name>
+				<connpoint role="src" target="id-0067-00000004"/>
+				<connpoint role="dst" target="id-0067-00000009"/>
+			</connection>
+			<connection id="id-0068-0000000c" kind="Port2InterfaceConn" role="Port2InterfaceConn" relid="0x10">
+				<name>Port2InterfaceConn</name>
+				<connpoint role="src" target="id-0067-00000005"/>
+				<connpoint role="dst" target="id-0067-0000000a"/>
+			</connection>
+		</model>
+	</folder>
+</project>

@@ -1,0 +1,364 @@
+/*
+
+Copyright (c) 2004-2005 The Regents of the University of California.
+All rights reserved.
+
+Permission is hereby granted, without written agreement and without
+license or royalty fees, to use, copy, modify, and distribute this
+software and its documentation for any purpose, provided that the
+above copyright notice and the following two paragraphs appear in all
+copies of this software and that appropriate acknowledgments are made
+to the research of the Metropolis group.
+
+IN NO EVENT SHALL THE UNIVERSITY OF CALIFORNIA BE LIABLE TO ANY PARTY
+FOR DIRECT, INDIRECT, SPECIAL, INCIDENTAL, OR CONSEQUENTIAL DAMAGES
+ARISING OUT OF THE USE OF THIS SOFTWARE AND ITS DOCUMENTATION, EVEN IF
+THE UNIVERSITY OF CALIFORNIA HAS BEEN ADVISED OF THE POSSIBILITY OF
+SUCH DAMAGE.
+
+THE UNIVERSITY OF CALIFORNIA SPECIFICALLY DISCLAIMS ANY WARRANTIES,
+INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. THE SOFTWARE
+PROVIDED HEREUNDER IS ON AN "AS IS" BASIS, AND THE UNIVERSITY OF
+CALIFORNIA HAS NO OBLIGATION TO PROVIDE MAINTENANCE, SUPPORT, UPDATES,
+ENHANCEMENTS, OR MODIFICATIONS.
+
+METROPOLIS_COPYRIGHT_VERSION_1
+COPYRIGHTENDKEY
+
+*/
+
+package pip.architecture.simple;
+
+/////////////////////////////////////////////////////////////////////
+//        Design Example of Metropolis
+//        PiP Architecture
+//
+//        Author: Alessandro Pinto
+//                                        Yoshi Watanabe
+//                                        Haibo Zeng
+/////////////////////////////////////////////////////////////////////
+
+public netlist Architecture {
+
+    ///////////////////////////////////////////////////////////////////
+    ////                         public variables                  ////
+
+    ///////////////////////////////////////////////////////////////////
+    ////                         protected variables               ////
+
+    ArchScheduledNetlist _schedNetlist;
+    ArchSchedulingNetlist _schedulingNetlist;
+    SchedToQuantity[] _stateMedia;
+
+    ///////////////////////////////////////////////////////////////////
+    ////                         private variables                 ////
+
+    final static int NUM_GT = 1;
+
+    public Architecture (String n,
+            int num_tasks, int num_cpus, int num_buses, int num_mems,
+            double[] cpu_clock, int[] cpu_sched_alg, double[] time_slice, int[][] cpu_service_cycle,
+            double[] bus_clock, int[] bus_sched_alg, int[][] bus_service_cycle,
+            double[] mem_clock, int[] mem_space, int[] mem_sched_alg, int[][] mem_service_cycle,
+            int[][] task_to_cpu, int[][] cpu_to_bus, int[][] bus_to_mem,
+            GlobalTime gt, int mapped)
+    {
+        super(n);
+
+        if (num_tasks < 0) {
+            blackbox(SystemCSim)%%
+                cout << "The number of tasks can't be less than 0"<< endl;
+            exit(-1);
+            %%;
+        }
+
+        if (num_cpus < 0) {
+            blackbox(SystemCSim)%%
+                cout << "The number of cpus can't be less than 0"<< endl;
+            exit(-1);
+            %%;
+        }
+        if (num_buses < 0) {
+            blackbox(SystemCSim)%%
+                cout << "The number of buses can't be less than 0"<< endl;
+            exit(-1);
+            %%;
+        }
+        if (num_mems < 0) {
+            blackbox(SystemCSim)%%
+                cout << "The number of memories can't be less than 0"<< endl;
+            exit(-1);
+            %%;
+        }
+
+        int i, j, k, m;
+
+        int num_quans = num_cpus + num_buses + num_mems;// + NUM_GT;
+
+        int[][] task_to_quan = new int[num_tasks][num_quans];
+        for (i=0; i<num_tasks; i++) {
+            for (j=0; j<num_quans; j++) {
+                task_to_quan[i][j] = -1;
+            }
+        }
+
+        int[][] task_to_sm = new int[num_tasks][num_quans+NUM_GT];
+        int[] cpu_to_sm = new int[num_cpus];
+        int[] bus_to_sm = new int[num_buses];
+        int[] mem_to_sm = new int[num_mems];
+
+        int[][] cs_to_sm = new int[num_cpus][num_tasks+1];
+        int[][] bs_to_sm = new int[num_buses][num_tasks+1];
+        int[][] ms_to_sm = new int[num_mems][num_tasks+1];
+        int[] gt_to_sm = new int[num_tasks];
+
+        int num_sms = 0;
+
+        int[] num_conn_tasksm = new int[num_tasks];
+        int[] num_conn_cssm = new int[num_cpus];
+        int[] num_conn_bssm = new int[num_buses];
+        int[] num_conn_mssm = new int[num_mems];
+
+        for (i=0; i<num_tasks; i++) {
+            num_conn_tasksm[i] = 0;
+            gt_to_sm[i] = -1; // add in case GlobalTime has ports to statemedia.
+
+            for (j=0; j<num_quans+NUM_GT; j++) {
+                task_to_sm[i][j] = -1;
+            }
+        }
+
+        for (i=0; i<num_cpus; i++) {
+            num_conn_cssm[i] = 0;
+            for (j=0; j<num_tasks+1; j++) {
+                cs_to_sm[i][j] = -1;
+            }
+        }
+        for (i=0; i<num_buses; i++) {
+            num_conn_bssm[i] = 0;
+            for (j=0; j<num_tasks+1; j++) {
+                bs_to_sm[i][j] = -1;
+            }
+        }
+        for (i=0; i<num_mems; i++) {
+            num_conn_mssm[i] = 0;
+            for (j=0; j<num_tasks+1; j++) {
+                ms_to_sm[i][j] = -1;
+            }
+        }
+
+        for (i=0; i<num_tasks; i++) {
+            int id_cpu, id_bus, id_mem;
+
+            for (j=0; j<num_cpus; j++) {
+                id_cpu = task_to_cpu[i][j];
+
+                if ((id_cpu>=0) && (id_cpu<num_cpus)){
+
+                    if (task_to_quan[i][id_cpu] != -1)
+                        continue;
+
+                    task_to_quan[i][id_cpu] = num_sms;
+                    task_to_sm[i][num_conn_tasksm[i]] = num_sms;
+                    cs_to_sm[id_cpu][num_conn_cssm[id_cpu]] = num_sms;
+
+                    num_sms ++;
+                    num_conn_tasksm[i] ++;
+                    num_conn_cssm[id_cpu] ++;
+
+
+                    for (k=0; k<num_buses; k++) {
+                        id_bus = cpu_to_bus[id_cpu][k];
+
+                        if ((id_bus>=0) && (id_bus<num_buses)) {
+
+                            if (task_to_quan[i][num_cpus+id_bus] != -1)
+                                continue;
+
+                            task_to_quan[i][num_cpus+id_bus] = num_sms;
+                            task_to_sm[i][num_conn_tasksm[i]] = num_sms;
+                            bs_to_sm[id_bus][num_conn_bssm[id_bus]] = num_sms;
+
+                            num_sms ++;
+                            num_conn_tasksm[i] ++;
+                            num_conn_bssm[id_bus] ++;
+
+                            for (m=0; m<num_mems; m++) {
+                                id_mem = bus_to_mem[id_bus][m];
+
+                                if ((id_mem>=0) && (id_mem<num_mems)) {
+
+                                    if (task_to_quan[i][num_cpus+num_buses+id_mem] != -1)
+                                        continue;
+
+                                    task_to_quan[i][num_cpus+num_buses+id_mem] = num_sms;
+                                    task_to_sm[i][num_conn_tasksm[i]] = num_sms;
+                                    ms_to_sm[id_mem][num_conn_mssm[id_mem]] = num_sms;
+
+                                    num_sms ++;
+                                    num_conn_tasksm[i] ++;
+                                    num_conn_mssm[id_mem] ++;
+
+                                } else if (id_mem == -1) {
+                                    break;
+                                } else {
+                                    blackbox(SystemCSim)%%
+                                        cout << "Wrong initial condition: bus_to_mem should be in the range of [0, num_mems)"<< endl;
+                                    exit(-1);
+                                    %%;
+                                }
+
+
+                            }
+
+                        } else if (id_bus == -1) {
+                            break;
+                        } else {
+                            blackbox(SystemCSim)%%
+                                cout << "Wrong initial condition: cpu_to_bus should be in the range of [0, num_buses)"<< endl;
+                            exit(-1);
+                            %%;
+                        }
+                    }
+
+                } else if (id_cpu == -1) {
+                    break;
+                } else {
+                    blackbox(SystemCSim)%%
+                        cout << "Wrong initial condition: task_to_cpu should be in the range of [0, num_cpus)"<< endl;
+                    exit(-1);
+                    %%;
+                }
+
+
+            }
+        } //end for
+
+        /*         // add here in case GlobalTime has port to statemedia
+                   for (i=0; i<num_tasks; i++) {
+                   task_to_sm[i][num_conn_tasksm[i]] = num_sms;
+                   gt_to_sm[i] = num_sms;
+                   num_conn_tasksm[i] ++;
+                   num_sms ++;
+
+                   if (num_conn_tasksm[i] > num_quans+NUM_GT) {
+                   blackbox(SystemCSim)%%
+                   cout << "Bug! Task to StateMedium wrongly connected"<< endl;
+                   exit(-1);
+                   %%;
+                   }
+                   }
+        */
+        for (i=0; i<num_cpus; i++) {
+            cpu_to_sm[i] = num_sms;
+            cs_to_sm[i][num_conn_cssm[i]] = num_sms;
+            num_conn_cssm[i] ++;
+            num_sms ++;
+            if (num_conn_cssm[i] > num_tasks+1) {
+                blackbox(SystemCSim)%%
+                    cout << "Bug! CpuScheduler to StateMedium wrongly connected"<< endl;
+                exit(-1);
+                %%;
+            }
+        }
+
+        for (i=0; i<num_buses; i++) {
+            bus_to_sm[i] = num_sms;
+            bs_to_sm[i][num_conn_bssm[i]] = num_sms;
+            num_conn_bssm[i] ++;
+            num_sms ++;
+            if (num_conn_cssm[i] > num_tasks+1) {
+                blackbox(SystemCSim)%%
+                    cout << "Bug! BusScheduler to StateMedium wrongly connected"<< endl;
+                exit(-1);
+                %%;
+            }
+        }
+
+        for (i=0; i<num_mems; i++) {
+            mem_to_sm[i] = num_sms;
+            ms_to_sm[i][num_conn_mssm[i]] = num_sms;
+            num_conn_mssm[i] ++;
+            num_sms ++;
+            if (num_conn_cssm[i] > num_tasks+1) {
+                blackbox(SystemCSim)%%
+                    cout << "Bug! MemScheduler to StateMedium wrongly connected"<< endl;
+                exit(-1);
+                %%;
+            }
+        }
+
+        int tmp = 0;
+        for (i=0; i<num_tasks; i++) {
+            tmp += num_conn_tasksm[i];
+        }
+        tmp += num_quans;
+        if (tmp != num_sms) {
+            blackbox(SystemCSim)%%
+                cout << "Bug! ScheduledNetlist to StateMedium wrongly connected"<< endl;
+            exit(-1);
+            %%;
+        }
+
+        tmp = 0;
+        for (i=0; i<num_cpus; i++) {
+            tmp += num_conn_cssm[i];
+        }
+        for (i=0; i<num_buses; i++) {
+            tmp += num_conn_bssm[i];
+        }
+        for (i=0; i<num_mems; i++) {
+            tmp += num_conn_mssm[i];
+        }
+        tmp += num_tasks;
+
+        if (tmp != num_sms) {
+            blackbox(SystemCSim)%%
+                cout << "Bug! SchedulingNetlist to StateMedium wrongly connected"<< endl;
+            exit(-1);
+            %%;
+        }
+
+
+        _stateMedia = new SchedToQuantity[num_sms];
+
+        for (i=0; i<num_sms; i++) {
+            _stateMedia[i] = new SchedToQuantity("StateMedium"+i, i);
+        }
+
+        _schedNetlist = new ArchScheduledNetlist("ScheduledNetlist",
+                num_sms, num_tasks, num_cpus, num_buses, num_mems,
+                mem_space,
+                task_to_cpu, task_to_sm, num_conn_tasksm,
+                cpu_to_bus, cpu_to_sm,
+                bus_to_mem, bus_to_sm,
+                mem_to_sm,
+                _stateMedia,
+                mapped);
+
+        _schedulingNetlist = new ArchSchedulingNetlist("SchedulingNetlist",
+                true,
+                num_sms, num_tasks, num_cpus, num_buses, num_mems,
+                cpu_clock, cpu_sched_alg, time_slice, cpu_service_cycle, num_conn_cssm, cs_to_sm,
+                bus_clock, bus_sched_alg, bus_service_cycle, num_conn_bssm, bs_to_sm,
+                mem_clock, mem_sched_alg, mem_service_cycle, num_conn_mssm, ms_to_sm,
+                gt, gt_to_sm,
+                _stateMedia);
+
+        addcomponent(_schedNetlist, this, "SchduledNetlistInst");
+        addcomponent(_schedulingNetlist,  this, "SchdulingNetlistInst");
+    }
+
+    public elaborate SwTask[] getTasks() {
+        return _schedNetlist.getSwTasks();
+    }
+
+    ///////////////////////////////////////////////////////////////////
+    ////                         protected methods                 ////
+
+    ///////////////////////////////////////////////////////////////////
+    ////                         private methods                  ////
+
+
+}

@@ -1,0 +1,84 @@
+#! /bin/sh
+# -[Wed Sep 29 17:14:02 2004 by cxh]-
+# Indent Metropolis Metamodel (.mmm) files  code using emacs
+# Usage: mmmindent [-n] [-d]
+#    -n Print what would happen, but don't checkout or modify files
+#    -d turn on debugging
+#
+# The Emacs  CC-mode FAQ says:
+#     *Q.* *How do I re-indent the whole file?*
+#
+#     *A.* Visit the file and hit `C-x h' to mark the whole buffer. Then
+#     hit `<ESC> C-\'.
+#
+# C-x h mark-whole-buffer
+# ESC C-\ indent-region
+#(fset 'mmmindent
+#   "\C-xh\C-[\C-\\")
+
+printonly=no
+
+while getopts nd-- opt
+do
+	case $opt in
+		d) 	set -x;;
+		n) 	printonly=yes;;
+	   \?)	echo "$0: Usage: $0 [-n] [-x] [filenames . . .]"
+			echo " -n  Print only"
+			echo " -d  debug"
+			exit 3;;
+	esac
+done
+shift `expr $OPTIND - 1`
+
+emacs=emacs
+if [ "$METRO" = "" ]; then
+    echo "$0: \$METRO is not set, exiting"
+    exit 4
+fi
+
+mmmindent_el=$METRO/util/lisp/mmmindent.el
+
+if [ ! -f "$mmmindent_el" ]; then
+    echo "$0: '$mmmindent_el' not found, exiting"
+    exit 5
+fi
+
+tmpfile=/tmp/mmmindent$$
+for file in $@
+do
+    tmpfile=/tmp/mmmindent$$`basename $file`
+    cp $file $tmpfile
+    chmod u+w $tmpfile
+    echo "$file"
+    $emacs -q -batch -l $mmmindent_el $tmpfile -f mmmindent
+    diff $file $tmpfile
+    status=$?
+    if [ $status -eq 1 ]; then
+	if [ "$printonly" = "yes" ]; then
+	    echo "Would be checked out"
+	else
+	    if [ -d SCCS ]; then
+		sccs edit $file
+	    fi
+	    if [ -w $file ]; then
+
+		if [ -d SCCS ]; then
+		    echo "$file is now writable, now reindenting"
+		    $emacs -q -batch -l $mmmindent_el $file -f mmmindent
+		    sccs delget -y"Reindented with mmmindent" $file
+		else
+		    if [ -d CVS ]; then
+			cp $tmpfile $file
+			cvs commit -m "Reindented with mmmindent" $file
+		    fi
+		fi
+	    else
+		echo "ERROR: could not check out $file"
+	    fi
+	fi
+    else
+	echo "No differences, so no need to delget"
+    fi
+done
+rm -f $tmpfile

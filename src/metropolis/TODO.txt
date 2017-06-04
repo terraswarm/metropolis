@@ -1,0 +1,29 @@
+Version: $Id: TODO.txt,v 1.1 2003/10/23 23:36:50 cxh Exp $
+
+- Finish the meta-model library classes.
+	o Write class metamodel.Library.String
+	o Write classes in library metamodel.util.*
+
+- Add the set of valid types to type parameters
+        o Change syntax and AST to have this information
+        o Modify the TypeParameterDecl
+        o Add to TypePolicy the methods to check if type parameter assignment
+          is correct or not
+
+- Write the semantic passes
+	o PASS 1
+		- Anonymous classes!
+	        - Check the order in which ResolveInheritance should
+	          be applied to all classes
+	o PASS 2
+		- Test TemplateInstantiationVisitor
+		- Test all the TemplateElimination pass
+		- Compute the set of types that are assigned to
+                  each type parameter; check that the types of this
+	          set are valid 
+	o PASS 4
+	        - Implement TypeCheckingVisitor (Duny?)
+	        - Implement as many passes as necessary to perform all
+	          metamodel semantic check (SemanticCheckingVisitor)
+
+

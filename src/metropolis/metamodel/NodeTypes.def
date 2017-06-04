@@ -1,0 +1,1790 @@
+// Definition of the AST classes in the meta-model langauage, to be used by
+// the GenerateVisitor program. Based on the definition of the AST classes
+// for the Java language, used in the Ptolemy II project.
+//
+// If you want to modify a class of the AST, do not modify the Java file
+// directly, because any change will be overwritten by the next execution
+// of GenerateVisitor. Instead, modify the definition of the class
+// in this file.
+//
+// Author (Ptolemy II): Jeff Tsay
+// Author (Metropolis): Robert Clariso 
+//
+// Version $Id: NodeTypes.def,v 1.34 2006/10/12 13:58:19 cxh Exp $
+//
+//
+//
+// Changes from the Java language
+//-------------------------------
+//
+// - The following classes have been removed from the Java AST
+//        SynchronizedNode:      synchronized not supported
+//        ThrowNode:             exceptions not supported
+//        TryNode:               exceptions not supported
+//        CatchNode:             exceptions not supported
+//        StaticInitNode:        static   initializers not supported
+//        InstanceInitNode:      instance initializers not supported
+//
+// - The following classes have been changed from the original specification
+//        InvokableDeclNode:     remove throwList child in the AST
+//        ConstructorDeclNode:   remove throwList child in the AST
+//        MethodDeclNode:        remove throwList child in the AST
+//                               added attribute "effect" to method
+//                               added child "usePorts" in the AST
+//        UserTypeDeclNode:      added child "parTypeNames" in the AST
+//        ClassDeclNode:         added child "parTypeNames" in the AST
+//        InterfaceDeclNode:     added child "parTypeNames" in the AST
+//        LabeledStatementNode:  changed NameNode child by LocalLabelNode
+//        BreakStatementNode:    changed NameNode child by LocalLabelNode
+//        ContinueNode:          changed NameNode child by LocalLabelNode
+//        NameNode:              added child "parameters" in the AST
+//
+// - Many classes have been added to the AST. All the new classes
+//   can be identified because they implement an empty interface called
+//   MetaModelNode.
+//   There is a short descrption of each class in this file, before the
+//   declaration of each of these classes.
+//
+
+<cheader>
+/*
+This file was generated automatically by GenerateVisitor.
+
+Copyright (c) 1998-2005 The Regents of the University of California.
+All rights reserved.
+
+Permission is hereby granted, without written agreement and without
+license or royalty fees, to use, copy, modify, and distribute this
+software and its documentation for any purpose, provided that the
+above copyright notice and the following two paragraphs appear in all
+copies of this software and that appropriate acknowledgments are made
+to the research of the Metropolis group.
+
+IN NO EVENT SHALL THE UNIVERSITY OF CALIFORNIA BE LIABLE TO ANY PARTY
+FOR DIRECT, INDIRECT, SPECIAL, INCIDENTAL, OR CONSEQUENTIAL DAMAGES
+ARISING OUT OF THE USE OF THIS SOFTWARE AND ITS DOCUMENTATION, EVEN IF
+THE UNIVERSITY OF CALIFORNIA HAS BEEN ADVISED OF THE POSSIBILITY OF
+SUCH DAMAGE.
+
+THE UNIVERSITY OF CALIFORNIA SPECIFICALLY DISCLAIMS ANY WARRANTIES,
+INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. THE SOFTWARE
+PROVIDED HEREUNDER IS ON AN "AS IS" BASIS, AND THE UNIVERSITY OF
+CALIFORNIA HAS NO OBLIGATION TO PROVIDE MAINTENANCE, SUPPORT, UPDATES,
+ENHANCEMENTS, OR MODIFICATIONS.
+
+*/
+</cheader>
+
+<vheader>
+package metropolis.metamodel;
+
+import java.util.LinkedList;
+
+import metropolis.metamodel.IVisitor;
+import metropolis.metamodel.TreeNode;
+import metropolis.metamodel.nodetypes.*;
+
+/** A visitor for AST's for meta-model code.
+<p>MetaModelVisitor.java is generated from NodeTypes.def by GenerateVisitor.
+<p>See {@link GenerateVisitor} for a description of the syntax.
+@author JeffTsay
+@version $Id: NodeTypes.def,v 1.34 2006/10/12 13:58:19 cxh Exp $
+*/
+</vheader>
+
+<nheader>
+package metropolis.metamodel.nodetypes;
+
+</nheader>
+
+<iheader>
+package metropolis.metamodel.nodetypes;
+
+/** An interface containing the class ID's of all concrete node types. */
+</iheader>
+
+
+//////////////////////////////////////////////////////////////////////////////
+// Interfaces
+
+NamedNode I ITreeNode m NameNode getName m m void setName NameNode name m
+ModifiedNode I ITreeNode m int getModifiers m m void setModifiers int modifiers m
+StatementNode I ITreeNode
+
+
+//////////////////////////////////////////////////////////////////////////////
+// Abstract classes
+
+TypeNode A TreeNode c 0 c
+PrimitiveTypeNode A TypeNode c 0 c
+ReferenceTypeNode A TypeNode c 0 c
+VarDeclNode A TreeNode i NamedNode ModifiedNode i k 0 int modifiers TypeNode defType NameNode name k
+VarInitDeclNode A VarDeclNode k 3 int modifiers TypeNode defType NameNode name TreeNode initExpr k
+InvokableDeclNode A TreeNode i NamedNode ModifiedNode i k 0 int modifiers NameNode name List params k
+ConstructorCallNode A TreeNode i StatementNode i k 0 List args k
+IterationNode A TreeNode i StatementNode i c 0 c
+ConstructorCallNode A TreeNode i StatementNode i k 0 List args k
+IterationNode A TreeNode i StatementNode i c 0 c
+JumpStmtNode A TreeNode i StatementNode i k 0 TreeNode label k
+ExprNode A TreeNode c 0 c
+FieldAccessNode A ExprNode i NamedNode i k 0 NameNode name k
+SingleExprNode A ExprNode k 0 ExprNode expr k
+SingleOpNode A SingleExprNode c 1 ExprNode expr c
+IncrDecrNode A SingleOpNode c 1 ExprNode expr c
+UnaryArithNode A SingleOpNode c 1 ExprNode expr c
+DoubleExprNode A ExprNode k 0 ExprNode expr1 ExprNode expr2 k
+BinaryOpNode A DoubleExprNode c 2 ExprNode expr1 ExprNode expr2 c
+BinaryArithNode A BinaryOpNode c 2 ExprNode expr1 ExprNode expr2 c
+BinaryOpAssignNode A DoubleExprNode c 2 ExprNode expr1 ExprNode expr2 c
+BinaryArithAssignNode A BinaryOpAssignNode c 2 ExprNode expr1 ExprNode expr2 c
+ShiftNode A BinaryOpNode c 2 ExprNode expr1 ExprNode expr2 c
+ShiftAssignNode A BinaryOpAssignNode c 2 ExprNode expr1 ExprNode expr2 c
+RelationNode A BinaryOpNode c 2 ExprNode expr1 ExprNode expr2 c
+EqualityNode A BinaryOpNode c 2 ExprNode expr1 ExprNode expr2 c
+BitwiseNode A BinaryOpNode c 2 ExprNode expr1 ExprNode expr2 c
+BitwiseAssignNode A BinaryOpAssignNode c 2 ExprNode expr1 ExprNode expr2 c
+LogCondNode A BinaryOpNode c 2 ExprNode expr1 ExprNode expr2 c
+LiteralNode A ExprNode k 0 String literal k
+OuterClassAccessNode A ExprNode k 0 TypeNameNode type k
+
+//////////////////////////////////////////////////////////////////////////////
+// Singletons
+
+AbsentTreeNode S TreeNode
+BoolTypeNode S PrimitiveTypeNode
+CharTypeNode S PrimitiveTypeNode
+ByteTypeNode S PrimitiveTypeNode
+ShortTypeNode S PrimitiveTypeNode
+IntTypeNode S PrimitiveTypeNode
+FloatTypeNode S PrimitiveTypeNode
+LongTypeNode S PrimitiveTypeNode
+DoubleTypeNode S PrimitiveTypeNode
+EventTypeNode S PrimitiveTypeNode
+VoidTypeNode S TypeNode
+NullTypeNode SN TypeNode
+
+//////////////////////////////////////////////////////////////////////////////
+// Concrete classes
+
+TypeNameNode C ReferenceTypeNode i NamedNode i k 0 NameNode name k
+ArrayTypeNode C ReferenceTypeNode k 0 TypeNode baseType k
+ArrayInitTypeNode SN TypeNode
+DeclaratorNode CN TreeNode i NamedNode i k 0 int dims NameNode name TreeNode initExpr k
+CompileUnitNode C TreeNode k 0 TreeNode pkg List imports List defTypes k
+ImportNode C TreeNode i NamedNode i k 0 NameNode name k
+ImportOnDemandNode C TreeNode i NamedNode i k 0 NameNode name k
+FieldDeclNode C VarInitDeclNode c 4 int modifiers TypeNode defType NameNode name TreeNode initExpr c
+LocalVarDeclNode C VarInitDeclNode i StatementNode i c 4 int modifiers TypeNode defType NameNode name TreeNode initExpr c
+ConstructorDeclNode C InvokableDeclNode k 3 int modifiers NameNode name List params BlockNode body ConstructorCallNode constructorCall k
+ThisConstructorCallNode C ConstructorCallNode c 1 List args c
+SuperConstructorCallNode C ConstructorCallNode c 1 List args c
+ParameterNode C VarDeclNode c 3 int modifiers TypeNode defType NameNode name c
+BlockNode C TreeNode i StatementNode i k 0 List stmts k
+EmptyStmtNode C TreeNode i StatementNode i c 0 c
+LabeledStmtNode C TreeNode i StatementNode i k 0 LocalLabelNode label StatementNode stmt k
+IfStmtNode C TreeNode i StatementNode i k 0 ExprNode condition StatementNode thenPart TreeNode elsePart k
+SwitchNode C TreeNode i StatementNode i k 0 ExprNode expr List switchBlocks k
+CaseNode C TreeNode k 0 TreeNode expr k
+SwitchBranchNode C TreeNode k 0 List cases List stmts k
+LoopNode C IterationNode k 0 TreeNode foreStmt ExprNode test TreeNode aftStmt k
+ExprStmtNode C TreeNode i StatementNode i k 0 ExprNode expr k
+UserTypeDeclStmtNode C TreeNode i StatementNode i k 0 UserTypeDeclNode defType k
+ForNode C IterationNode k 0 List init ExprNode test List update StatementNode stmt k
+BreakNode C JumpStmtNode k 1 TreeNode label k
+ContinueNode C JumpStmtNode k 1 TreeNode label k
+ReturnNode C TreeNode i StatementNode i k 0 TreeNode expr k
+IntLitNode C LiteralNode c 1 String literal c
+LongLitNode C LiteralNode c 1 String literal c
+FloatLitNode C LiteralNode c 1 String literal c
+DoubleLitNode C LiteralNode c 1 String literal c
+BoolLitNode C LiteralNode c 1 String literal c
+CharLitNode C LiteralNode c 1 String literal c
+StringLitNode C LiteralNode c 1 String literal c
+NullPntrNode C ExprNode c 0 c
+ThisNode C ExprNode c 0 c
+ArrayInitNode C ExprNode k 0 List initializers k
+ArrayAccessNode C ExprNode k 0 ExprNode array ExprNode index k
+ObjectNode C ExprNode i NamedNode i k 0 NameNode name k
+ObjectFieldAccessNode C FieldAccessNode k 1 NameNode name TreeNode object k
+TypeFieldAccessNode C FieldAccessNode k 1 NameNode name TypeNameNode fType k
+SuperFieldAccessNode C FieldAccessNode k 1 NameNode name k
+ThisFieldAccessNode C FieldAccessNode k 1 NameNode name k
+TypeClassAccessNode C ExprNode k 0 TypeNode fType k
+OuterThisAccessNode C OuterClassAccessNode c 1 TypeNameNode type c
+OuterSuperAccessNode C OuterClassAccessNode c 1 TypeNameNode type c
+MethodCallNode C ExprNode k 0 ExprNode method List args k
+AllocateNode C ExprNode k 0 TypeNameNode dtype List args TreeNode enclosingInstance k
+AllocateArrayNode C ExprNode k 0 TypeNode dtype List dimExprs int dims TreeNode initExpr k
+AllocateAnonymousClassNode C ExprNode k 0 TypeNameNode superType List superArgs List members TreeNode enclosingInstance k
+PostIncrNode C IncrDecrNode c 1 ExprNode expr c
+PostDecrNode C IncrDecrNode c 1 ExprNode expr c
+UnaryPlusNode C UnaryArithNode c 1 ExprNode expr c
+UnaryMinusNode C UnaryArithNode c 1 ExprNode expr c
+PreIncrNode C IncrDecrNode c 1 ExprNode expr c
+PreDecrNode C IncrDecrNode c 1 ExprNode expr c
+ComplementNode C SingleOpNode c 1 ExprNode expr c
+NotNode C SingleOpNode c 1 ExprNode expr c
+CastNode C ExprNode k 0 TypeNode dtype ExprNode expr k
+MultNode C BinaryArithNode c 2 ExprNode expr1 ExprNode expr2 c
+DivNode C BinaryArithNode c 2 ExprNode expr1 ExprNode expr2 c
+RemNode C BinaryArithNode c 2 ExprNode expr1 ExprNode expr2 c
+PlusNode C BinaryArithNode c 2 ExprNode expr1 ExprNode expr2 c
+MinusNode C BinaryArithNode c 2 ExprNode expr1 ExprNode expr2 c
+LeftShiftLogNode C ShiftNode c 2 ExprNode expr1 ExprNode expr2 c
+RightShiftLogNode C ShiftNode c 2 ExprNode expr1 ExprNode expr2 c
+RightShiftArithNode C ShiftNode c 2 ExprNode expr1 ExprNode expr2 c
+LTNode C RelationNode c 2 ExprNode expr1 ExprNode expr2 c
+GTNode C RelationNode c 2 ExprNode expr1 ExprNode expr2 c
+LENode C RelationNode c 2 ExprNode expr1 ExprNode expr2 c
+GENode C RelationNode c 2 ExprNode expr1 ExprNode expr2 c
+InstanceOfNode C ExprNode k 0 ExprNode expr TypeNode dtype k
+EQNode C EqualityNode c 2 ExprNode expr1 ExprNode expr2 c
+NENode C EqualityNode c 2 ExprNode expr1 ExprNode expr2 c
+BitAndNode C BitwiseNode c 2 ExprNode expr1 ExprNode expr2 c
+BitOrNode C BitwiseNode c 2 ExprNode expr1 ExprNode expr2 c
+BitXorNode C BitwiseNode c 2 ExprNode expr1 ExprNode expr2 c
+CandNode C LogCondNode c 2 ExprNode expr1 ExprNode expr2 c
+CorNode C LogCondNode c 2 ExprNode expr1 ExprNode expr2 c
+IfExprNode C ExprNode k 0 ExprNode expr1 ExprNode expr2 ExprNode expr3 k
+AssignNode C DoubleExprNode c 2 ExprNode expr1 ExprNode expr2 c
+MultAssignNode C BinaryArithAssignNode c 2 ExprNode expr1 ExprNode expr2 c
+DivAssignNode C BinaryArithAssignNode c 2 ExprNode expr1 ExprNode expr2 c
+RemAssignNode C BinaryArithAssignNode c 2 ExprNode expr1 ExprNode expr2 c
+PlusAssignNode C BinaryArithAssignNode c 2 ExprNode expr1 ExprNode expr2 c
+MinusAssignNode C BinaryArithAssignNode c 2 ExprNode expr1 ExprNode expr2 c
+LeftShiftLogAssignNode C ShiftAssignNode c 2 ExprNode expr1 ExprNode expr2 c
+RightShiftLogAssignNode C ShiftAssignNode c 2 ExprNode expr1 ExprNode expr2 c
+RightShiftArithAssignNode C ShiftAssignNode c 2 ExprNode expr1 ExprNode expr2 c
+BitAndAssignNode C BitwiseAssignNode c 2 ExprNode expr1 ExprNode expr2 c
+BitXorAssignNode C BitwiseAssignNode c 2 ExprNode expr1 ExprNode expr2 c
+BitOrAssignNode C BitwiseAssignNode c 2 ExprNode expr1 ExprNode expr2 c
+
+// Changes from the original file 
+
+
+//////////////////////////////////////////////////////////////////////////////
+// New interfaces (specific to the meta-model)
+
+// Empty interface implemented by all meta-model nodes.
+MetaModelNode I ITreeNode
+ 
+//////////////////////////////////////////////////////////////////////////////
+// New classes (specific to the meta-model)
+
+/** A node containing a name.
+ *    <p>Parent type: GenericNameNode
+ *    <p>Implements: MetaModelNode
+ *    <p>Represents:<p>
+ *    A node of the form:
+ *    <pre>
+ *      QUALIFIER . IDENT < PARAMETERS > 
+ *    </pre>
+ *    where PARAMETERS is the list of type parameters (for templates only),
+ *    and QUALIFIER is the qualifier of the name (for qualified names only).
+ *    PARAMETERS OR QUALIFIER can be AbsentTreeNode.instance.
+ */
+NameNode C GenericNameNode i MetaModelNode i c 3 TreeNode qualifier String ident TreeNode parameters c
+
+/** A list of type parameters of a template.
+ *    <p>Parent type: TreeNode
+ *    <p>Implements: MetaModelNode
+ *    <p>Represents:<p>
+ *    A list of type parameters of a template, of the form
+ *    <pre>
+ *       < TYPES >
+ *    </pre>
+ *    where TYPES is a list of TypeNodes.
+ */
+TemplateParametersNode C TreeNode i MetaModelNode i k 0 List types k
+
+/** A -> binary boolean expression.
+ *    <p>Parent type: LogCondNode
+ *    <p>Implements: MetaModelNode
+ *    <p>Represents:<p>
+ *    A boolean expression of the form: 
+ *    <pre>
+ *       EXPR1 -> EXPR2
+ *    </pre>
+ *    where EXPR1 and EXPR2 are boolean expressions.
+ */
+CifNode C LogCondNode i MetaModelNode i c 2 ExprNode expr1 ExprNode expr2 c
+
+/** A <-> binary boolean expression.
+ *    <p>Parent type: LogCondNode
+ *    <p>Implements: MetaModelNode
+ *    <p>Represents:<p>
+ *    A boolean expression of the form
+ *    <pre>
+ *       EXPR1 <-> EXPR2
+ *    </pre>
+ *    where EXPR1 and EXPR2 are boolean expressions.
+ */
+CiffNode C LogCondNode i MetaModelNode i c 2 ExprNode expr1 ExprNode expr2 c
+
+/**
+ * Type of all methods returning a program counter.
+ *    <p>Parent type: PrimitiveTypeNode
+ *    <p>Implements:MetaModelNode
+ *    <p>Represents:<p>
+ *    The type of constructs like pc, beg and end. User provided methods
+ *    cannot have this type.
+ */
+PCTypeNode S PrimitiveTypeNode i MetaModelNode i 
+
+/** A label.
+ *    <p>Parent type: TreeNode
+ *    <p>Implements:MetaModelNode 
+ *    <p>Represents:<p>
+ *    A local or global label, with identifier NAME.
+ */
+LabelNode A TreeNode i MetaModelNode i c 0 c
+
+/**
+ * A local label. i.e. a declaration of a label or a label used inside
+ * the same method where it is declared.
+ *    <p>Parent type: LabelNode
+ *    <p>Implements: NamedNode
+ *    <p>Represents:<p>
+ *    A local label, with identifier NAME. For example, in:
+ *    <pre>
+ *       block (NAME) { ... } 
+ *    </pre>
+ */
+LocalLabelNode C LabelNode i NamedNode i k 0 NameNode name k
+
+/** A global label, i.e. a label referred outside of the method where the
+ * label is declared.
+ *    <p>Parent type: LabelNode 
+ *    <p>Implements: 
+ *    <p>Represents:<p>
+ *    A label of the form
+ *    <pre>
+ *       label ( OBJ, LABEL )
+ *    </pre>
+ */
+GlobalLabelNode C LabelNode k 0 ExprNode obj LocalLabelNode label k 
+
+/** A labeled block.
+ *    <p>Parent Type: BlockNode
+ *    <p>Implements: MetaModelNode
+ *    <p>Represents:<p>
+ *    A block of the form
+ *    <pre>
+ *       block (LABEL) {
+ *          STMTS
+ *       } 
+ *    </pre>
+ *    where STMS is a list of statments and LABEL is a local label.
+ */
+LabeledBlockNode C BlockNode i MetaModelNode i k 1 List stmts LocalLabelNode label k
+
+/** A constraint block.
+ *    <p>Parent type: BlockNode
+ *    <p>Implements: MetaModelNode
+ *    <p>Represents:<p>
+ *    A block of the form
+ *    <pre>
+ *       constraint {
+ *          STMTS
+ *       }
+ *    </pre>
+ *    where STMTS is a list of statements which may include formulas.
+ */
+ConstraintBlockNode C BlockNode i MetaModelNode i c 1 List stmts c
+
+/** A bounded loop.
+ *    <p>Parent type: IterationNode
+ *    <p>Implements: MetaModelNode
+ *    <p>Represents:<p>
+ *    A loop of the form
+ *    <pre>
+ *       boundedloop(VAR , COUNT) 
+ *         STMT
+ *    </pre>
+ *    where VAR is the name of the induction variable and COUNT lists
+ *    the number of iterations.  
+ */
+BoundedLoopNode C IterationNode i MetaModelNode i k 0 NameNode var IntLitNode count StatementNode stmt k
+
+/** A nondeterminism statement.
+ *    <p>Parent type: ExprNode
+ *    <p>Implements: MetaModelNode
+ *    <p>Represents:<p>
+ *    A expression of the form: 
+ *    <pre>
+ *       nondetermism(TYPE)
+ *    </pre>
+ *    where TYPE can be any primitive type in the language.
+ */
+NonDeterminismNode C ExprNode i MetaModelNode i k 0 PrimitiveTypeNode type k
+
+/** A base class for all constraint statements.
+ *    <p>Parent type: TreeNode
+ *    <p>Implements: MetaModelNode StatementNode
+ *    <p>Represents:<p>
+ *    A constraint such as LFO or LTL.
+ */
+//ConstraintStatementNode A TreeNode i MetaModelNode StatementNode i k 0 FormulaNode formula k
+
+/** A constraint specified by an action formula.
+ *    <p>Parent type: ConstraintStatementNode
+ *    <p>Implements:
+ *    <p>Represents:<p>
+ *    A constraint specified using an action formula FORMULA, like:
+ *    <pre>
+ *       lfo ( FORMULA ) ;
+ *    </pre>
+ */
+//ActionConstraintNode C ConstraintStatementNode c 1 ActionFormulaNode formula c
+
+/** A constraint specified using a LTL formula.
+ *    <p>Parent type: ConstraintStatementNode
+ *    <p>Implements:
+ *    <p>Represents:<p>
+ *    A constraint specified using a LTL formula FORMULA, like:
+ *    <pre>
+ *       ltl ( FORMULA ) ;
+ *    </pre>
+ */
+//LTLConstraintNode C ConstraintStatementNode c 1 LTLFormulaNode formula c
+
+/** An execIndex expression.
+ *    <p>Parent type:  ExprNode
+ *    <p>Implements:   MetaModelNode
+ *    <p>Represents:<p>
+ *     An statement that returns a position in the global array of actions
+ *     for any action, of the form.
+ *    <pre>
+ *       execIndex ( ACTION )
+ *    </pre>
+ *     where action is an expression containing a variable.
+ */
+ExecIndexNode C ExprNode k 0 ExprNode action k
+
+/** A base class for formulas.
+ *    <p>Parent type: ExprNode
+ *    <p>Implements: MetaModelNode
+ *    <p>Represents:<p>
+ *    A base class for action formulas and LTL formulas.
+ */
+FormulaNode A ExprNode c 0 c
+
+/** A base class for all LTL formulas.
+ *    <p>Parent type:  FormulaNode
+ *    <p>Implements:  
+ *    <p>Represents:<p>
+ *    An LTL formula.
+ */
+LTLFormulaNode A FormulaNode c 0 c
+
+/** A base class for LTL formulas with one subformula.
+ *    <p>Parent type: LTLFormulaNode
+ *    <p>Implements:
+ *    <p>Represents:<p>
+ *    A LTL formula with operators F, G or X.
+ */
+SingleLTLFormulaNode A LTLFormulaNode k 0 LTLFormulaNode subform k
+
+/** A base class for LTL formulas with two subformulas.
+ *    <p>Parent type: LTLFormulaNode
+ *    <p>Implements:
+ *    <p>Represents:<p>
+ *    A LTL formula with operator U.
+ */
+DoubleLTLFormulaNode A LTLFormulaNode k 0 LTLFormulaNode subform1 LTLFormulaNode subform2 k
+
+/** A LTL formula built by a boolean expression.
+ *    <p>Parent type: LTLFormulaNode
+ *    <p>Implements:
+ *    <p>Represents:<p>
+ *    A boolean formula inside a LTL formula. 
+ */
+ExprLTLNode C LTLFormulaNode k 0 ExprNode expr k
+
+/** A base class for built-in LTL formulas.
+ *    <p>Parent type: LTLFormulaNode
+ *    <p>Implements:
+ *    <p>Represents:<p>
+ *    A base class for built-in LTL formulas like mutex, excl and simul.
+ */
+//BuiltInLTLNode A LTLFormulaNode k 0 ExprNode proc1 LabelNode label1 ExprNode proc2 LabelNode label2 k
+
+/** A exclusion constraint LTL formula
+ *    <p>Parent type: BuilInLTLNode
+ *    <p>Implements:
+ *    <p>Represents:<p>
+ *    A excl LTL formula of the form
+ *    <pre>
+ *       excl ( PROC1 , LABEL1, PROC2, LABEL2 )
+ *    </pre>
+ *    where PROC1 and PROC2 are expressions returning processes and 
+ *    LABEL1 and LABEL2 are labels.
+ */
+//ExclLTLNode C BuiltInLTLNode c 4 ExprNode proc1 LabelNode label1 ExprNode proc2 LabelNode label2 c
+
+/** A mutual exclusion constraint LTL formula
+ *    <p>Parent type: BuilInLTLNode
+ *    <p>Implements:
+ *    <p>Represents:<p>
+ *    A mutex LTL formula of the form
+ *    <pre>
+ *       mutex ( PROC1 , LABEL1, PROC2, LABEL2 )
+ *    </pre>
+ *    where PROC1 and PROC2 are expressions returning processes and 
+ *    LABEL1 and LABEL2 are labels.
+ */
+//MutexLTLNode C BuiltInLTLNode c 4 ExprNode proc1 LabelNode label1 ExprNode proc2 LabelNode label2 c
+
+/** A simultaneity constraint LTL formula
+ *    <p>Parent type: BuilInLTLFormula
+ *    <p>Implements:
+ *    <p>Represents:<p>
+ *    A simul LTL formula of the form
+ *    <pre>
+ *       simul ( PROC1 , LABEL1, PROC2, LABEL2 )
+ *    </pre>
+ *    where PROC1 and PROC2 are expressions returning processes and 
+ *    LABEL1 and LABEL2 are labels.
+ */
+//SimulLTLNode C BuiltInLTLNode c 4 ExprNode proc1 LabelNode label1 ExprNode proc2 LabelNode label2 c
+
+/** A LTL formula built by using operator F (future).
+ *    <p>Parent type: SingleLTLFormulaNode
+ *    <p>Implements:
+ *    <p>Represents:<p>
+ *    A LTL formula of the form
+ *    <pre>
+ *        F ( SUBFORM )
+ *    </pre>
+ *    where SUBFORM is a LTL formula.
+ */
+FutureLTLNode C SingleLTLFormulaNode c 1 LTLFormulaNode subform c
+
+/** A LTL formula built by using operator G (globally).
+ *    <p>Parent type: SingleLTLFormulaNode
+ *    <p>Implements:
+ *    <p>Represents:<p>
+ *    A LTL formula of the form
+ *    <pre>
+ *        G ( SUBFORM )
+ *    </pre>
+ *    where SUBFORM is a LTL formula.
+ */
+GloballyLTLNode C SingleLTLFormulaNode c 1 LTLFormulaNode subform c
+
+/** A LTL formula built by using operator X (next).
+ *    <p>Parent type: SingleLTLFormulaNode
+ *    <p>Implements:
+ *    <p>Represents:<p>
+ *    A LTL formula of the form
+ *    <pre>
+ *        X ( SUBFORM )
+ *    </pre>
+ *    where SUBFORM is a LTL formula.
+ */
+NextLTLNode C SingleLTLFormulaNode c 1 LTLFormulaNode subform c
+
+/** A LTL formula built by using operator U (until).
+ *    <p>Parent type: SingleLTLFormulaNode
+ *    <p>Implements:
+ *    <p>Represents:<p>
+ *    A LTL formula of the form
+ *    <pre>
+ *         SUBFORM1 U SUBFORM2
+ *    </pre>
+ *    where SUBFORM1 and SUBFORM2 are LTL formulas.
+ */
+UntilLTLNode C DoubleLTLFormulaNode c 2 LTLFormulaNode subform1 LTLFormulaNode subform2 c
+
+/** A base class for all action formulas.
+ *    <p>Parent type: FormulaNode
+ *    <p>Implements:
+ *    <p>Represents:<p>
+ *    An action formula, like forall, exists or boolean formulas.
+ */
+ActionFormulaNode A FormulaNode c 0 c
+
+/** A base class for quantified action formulas.
+ *    <p>Parent type: ActionFormulaNode
+ *    <p>Implements:
+ *    <p>Represents:<p>
+ *    A quantified action formula, like forall, exists.
+ */
+QuantifiedActionNode A ActionFormulaNode k 0 List vars ActionFormulaNode subform k
+
+/** A forall action formula.
+ *    <p>Parent type: QuantifiedActionNode
+ *    <p>Implements:
+ *    <p>Represents:<p>
+ *    An action formula of the form
+ *    <pre>
+ *       forall VARS : SUBFORM
+ *    </pre>
+ *   where VARS is a list of NameNodes and SUBFORM is an action formula.
+ */
+ForallActionNode C QuantifiedActionNode c 2 List vars ActionFormulaNode subform c
+
+/** An exists action formula.
+ *    <p>Parent type: QuantifiedActionNode
+ *    <p>Implements:
+ *    <p>Represents:<p>
+ *    An action formula of the form
+ *    <pre>
+ *       exists VARS : SUBFORM
+ *    </pre>
+ *   where VARS is a list of NameNodes and SUBFORM is an action formula.
+ */
+ExistsActionNode C QuantifiedActionNode c 2 List vars ActionFormulaNode subform c
+
+/** An action formula built by a boolean expression
+ *    <p>Parent type: ActionFormulaNode
+ *    <p>Implements:
+ *    <p>Represents:<p>
+ *    A boolean formula inside an action formula.
+ */
+ExprActionNode C ActionFormulaNode k 0 ExprNode expr k
+
+/** A base class for all built-in action formulas.
+ *    <p>Parent type: ActionFormulaNode
+ *    <p>Implements:
+ * Reperesents:
+ *    A base class for all built-in action formulas like maxrate and maxlate.
+ */
+BuiltInActionNode A ActionFormulaNode c 0 c 
+
+/** A maximum latency built-in action formula.
+ *    <p>Parent type: BuiltInActionNode
+ *    <p>Implements:
+ *    <p>Represents:<p>
+ *    A maximum latency constraint of the form:
+ *    <pre>
+ *       maxlate ( LABEL1 , LABEL2 , OCCUR, MAXLATENCY )
+ *    </pre>
+ *    where LABEL1 and LABEL2 are labels, OCCUR is an expression returning
+ *    an integer value and MAXLAT is an expression returning a double value.
+ */
+//MaxLateNode C BuiltInActionNode k 0 LabelNode label1 LabelNode label2 ExprNode occur ExprNode maxLatency k
+
+/** A maximum rate built-in action formula.
+ *    <p>Parent type: BuiltInActionNode
+ *    <p>Implements:
+ *    <p>Represents:<p>
+ *    A maximum rate constraint of the form:
+ *    <pre>
+ *       maxrate ( LABEL , MAXRATE )
+ *    </pre>
+ *    where LABEL is a label and MAXRATE is an expression returning a 
+ *    double value.
+ */
+//MaxRateNode C BuiltInActionNode k 0 LabelNode label ExprNode maxRate k
+
+/** A base class for all constructs returning a program counter.
+ *    <p>Parent type: ExprNode
+ *    <p>Implements: MetaModelNode
+ *    <p>Represents:<p>
+ *    A base class for all formulas returning a program counter.
+ */
+PCExprNode A ExprNode i MetaModelNode i c 0 c
+
+/** A base class for contructs computing a program counter based on a label.
+ *    <p>Parent type: PCExprNode
+ *    <p>Implements:
+ *    <p>Represents:<p>
+ *    A base class for 'beg' and 'end' constructs.
+ */
+LabelPCExprNode A PCExprNode k 0 LabelNode label k
+
+/** A statement that computes the program counter at the beginning of a label.
+ *    <p>Parent type: LabelPCExprNode
+ *    <p>Implements:
+ *    <p>Represents:<p>
+ *    A statement of the form
+ *    <pre>
+ *      beg ( LABEL )
+ *    </pre>
+ *    where LABEL is a local or global label.
+ */
+BeginPCNode C LabelPCExprNode c 1 LabelNode label c
+
+/** A statement that computes the program counter at the end of a label.
+ *    <p>Parent type: LabelPCExprNode
+ *    <p>Implements:
+ *    <p>Represents:<p>
+ *    A statement of the form
+ *    <pre>
+ *      beg ( LABEL )
+ *    </pre>
+ *    where LABEL is a local or global label.
+ */
+EndPCNode C LabelPCExprNode c 1 LabelNode label c
+
+/** A statement that computes current program counter in a process.
+ *    <p>Parent type: PCExprNode
+ *    <p>Implements: 
+ *    <p>Represents:<p>
+ *    A statement of the form
+ *    <pre>
+ *      pc ( EXPR )
+ *    </pre>
+ *    where EXPR is an expression returning a process.
+ */
+PCNode C PCExprNode k 0 ExprNode expr k
+
+/** An await statement.
+ *    <p>Parent type: TreeNode 
+ *    <p>Implements: MetaModelNode StatementNode
+ *    <p>Represents:<p>
+ *    An await statement of the form
+ *    <pre>
+ *       await {
+ *         GUARDS
+ *       }
+ *    </pre>
+ *    where GUARDS is a list of guards.
+ */
+AwaitStatementNode C TreeNode i MetaModelNode StatementNode i k 0 List guards k
+
+/** An guard of an await statement.
+ *    <p>Parent type: BlockNode
+ *    <p>Implements: MetaModelNode 
+ *    <p>Represents:<p>
+ *    A guard of an await statetement of the form
+ *    <pre>
+ *      ( COND ; LOCKTEST; LOCKSET ) STMT
+ *    </pre>
+ *    where COND is a boolean expression, LOCKTEST is the list of
+ *    locks to be used during the evaluation of the condition and
+ *    LOCKSTMT is the list of locks during the execution of the
+ *    statement and STMT is a list of statements.
+ *    A guard can be a default guard, in that case COND will be 
+ *    an AbsentTreeNode.
+ */
+AwaitGuardNode C TreeNode i MetaModelNode i k 0 TreeNode cond List lockTest List lockSet StatementNode stmt k
+
+/** A lock in an await statement.
+ *    <p>Parent type: TreeNode
+ *    <p>Implements: MetaModelNode
+ *    <p>Represents:<p>
+ *    A lock of the form
+ *    <pre>
+ *      NODE . IFACE
+ *    </pre>
+ *    where NODE is an expression returning a Node, and IFACE is a
+ *    NameNode referring to an interface implemented by that node.
+ *    A lock can be of the form
+ *    <pre>
+ *      NODE . all
+ *    </pre>
+ *    in that case, we set IFACE to AbsentTreeNode.
+ *    Finally, a lock can be of the form
+ *    <pre>
+ *      all
+ *    </pre>
+ *    in that case, we set IFACE and NODE to AbsentTreeNode.
+ */
+AwaitLockNode C TreeNode i MetaModelNode i k 0 TreeNode node TreeNode iface k
+
+/** A base type for all user declared types (classes, interfaces, processes,
+ * media, netlists, etc.)
+ *    <p>Parent type: TreeNode
+ *    <p>Implements: MetaModelNode NamedNode ModifiedNode
+ *    <p>Represents:<p>
+ *    A declaration of a class of objects, with modifiers, a class name,
+ *    a list of implemented interfaces, a list of members and a list
+ *    of parametric type names (empty for non-templates).
+ */
+UserTypeDeclNode A TreeNode i MetaModelNode NamedNode ModifiedNode i k 0 int modifiers NameNode name List interfaces List members List parTypeNames k
+
+/** A declaration of an interface.
+ *    <p>Parent type: UserTypeDeclNode
+ *    <p>Implements:
+ *    <p>Represents:<p>
+ *    A declaration of an interface in the meta-model language, with
+ *    modifiers, a class name, a list of implemented interfaces, a list of
+ *    members and  a list of parametric type names (empty for 
+ *    non-templates).
+ */
+InterfaceDeclNode C UserTypeDeclNode k 5 int modifiers NameNode name List interfaces List members List parTypeNames k
+
+/** A declaration of a class.
+ *    <p>Parent type: UserTypeDeclNode
+ *    <p>Implements:
+ *    <p>Represents:<p>
+ *    A declaration of a class in the meta-model language, with modifiers,
+ *    a class name, a list of implemented interfaces, a list of members,
+ *    a list of parametric type names (empty for non-templates), and a
+ *    superclass, of the form:
+ *    <pre>
+ *      template ( PARTYPENAMES) 
+ *         MODIFIERS class NAME extends SUPERCLASS implements INTERFACES {
+ *         MEMBERS
+ *      }
+ *    </pre>
+ */
+ClassDeclNode C UserTypeDeclNode  k 5 int modifiers NameNode name List interfaces List members List parTypeNames TreeNode superClass k
+
+/** A declaration of a netlist.
+ *    <p>Parent type: ClassDeclNode
+ *    <p>Implements:
+ *    <p>Represents:<p>
+ *    A declaration of a netlist of the form:
+ *    <pre>
+ *       template ( PARTYPENAMES )
+ *         MODIFIERS netlist NAME extends SUPERCLASS implements INTERFACES { 
+ *           MEMBERS
+ *         }
+ *    </pre>
+ */
+NetlistDeclNode C ClassDeclNode k 6 int modifiers NameNode name List interfaces List members List parTypeNames TreeNode superClass k
+
+/** A base class for all declarations of network nodes.
+ *    <p>Parent type: ClassDeclNode
+ *    <p>Implements:
+ *    <p>Represents:<p>
+ *    A declaration of a process, medium or scheduler.
+ */
+NetworkNodeDeclNode A ClassDeclNode k 6 int modifiers NameNode name List interfaces List members List parTypeNames TreeNode superClass k
+
+/** A declaration of a process.
+ *    <p>Parent type: ProcessDeclNode
+ *    <p>Implements:
+ *    <p>Represents:<p>
+ *    A declaration of a process with modifiers, a process name, a list of 
+ *    implemented interfaces, a list of  members, a list of parametric 
+ *    type names (empty for non-template types) and a superclass, of
+ *    the form:
+ *    <pre>
+ *       template ( PARTYPENAMES )
+ *         MODIFIERS process NAME extends SUPERCLASS implements INTERFACES { 
+ *           MEMBERS
+ *       }
+ *    </pre>
+ */
+ProcessDeclNode C NetworkNodeDeclNode k 6 int modifiers NameNode name List interfaces List members List parTypeNames TreeNode superClass k
+
+/** A declaration of a medium.
+ *    <p>Parent type: NetworkNodeDeclNode
+ *    <p>Implements:
+ *    <p>Represents:<p>
+ *    A declaration of a medium with modifiers, a medium name, a list of 
+ *    implemented interfaces, a list of  members, a list of parametric 
+ *    type names (empty for non-template types) and a superclass, of
+ *    the form:
+ *    <pre>
+ *       template ( PARTYPENAMES )
+ *         MODIFIERS medium NAME extends SUPERCLASS implements INTERFACES { 
+ *           MEMBERS
+ *       }
+ *    </pre>
+ */
+MediumDeclNode C NetworkNodeDeclNode k 6 int modifiers NameNode name List interfaces List members List parTypeNames TreeNode superClass k
+
+/** A declaration of a scheduler.
+ *    <p>Parent type: NetworkNodeDeclNode
+ *    <p>Implements:
+ *    <p>Represents:<p>
+ *    A declaration of a scheduler with modifiers, a scheduler name, a list 
+ *    of implemented interfaces, a list of  members, a list of parametric 
+ *    type names (empty for non-template types) and a superclass, of
+ *    the form:
+ *    <pre>
+ *       template ( PARTYPENAMES )
+ *         MODIFIERS scheduler NAME extends SUPERCLASS implements INTERFACES { 
+ *           MEMBERS
+ *       }
+ *    </pre>
+ */
+SchedulerDeclNode C NetworkNodeDeclNode k 6 int modifiers NameNode name List interfaces List members List parTypeNames TreeNode superClass k
+
+/** A declaration of a state medium.
+ *    <p>Parent type: ClassDeclNode
+ *    <p>Implements:
+ *    <p>Represents:<p>
+ *    A declaration of a state medium with modifiers, a state medium name, a 
+ *    list of implemented interfaces, a list of  members, a list of 
+ *    parametric type names (empty for non-template types) and a superclass, 
+ *    of the form:
+ *    <pre>
+ *       template ( PARTYPENAMES )
+ *       MODIFIERS SM NAME extends SUPERCLASS implements INTERFACES { 
+ *         MEMBERS
+ *       }
+ *    </pre>
+ */
+SMDeclNode C ClassDeclNode k 6 int modifiers NameNode name List interfaces List members List parTypeNames TreeNode superClass k
+
+/** A declaration of a method.
+ *    <p>Parent type: InvokableDeclNode
+ *    <p>Implements:
+ *    <p>Represents:<p>
+ *    A declaration of a method of the form:
+ *    <pre>
+ *       MODIFIERS EFFECT RETURNTYPE NAME ( PARAMS ) 
+ *          useport USED PORTS 
+ *       BODY 
+ *    </pre>
+ *    where MODIFIERS is a combinatio of values defined in Modifier, EFFECT 
+ *    is the effect (interface functions) defined in Effect, RETURNTYPE is 
+ *    the return type of the method, PARAMS is the list of formal parameters
+ *    , USEPORTS is the list of names of ports used in this functiona and
+ *    BODY is the body of the method.
+ */
+MethodDeclNode C InvokableDeclNode k 3 int modifiers NameNode name List params TreeNode body TypeNode returnType int effect List usePorts k
+
+/** A refine statement.
+ *    <p>Parent type: TreeNode
+ *    <p>Implements: MetaModelNode StatementNode
+ *    <p>Represents:<p>
+ *    A refine statement of the form:
+ *    <pre>
+ *      refine ( NODE, NETLIST ) 
+ *    </pre>
+ *    where NODE is a node in the network and NETLIST is an expression
+ *    returning a netlist object.
+ */
+RefineNode C TreeNode i MetaModelNode StatementNode i k 0 ExprNode node ExprNode netlist k
+
+/** A connect statement.
+ *    <p>Parent type: TreeNode
+ *    <p>Implements: MetaModelNode StatementNode
+ *    <p>Represents:<p>
+ *    A connect statement of the form:
+ *    <pre>
+ *      connect ( SRCOBJECT, PORT, DSTOBJECT )
+ *    </pre>
+ *    where SRCOBJECT is an expression returning a node, PORT is a name of
+ *    a port in SRCOBJECT and DSTOBJECT is an expression returning a node.
+ */
+ConnectNode C TreeNode i MetaModelNode StatementNode i k 0 ExprNode srcObject ExprNode port ExprNode dstObject k
+
+/** An add component statement.
+ *    <p>Parent type: TreeNode
+ *    <p>Implements: MetaModelNode StatementNode
+ *    <p>Represents:<p>
+ *    An addcomponent statement of the form
+ *    <pre>
+ *       addcomponent ( NODE , NETLIST , NAME)
+ *    </pre>
+ *    where NETLIST is an expression returning a netlist object and NODE is 
+ *    an expression returning a node, NAME is the name of this NODE.
+ */
+AddComponentNode C TreeNode i MetaModelNode StatementNode i k 0 ExprNode node ExprNode netlist ExprNode name k
+
+/** A set component statement.
+ *    <p>Parent type: TreeNode
+ *    <p>Implements: MetaModelNode StatementNode
+ *    <p>Represents:<p>
+ *    A set scope statement of the form
+ *    <pre>
+ *      setscope( NODE, PORT, NETLIST )
+ *    </pre>
+ *    where NETLIST is an expression returning a netlist, NODE is an 
+ *    expression returning a node and PORT is the name of a port inside
+ *    NODE.
+ */
+SetScopeNode C TreeNode i MetaModelNode StatementNode i k 0 ExprNode node ExprNode port ExprNode netlist k
+
+/** A refine connect statement.
+ *    <p>Parent type: TreeNode
+ *    <p>Implements: MetaModelNode StatementNode
+ *    <p>Represents:<p>
+ *    A refine connect statement of the form
+ *    <pre>
+ *      refineconnect ( NETLIST, SRCOBJECT, PORT, COMPONENT )
+ *    </pre>
+ *    where NETLIST is an expression returning a netlist, SRCOBJECT is an 
+ *    expression returning a node, PORT is the name of a PORT inisde
+ *    SRCOBJECT, and COMPONENT is an expression returning a node.
+ */
+RefineConnectNode C TreeNode i MetaModelNode StatementNode i k 0 ExprNode netlist ExprNode srcObject ExprNode port ExprNode component k
+
+/** A redirect connection statement.
+ *    <p>Parent type: TreeNode
+ *    <p>Implements: MetaModelNode StatementNode
+ *    <p>Represents:<p>
+ *    A redirect connect statement
+ *    <pre>
+ *      redirectconnect ( NETLIST, SRCOBJECT, SRCPORT, COMPONENT , NEWPORT )
+ *    </pre>
+ *    where NETLIST is an expression returning a netlist, SRCOBJECT is an 
+ *    expression returning a node, SRCPORT is the name of a port inside
+ *    SRCOBJECT, COMPONENT is an expression returning a node and NEWPORT
+ *    is the name of a port inside COMPONENT.
+ */
+RedirectConnectNode C TreeNode i MetaModelNode StatementNode i k 0 ExprNode netlist ExprNode srcObject ExprNode srcPort ExprNode component ExprNode newPort k 
+
+/** A get number of connections statement.
+ *    <p>Parent type: ExprNode
+ *    <p>Implements: MetaModelNode 
+ *    <p>Represents:<p>
+ *    A get number of connections statement of the form
+ *    <pre>
+ *      getconnectionnum ( MEDIUM , IFNAME )
+ *    </pre>
+ *    where OBJECT is an expression returning medium object and IFNAME is
+ *    the name of an interface.
+ */
+GetConnectionNumNode C ExprNode i MetaModelNode i k 0 ExprNode medium TreeNode ifName k 
+
+/** A get source of a connection statement.
+ *    <p>Parent type: ExprNode
+ *    <p>Implements: MetaModelNode 
+ *    <p>Represents:<p>
+ *    A get source of a connection statement of the form
+ *    <pre>
+ *      getnthconnectionsrc ( MEDIUM , IFNAME , NUM )
+ *    </pre>
+ *    where OBJECT is an expression returning medium object, IFNAME is
+ *    the name of an interface and NUM is an expression returning an
+ *    integer.
+ */
+GetNthConnectionSrcNode C ExprNode i MetaModelNode i k 0 ExprNode medium NameNode ifName ExprNode num  k 
+
+/** A get port of a connection statement.
+ *    <p>Parent type: ExprNode
+ *    <p>Implements: MetaModelNode 
+ *    <p>Represents:<p>
+ *    A get port of a connection statement of the form
+ *    <pre>
+ *      getnthconnectionport ( MEDIUM , IFNAME , NUM )
+ *    </pre>
+ *    where OBJECT is an expression returning medium object, IFNAME is
+ *    the name of an interface and NUM is an expression returning an
+ *    integer.
+ */
+GetNthConnectionPortNode C ExprNode i MetaModelNode i k 0 ExprNode medium NameNode ifName ExprNode num  k 
+
+/** A declaration of a port.
+ *    <p>Parent type: VarDeclNode
+ *    <p>Implements: MetaModelNode
+ *    <p>Represents:<p>
+ *    A declaration of a port inside a medium, process or scheduler, of the
+ *    form:
+ *    <pre>
+ *      port MODIFIERS DEFTYPE NAME;
+ *    </pre>
+ */
+PortDeclNode C VarDeclNode k 3 int modifiers TypeNode defType NameNode name k
+
+/** A declaration of a class parameter.
+ *    <p>Parent type: VarDeclNode
+ *    <p>Implements: MetaModelNode
+ *    <p>Represents:<p>
+ *    A declaration of a class parameter inside a medium, process or
+ *    scheduler, of the form:
+ *    <pre>
+ *      parameter MODIFIERS DEFTYPE NAME;
+ *    </pre>
+ */
+ParameterDeclNode C VarDeclNode k 3 int modifiers TypeNode defType NameNode name k
+ 
+/** A type for all type parameters in a template.
+ *    <p>Parent type: TypeNode
+ *    <p>Implements: MetaModelNode
+ *    <p>Represents:<p>
+ *    The type that will be assigned to all type parameters in a template.
+ */
+TemplateTypeNode SN TypeNode i MetaModelNode i
+
+/** A fragment of code that should not be analyzed by the compiler.
+ *    <p>Parent type: TreeNode
+ *    <p>Implements: MetaModelNode
+ *    <p>Represents:<p>
+ *    A fragment of code, of the form:
+ *    <pre>
+ *      blackbox ( IDENT ) %% CODE %%
+ *    </pre>
+ *    where IDENT is a String and CODE is a String of code that 
+ *    should be added to the output if IDENT backend is used, 
+ *    and should be removed otherwise. A BlackboxNode can be found
+ *    as a Statement, MemberDecl, UserTypeDecl or Import.
+ */
+BlackboxNode C TreeNode i MetaModelNode i k 0 String ident String code k
+
+/** A base class for all port accesses.
+ *    <p>Parent type: TreeNode
+ *    <p>Implements: MetaModelNode NamedNode
+ *    <p>Represents:<p>
+ *    A base class for all kinds of port access.
+ */
+PortAccessNode A ExprNode i MetaModelNode NamedNode i k 0 NameNode name k
+
+/** An access to a port of an object.
+ *    <p>Parent type: PortAccessNode
+ *    <p>Implements: 
+ *    <p>Represents:<p>
+ *    An access to a port of an object of the form
+ *    <pre>
+ *      OBJECT . NAME
+ *    </pre>
+ *    where OBJECT is an ExprNode and NAME is a simple name (NameNode).
+ */
+ObjectPortAccessNode C PortAccessNode k 1 NameNode name TreeNode object k
+
+/** An access to a port of 'this' object.
+ *    <p>Parent type: PortAccessNode
+ *    <p>Implements: 
+ *    <p>Represents:<p>
+ *    An access to a port of 'this' object;
+ *    <pre>
+ *      this . NAME
+ *    </pre>
+ *    where NAME is a simple name (NameNode).
+ */
+ThisPortAccessNode C PortAccessNode k 1 NameNode name k
+
+/** An access to a port of 'super' object.
+ *    <p>Parent type: PortAccessNode
+ *    <p>Implements: 
+ *    <p>Represents:<p>
+ *    An access to a port of 'super' object;
+ *    <pre>
+ *      super . NAME
+ *    </pre>
+ *    where NAME is a simple name (NameNode).
+ */
+SuperPortAccessNode C PortAccessNode k 1 NameNode name k
+
+/** A base class for all class parameter accesses.
+ *    <p>Parent type: TreeNode
+ *    <p>Implements: MetaModelNode NamedNode
+ *    <p>Represents:<p>
+ *    A base class for all kinds of class parameter access.
+ */
+ParamAccessNode  A ExprNode i MetaModelNode NamedNode i k 0 NameNode name k
+
+/** An access to a parameter of an object.
+ *    <p>Parent type: ParamAccessNode
+ *    <p>Implements: 
+ *    <p>Represents:<p>
+ *    An access to a parameter of an object of the form
+ *    <pre>
+ *      OBJECT . NAME
+ *    </pre>
+ *    where OBJECT is an ExprNode and NAME is a simple name (NameNode).
+ */
+ObjectParamAccessNode C ParamAccessNode k 1 NameNode name TreeNode object k
+
+/** An access to a parameter of 'this' object.
+ *    <p>Parent type: ParamAccessNode
+ *    <p>Implements: 
+ *    <p>Represents:<p>
+ *    An access to a parameter of 'this' object;
+ *    <pre>
+ *      this . NAME
+ *    </pre>
+ *    where NAME is a simple name (NameNode).
+ */
+ThisParamAccessNode C ParamAccessNode k 1 NameNode name k
+
+/** An access to a parameter of 'super' object.
+ *    <p>Parent type: PortAccessNode
+ *    <p>Implements: 
+ *    <p>Represents:<p>
+ *    An access to a parameter of 'super' object;
+ *    <pre>
+ *      super . NAME
+ *    </pre>
+ *    where NAME is a simple name (NameNode).
+ */
+SuperParamAccessNode C ParamAccessNode k 1 NameNode name k
+ 
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+//        Newly added or modified Nodetypes for supporting            *
+//        mapped behavior and constraints syntaxes                    *
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * 
+
+/** A special literal node for special identifiers in metamodel
+ * For example, LAST.
+ */
+SpecialLitNode C LiteralNode c 1 String literal c
+
+/** A get component of a netlist statement.
+ *    <p>Parent type: ExprNode
+ *    <p>Implements: MetaModelNode 
+ *    <p>Represents:<p>
+ *    A get component of a netlist statement of the form
+ *    <pre>
+ *      getcomponent ( NODE , NAME )
+ *    </pre>
+ *    where NODE is an expression returning a netlist object, NAME is
+ *    the name of a component.
+ */
+GetComponentNode C ExprNode i MetaModelNode i k 0 ExprNode netlist ExprNode name  k 
+
+/** A get connection destination of a Node statement.
+ *    <p>Parent type: ExprNode
+ *    <p>Implements: MetaModelNode 
+ *    <p>Represents:<p>
+ *    A get connection destination of a Node statement of the form
+ *    <pre>
+ *      getconnectiondest ( NODE , PORT )
+ *    </pre>
+ *    where NODE is an expression returning Node object, 
+ *    PORT is the name of a port.
+ */
+GetConnectionDestNode C ExprNode i MetaModelNode i k 0 ExprNode node ExprNode port  k 
+
+/** A get Nth port of a Node statement.
+ *    <p>Parent type: ExprNode
+ *    <p>Implements: MetaModelNode 
+ *    <p>Represents:<p>
+ *    A get Nth port of a Node statement of the form
+ *    <pre>
+ *      getnthport ( NODE , IFNAME , NUM )
+ *    </pre>
+ *    where NODE is an expression returning Node object, IFNAME is
+ *    the name of an interface and NUM is an expression returning an
+ *    integer.
+ */
+GetNthPortNode C ExprNode i MetaModelNode i k 0 ExprNode node NameNode ifName ExprNode num  k 
+
+/** A get port number of a Node statement.
+ *    <p>Parent type: ExprNode
+ *    <p>Implements: MetaModelNode 
+ *    <p>Represents:<p>
+ *    A get port number of a Node statement of the form
+ *    <pre>
+ *      getportnum ( NODE , IFNAME )
+ *    </pre>
+ *    where NODE is an expression returning Node object, IFNAME is
+ *    the name of an interface.
+ */
+GetPortNumNode C ExprNode i MetaModelNode i k 0 ExprNode node NameNode ifName k 
+
+/** A get scope of a Node statement.
+ *    <p>Parent type: ExprNode
+ *    <p>Implements: MetaModelNode 
+ *    <p>Represents:<p>
+ *    A get scope of a Node statement of the form
+ *    <pre>
+ *      getscope ( NODE , PORT )
+ *    </pre>
+ *    where NODE is an expression returning Node object, 
+ *    PORT is the name of a port.
+ */
+GetScopeNode C ExprNode i MetaModelNode i k 0 ExprNode node ExprNode port  k 
+
+/** A get thread of a netlist statement.
+ *    <p>Parent type: ExprNode
+ *    <p>Implements: MetaModelNode 
+ *    <p>Represents:<p>
+ *    A get thread of a netlist statement of the form
+ *    <pre>
+ *      getthread ( )
+ *    </pre>
+ */
+GetThreadNode C ExprNode i MetaModelNode i
+
+// Note that &#64; is an html code for @.  We need to hide the @ from javadoc.
+
+
+/** A label for a statement statement.
+ *    <p>Parent type: StatementNode
+ *    <p>Implements: StatementNode 
+ *    <p>Represents:<p>
+ *    A label for a statement of the form
+ *    <pre>
+ *      NAME {&#64; STMT &#64;}
+ *    </pre>
+ *    where NAME is the name of the label and STMT is a statement.
+ */
+ActionLabelStmtNode C TreeNode i StatementNode i k 0 LocalLabelNode label List stmts k 
+
+/** A label for an expression statement.
+ *    <p>Parent type: ExprNode
+ *    <p>Implements: MetaModelNode
+ *    <p>Represents:<p>
+ *    A label for an expression statement of the form
+ *    <pre>
+ *      NAME {&#64; EXPR &#64;}
+ *    </pre>
+ *    where NAME is the name of the label and EXPR is an expression.
+ */
+ActionLabelExprNode C ExprNode i MetaModelNode i k 0 LocalLabelNode label ExprNode expr TreeNode anode k 
+
+/** A annotation statement.
+ *    <p>Parent type: TreeNode
+ *    <p>Implements: StatementNode
+ *    <p>Represents:<p>
+ *    A annotation statement
+ *    <pre>
+ *      {$ STMTS $}
+ *    </pre>
+ *    where STMTS is a list of statements.
+ */
+AnnotationNode C TreeNode i StatementNode i k 0 List stmts k 
+
+/** A begin annotation statement.
+ *    <p>Parent type: TreeNode
+ *    <p>Implements: StatementNode
+ *    <p>Represents:<p>
+ *    A begin annotation statement
+ *    <pre>
+ *      beg{ STMTS }
+ *    </pre>
+ *    where STMT is a statement.
+ */
+BeginAnnotationNode C TreeNode i StatementNode i k 0 List stmts k 
+
+/** A end annotation statement.
+ *    <p>Parent type: TreeNode
+ *    <p>Implements: StatementNode
+ *    <p>Represents:<p>
+ *    A end annotation statement
+ *    <pre>
+ *      end{ STMTS }
+ *    </pre>
+ *    where STMT is a statement.
+ */
+EndAnnotationNode C TreeNode i StatementNode i k 0 List stmts k 
+
+/** A map statement.
+ *    <p>Parent type: ConstraintStatementNode
+ *    <p>Implements: 
+ *    <p>Represents:<p>
+ *    A synch statement
+ *    <pre>
+ *      synch( EVENTLIST, VAR1 = VAR2, ... )
+ *    </pre>
+ *    where EXPR1 and EXPR2 are two events,  VAR1 and VAR2 are
+ *    two variables.
+ */
+LTLSynchNode C ConstraintStatementNode k 0 List events List equalVars k
+
+/** An equal variables statement.
+ * This is dedicated for map(e1, e2, EqualVarNode)
+ *    <p>Parent type: TreeNode
+ *    <p>Implements:
+ *    <p>Represents:<p>
+ *    A equal variables statement
+ *    <pre>
+ *      VAR1 = VAR2
+ *    </pre>
+ *    where VAR1 and VAR2 are two variables.
+ */
+EqualVarsNode C TreeNode k 0 ExprNode var1 ExprNode var2 k
+
+/** A node type to represent action formulas.
+ *    <p>Parent type: TreeNode
+ *    <p>Implements:
+ *    <p>Represents:<p>
+ *    An action formula, like all, this.name, process1.name, etc.
+ */
+ActionNode C TreeNode k 0 TreeNode object TreeNode name k
+
+/** A super class node for all event nodes, including 
+ *  BeginEventNode, EndEventNode, NoneEventNode, OtherEventNode.
+ *    <p>Parent type: PCExprNode
+ *    <p>Implements:
+ *    <p>Represents:<p>
+ *    A statement of the form:
+ *    <pre>
+ *      an_event_type ( <i>process</i>, <i>action</i> )
+ *    </pre>
+ *    where <i>process</i> is an object, and <i>action</i> is an action.
+ */
+EventNode C PCExprNode k 0 TreeNode process k
+
+/** A statement that refers an event at the beginning of an action.
+ *    <p>Parent type: EventNode
+ *    <p>Implements:
+ *    <p>Represents:<p>
+ *    A statement of the form:
+ *    <pre>
+ *      beg ( <i>process</i>, <i>action</i> )
+ *    </pre>
+ *    where <i>process</i> is an object, and <i>action</i> is an action.
+ */
+BeginEventNode C EventNode k 1 TreeNode process ActionNode action k
+
+/** A statement that refers an event at the end of an action.
+ *    <p>Parent type: EventNode
+ *    <p>Implements:
+ *    <p>Represents:<p>
+ *    A statement of the form
+ *    <pre>
+ *      end ( <i>process</i>, <i>action</i> )
+ *    </pre>
+ *    where <i>process</i> is an object, and <i>action</i> is an action.
+ */
+EndEventNode C EventNode k 1 TreeNode process ActionNode action k
+
+/** A statement that refers to a none event.
+ *    <p>Parent type: EventNode
+ *    <p>Implements:
+ *    <p>Represents:<p>
+ *    A statement of the form:
+ *    <pre>
+ *      none ( <i>process</i> )
+ *    </pre>
+ *    where <i>process</i> is an object.
+ */
+NoneEventNode C EventNode c 1 TreeNode process c
+
+/** A statement that refers to an other event.
+ *    <p>Parent type: EventNode
+ *    <p>Implements:
+ *    <p>Represents:<p>
+ *    A statement of the form:
+ *    <pre>
+ *      other ( <i>process</i> )
+ *    </pre>
+ *    where <i>process</i> is an object.
+ */
+OtherEventNode C EventNode c 1 TreeNode process c
+
+/** An imply statement.
+ *    <p>Parent type: ExprNode
+ *    <p>Implements: MetaModelNode 
+ *    <p>Represents:<p>
+ *    A statement of the form:
+ *    <pre>
+ *      event => expr
+ *    </pre>
+ *    where event is an event reference, and expr is a local expression.
+ */
+ImplyNode C ExprNode i MetaModelNode i k 0 ExprNode event ExprNode expr k
+
+/** A base class for all constraint statements.
+ *    <p>Parent type: TreeNode
+ *    <p>Implements: MetaModelNode StatementNode
+ *    <p>Represents:<p>
+ *    A constraint such as LOC, ELOC or LTL.
+ */
+ConstraintStatementNode A TreeNode i MetaModelNode StatementNode i c 0 c
+
+/** A constraint specified using a LTL formula.
+ *    <p>Parent type: ConstraintStatementNode
+ *    <p>Implements:
+ *    <p>Represents:<p> 
+ *    A constraint specified using a LTL formula FORMULA, like:
+ *    <pre>
+ *      ltl ( FORMULA ) ;
+ *    </pre>
+ */
+LTLConstraintNode C ConstraintStatementNode k 0 LTLFormulaNode formula k
+ 
+/** A constraint specified by an action formula.
+ *    <p>Parent type: ConstraintStatementNode
+ *    <p>Implements: 
+ *    <p>Represents:<p>
+ *    A constraint specified using an action formula FORMULA, like:
+ *    <pre>
+ *      loc ( FORMULA ) ;
+ *    </pre>
+ */
+LOCConstraintNode C ConstraintStatementNode k 0 ActionFormulaNode formula k
+
+/** A constraint specified by an action formula.
+ *    <p>Parent type: ConstraintStatementNode
+ *    <p>Implements: 
+ *    <p>Represents:<p>
+ *    A constraint specified using an action formula FORMULA, like:
+ *    <pre>
+ *      eloc ( FORMULA ) ;
+ *    </pre>
+ */
+ELOCConstraintNode C ConstraintStatementNode k 0 ActionFormulaNode formula k
+
+/** A constraint specified by an eloc, loc or ltl formula.
+ *    <p>Parent type: ConstraintStatementNode
+ *    <p>Implements: 
+ *    <p>Represents:<p>
+ *    A constraint specified using an action formula FORMULA, like:
+ *    <pre>
+ *      eloc name ( params ) ( formula ) ;
+ *      loc name ( params ) ( formula ) ;
+ *      ltl name ( params ) ( formula ) ;
+ *    </pre>
+ */
+ConstraintDeclNode C ConstraintStatementNode k 0 NameNode name List params FormulaNode formula k
+
+/** A constraint specified by an eloc formula.
+ *    <p>Parent type: ConstraintDeclNode
+ *    <p>Implements: 
+ *    <p>Represents:<p>
+ *    A constraint specified using an action formula FORMULA, like:
+ *    <pre>
+ *      eloc name ( params ) ( formula ) ;
+ *    </pre>
+ */
+ELOCConstraintDeclNode C ConstraintDeclNode c 3 NameNode name List params ActionFormulaNode formula c
+
+/** A constraint specified by a loc formula.
+ *    <p>Parent type: ConstraintDeclNode
+ *    <p>Implements: 
+ *    <p>Represents:<p>
+ *    A constraint specified using an action formula FORMULA, like:
+ *    <pre>
+ *      loc name ( params ) ( formula ) ;
+ *    </pre>
+ */
+LOCConstraintDeclNode C ConstraintDeclNode c 3 NameNode name List params ActionFormulaNode formula c
+
+/** A constraint specified using an ltl formula.
+ *    <p>Parent type: ConstraintDeclNode
+ *    <p>Implements:
+ *    <p>Represents:<p> 
+ *    A constraint specified using a LTL formula FORMULA, like:
+ *    <pre>
+ *      ltl name ( params ) ( formula ) ;
+ *    </pre>
+ */
+LTLConstraintDeclNode C ConstraintDeclNode c 3 NameNode name List params LTLFormulaNode formula c
+ 
+/** A eloc constraint call.
+ *    <p>Parent type: ActionFormulaNode
+ *    <p>Implements: 
+ *    <p>Represents:<p>
+ *    A eloc constraint call
+ *    <pre>
+ *      eloc name ( args ) ;
+ *    </pre>
+ */
+ELOCConstraintCallNode C ActionFormulaNode k 0 NameNode name List args k
+
+/** A loc constraint call.
+ *    <p>Parent type: ActionFormulaNode
+ *    <p>Implements: 
+ *    <p>Represents:<p>
+ *    A loc constraint call
+ *    <pre>
+ *      loc name ( args ) ;
+ *    </pre>
+ */
+LOCConstraintCallNode C ActionFormulaNode k 0 NameNode name List args k
+
+/** A LTL constraint call.
+ *    <p>Parent type: LTLFormulaNode
+ *    <p>Implements:
+ *    <p>Represents:<p> 
+ *    A LTL constraint call
+ *    <pre>
+ *      ltl name ( args ) ;
+ *    </pre>
+ */
+LTLConstraintCallNode C LTLFormulaNode k 0 NameNode name List args k
+ 
+/** A declaration of a quantity.
+ *    <p>Parent type: ClassDeclNode
+ *    <p>Implements:
+ *    <p>Represents:<p>
+ *    A declaration of a quantity in the meta-model language, with modifiers,
+ *    a quantity name, a list of implemented interfaces, a list of members,
+ *    a list of parametric type names (empty for non-templates), and a
+ *    superclass, of the form:
+ *    <pre>
+ *      template ( PARTYPENAMES) 
+ *         MODIFIERS quantity NAME extends SUPERCLASS implements INTERFACES {
+ *             MEMBERS
+ *         }
+ *    </pre>
+ */
+QuantityDeclNode C ClassDeclNode k 6 int modifiers NameNode name List interfaces List members List parTypeNames TreeNode superClass k
+
+/** A base class for built-in LTL formulas.
+ *    <p>Parent type: LTLFormulaNode
+ *    <p>Implements:
+ *    <p>Represents:<p>
+ *    A base class for built-in LTL formulas like mutex, excl and simul.
+ */
+BuiltInLTLNode A LTLFormulaNode k 0 ExprNode event1 ExprNode event2 k
+
+/** A exclusion constraint LTL formula
+ *    <p>Parent type: BuilInLTLNode
+ *    <p>Implements:
+ *    <p>Represents:<p>
+ *    A excl LTL formula of the form
+ *    <pre>
+ *      excl ( event1, event2 )
+ *    </pre>
+ *    where event1 and event2 are expressions of event type.
+ */
+ExclLTLNode C BuiltInLTLNode c 2 ExprNode event1 ExprNode event2 c
+
+/** A mutual exclusion constraint LTL formula
+ *    <p>Parent type: BuilInLTLNode
+ *    <p>Implements:
+ *    <p>Represents:<p>
+ *    A mutex LTL formula of the form
+ *    <pre>
+ *      mutex ( event1, event2 )
+ *    </pre>
+ *    where event1 and event2 are expressions of event type.
+ */
+MutexLTLNode C BuiltInLTLNode c 2 ExprNode event1 ExprNode event2 c
+
+/** A simultaneity constraint LTL formula
+ *    <p>Parent type: BuilInLTLFormula
+ *    <p>Implements:
+ *    <p>Represents:<p>
+ *    A simul LTL formula of the form
+ *    <pre>
+ *      simul ( event1, event2 )
+ *    </pre>
+ *    where event1 and event2 are expressions of event type.
+ */
+SimulLTLNode C BuiltInLTLNode c 2 ExprNode event1 ExprNode event2 c
+
+/** A priority constraint LTL formula
+ *    <p>Parent type: BuilInLTLFormula
+ *    <p>Implements:
+ *    <p>Represents:<p>
+ *    A simul LTL formula of the form
+ *    <pre>
+ *      priority ( event1, event2, boolExpr)
+ *    </pre>
+ *    where event1 and event2 are expressions of event type.
+ */
+PriorityLTLNode C BuiltInLTLNode k 2 ExprNode event1 ExprNode event2 ExprNode boolExpr k
+
+/** A minimum rate built-in action formula.
+ *    <p>Parent type: BuiltInActionNode
+ *    <p>Implements:
+ *    <p>Represents:<p>
+ *    A minimum rate constraint of the form:
+ *    <pre>
+ *      minrate ( quantity , event, value )
+ *    </pre>
+ *    where quantity is the name of the Quantity associated with event,
+ *    value has a number type and should be the same as the return
+ *    type of quantity.A()
+ */
+MinRateNode C BuiltInActionNode k 0 ExprNode quantity ExprNode event ExprNode value k
+
+/** A maximum rate built-in action formula.
+ *    <p>Parent type: BuiltInActionNode
+ *    <p>Implements:
+ *    <p>Represents:<p>
+ *    A maximum rate constraint of the form:
+ *    <pre>
+ *      maxrate ( quantity , event, value )
+ *    </pre>
+ *    where quantity is the name of the Quantity associated with event,
+ *    value has a number type and should be the same as the return
+ *    type of quantity.A()
+ */
+MaxRateNode C BuiltInActionNode k 0 ExprNode quantity ExprNode event ExprNode value k
+
+/** A period built-in action formula.
+ *    <p>Parent type: BuiltInActionNode
+ *    <p>Implements:
+ *    <p>Represents:<p>
+ *    A period constraint of the form:
+ *    <pre>
+ *      maxrate ( quantity , event, value )
+ *    </pre>
+ *    where quantity is the reference of the Quantity associated 
+ *    with event, value has a number type and should be the same 
+ *    as the return type of quantity.A()
+ */
+PeriodNode C BuiltInActionNode k 0 ExprNode quantity ExprNode event ExprNode value k
+
+/** A mindelta built-in action formula.
+ *    <p>Parent type: BuiltInActionNode
+ *    <p>Implements:
+ *    <p>Represents:<p>
+ *    A minimum delta constraint of the form:
+ *    <pre>
+ *      mindelta ( quantity , event1, event2, value )
+ *    </pre>
+ *    where quantity is the name of the Quantity associated with event,
+ *    value has a number type and should be the same as the return
+ *    type of quantity.A()
+ */
+MinDeltaNode C BuiltInActionNode k 0 ExprNode quantity ExprNode event1 ExprNode event2 ExprNode value k
+
+/** A maxdelta built-in action formula.
+ *    <p>Parent type: BuiltInActionNode
+ *    <p>Implements:
+ *    <p>Represents:<p>
+ *    A maximum delta constraint of the form:
+ *    <pre>
+ *      maxdelta ( quantity , event1, event2, value )
+ *    </pre>
+ *    where quantity is the name of the Quantity associated with event,
+ *    value has a number type and should be the same as the return
+ *    type of quantity.A()
+ */
+MaxDeltaNode C BuiltInActionNode k 0 ExprNode quantity ExprNode event1 ExprNode event2 ExprNode value k
+
+/** A get name of a node node.
+ *    <p>Parent type: ExprNode
+ *    <p>Implements: MetaModelNode 
+ *    <p>Represents:<p>
+ *    A get name of a node node of the form
+ *    <pre>
+ *      getinstname ( NODE )
+ *    </pre>
+ *    where NODE is an expression returning a node.
+ */
+GetInstNameNode C ExprNode i MetaModelNode i k 0 ExprNode node k 
+
+/** A get name of a component in a netlist node.
+ *    <p>Parent type: ExprNode
+ *    <p>Implements: MetaModelNode 
+ *    <p>Represents:<p>
+ *    A get name of a component in a netlist node of the form
+ *    <pre>
+ *      getcompname ( NODE , NETLIST )
+ *    </pre>
+ *    where NODE is an expression returning a node, 
+ *    NETLIST is an expression returning a netlist.
+ */
+GetCompNameNode C ExprNode i MetaModelNode i k 0 ExprNode node ExprNode netlist k 
+
+/** An isconnectionrefined of a connection statement.
+ *    <p>Parent type: ExprNode
+ *    <p>Implements: MetaModelNode 
+ *    <p>Represents:<p>
+ *    An isconnectionrefined of a connection statement of the form
+ *    <pre>
+ *      isconnectionrefined ( SRC , PORT, DEST )
+ *    </pre>
+ *    where SRC is an expression returning Node object, 
+ *    PORT is the name of a port.
+ *    DEST is an expression returning Node object, 
+ */
+IsConnectionRefinedNode C ExprNode i MetaModelNode i k 0 ExprNode src ExprNode port  ExprNode dest k 
+
+/** A get type of a component in a netlist node.
+ *    <p>Parent type: ExprNode
+ *    <p>Implements: MetaModelNode 
+ *    <p>Represents:<p>
+ *    A get type of a component in a netlist node of the form
+ *    <pre>
+ *      gettype ( NODE )
+ *    </pre>
+ *    where NODE is an expression returning a node.
+ */
+GetTypeNode C ExprNode i MetaModelNode i k 0 ExprNode node k 
+
+/** A get process of an event statement.
+ *    <p>Parent type: ExprNode
+ *    <p>Implements: MetaModelNode 
+ *    <p>Represents:<p>
+ *    A get process of an event statement of the form
+ *    <pre>
+ *      getprocess ( EVENT )
+ *    </pre>
+ *    where EVENT is an expression returning an event.
+ */
+GetProcessNode C ExprNode i MetaModelNode i k 0 ExprNode event k 
+
+/** A statement that refers to a variable in the scope of 
+ * an event occurrence.
+ *    <p>Parent type: ExprNode
+ *    <p>Implements:
+ *    <p>Represents:<p>
+ *    A statement of the form
+ *    <pre>
+ *      variable@(EVENT, int)
+ *    </pre>
+ */
+VarInEventRefNode C ExprNode k 0 ExprNode var ExprNode event ExprNode index k
+
+
+
+

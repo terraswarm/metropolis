@@ -1,0 +1,118 @@
+Version: $Id: BUGS.txt,v 1.1 2004/05/24 21:57:20 cxh Exp $
+
+Ptolemy frontend
+----------------
+
+- Poor memory usage in NameNode (CORRECTED)
+  Names in a Java program will be repeated in MOST of the cases. By using
+  a different String object in each reference to the string, we have a
+  HUGE memory consumption that could be avoided with the follpwing code:
+
+      public NameNode(TreeNode qualifier, String ident) {
+        _childList.add(qualifier);
+	// Original code is:
+        // _ident = ident;
+        // But we want to keep a unique copy of each name string in
+        // memory. This is implemented by method intern() in class
+        // java.lang.String.
+        _ident = ident.intern();        
+        _childList.trimToSize();
+      }
+
+- Poor memory usage in TrackedPropertyMap (CORRECTED)
+  The set of visitors that has visited each node is implemented as a 
+  HashSet, although the number of visitors that can be in this list is
+  very low (less than 10) and many nodes will not use it. The HashSet has
+  been replaced by a LinkedList which is instantiated lazily (only if
+  some information has to be stored in current node).
+
+- Poor memory usage in PropertyMap (CORRECTED)
+  All TreeNodes contain a HashMap with a set of properties, although this
+  HashMap is empty for most of the nodes. The HashMap is instantiated
+  lazily to im
+
+- Java specification not followed in ResolveNameVisitor (CORRECTED)
+  Java specification explicitly says that the name of a local variable
+  can be used in the expression used to initialize that variable; this is
+  not the case in visitLocalVarDeclNode().
+
+- THIS_CLASS_KEY with wrong value in ResolveNameVisitor (CORRECTED)
+  Property THIS_CLASS_KEY of node SuperFieldAccessNode is set incorrectly
+  to the type of the current class; it should be set to the type of the
+  super class of current class.
+ 
+- Corrupted AST: Repeated TypeNameNode in TypeFieldAccessNode (CORRECTED)
+  TypeFieldAccessNode has one children that is the TypeNameNode of the class
+  where the field is declared. That field is set to the name of the current
+  class, instead of a clone() of the TypeNameNode of the class.
+
+- Typo in method isMoreSpecific() in ResolveFieldVisitor (CORRECTED)
+  This method should return false if a method m1 is not more specific than
+  a method m2. This is, it should return false if both methods don't have
+  the same number of parameters. However, the code is like this
+
+	if (params2.size() != params2.size()) { ... }
+
+  Obviously, it should be:
+
+        if (params1.size() != params2.size()) { ... }
+
+ This bug does not affect run-time, however, as currently all calls to
+ isMoreSpecific() check sizes before calling this method.
+
+- Arguments of a method call not replaced in ResolveFieldVisitor 
+  (NOT CONFIRMED)
+
+  In method visitMethodCallNode(), the arguments of the call are traversed,
+  however the result of the traversal is not stored in the list of arguments
+  of the method. In this way, if one of the arguments was replaced, the 
+  change will not be visible.
+
+  The change needed should be from:
+
+	TNLManip.traverseList(this, args, node.getArgs());
+	
+  to the correct:
+
+	node.setArgs(TNLManip.traverseList(this, args, node.getArgs()));
+
+
+
+
+
+Ptolemy documentation
+---------------------
+
+- [TSAY00], section 5.2
+  The following statement about pass 2 of the parser is made:
+        "Additional classes may NOT be read in during pass 2".
+  However, in pass 2 visitor ResolveNameVisitor is executed. In method
+  visitObjectNode() of this visitor, there is a call to resolveAName() 
+  which can read additional classes. For example, the following code
+  reads a new class during pass 2.
+
+	class A {
+            void foo() {
+                 B.field1 = 0; // reads class B in pass 2
+            }
+        }
+
+- [TSAY00], appendix B
+  Some concrete node classes appear in the NodeTypes.def file but they
+  do not appear in the appendix:
+        ThisFieldAccessNode
+	TypeClassAccessNode
+        OuterThisAccessNode
+        OuterSuperAccessNode
+
+
+References
+----------
+
+[TSAY00]: J. Tsay:
+          "A Code Generation Framework for Ptolemy II"
+          Master thesis
+
+[THL00]:  J. Tsay, C. Hylands, E. A. Lee: 
+          "A code Generation Framework for Java Component-Based Designs" 
+          CASES'00  

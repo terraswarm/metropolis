@@ -1,0 +1,196 @@
+/*
+  @Copyright (c) 2004-2005 The Regents of the University of California.
+  All rights reserved.
+
+  Permission is hereby granted, without written agreement and without
+  license or royalty fees, to use, copy, modify, and distribute this
+  software and its documentation for any purpose, provided that the
+  above copyright notice and the following two paragraphs appear in all
+  copies of this software and that appropriate acknowledgments are made
+  to the research of the Metropolis group.
+
+  IN NO EVENT SHALL THE UNIVERSITY OF CALIFORNIA BE LIABLE TO ANY PARTY
+  FOR DIRECT, INDIRECT, SPECIAL, INCIDENTAL, OR CONSEQUENTIAL DAMAGES
+  ARISING OUT OF THE USE OF THIS SOFTWARE AND ITS DOCUMENTATION, EVEN IF
+  THE UNIVERSITY OF CALIFORNIA HAS BEEN ADVISED OF THE POSSIBILITY OF
+  SUCH DAMAGE.
+
+  THE UNIVERSITY OF CALIFORNIA SPECIFICALLY DISCLAIMS ANY WARRANTIES,
+  INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+  MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. THE SOFTWARE
+  PROVIDED HEREUNDER IS ON AN "AS IS" BASIS, AND THE UNIVERSITY OF
+  CALIFORNIA HAS NO OBLIGATION TO PROVIDE MAINTENANCE, SUPPORT, UPDATES,
+  ENHANCEMENTS, OR MODIFICATIONS.
+
+  METROPOLIS_COPYRIGHT_VERSION_1
+  COPYRIGHTENDKEY
+*/
+package constraint_elaboration;
+//import metamodel.plt.TTL.*;
+//import metamodel.plt.yapi.*;
+
+
+public process sum extends yapiprocess {
+
+    parameter int sumlength;
+
+    sum(String n,int sl) {
+        super(n);
+        sumlength = sl;
+
+        constraint{
+            int i;
+
+            ltl( G(sumlength >= 0) );
+            //ltl( G(sumint@(beg(this, this.execute),i) >= sumlength@(beg(this, this.execute),i)));
+        }
+    }
+
+    public void execute() {
+        int[] indata= new int[sumlength];
+        int i;
+        int sumint;
+        while (true) {
+            inport0.read(indata,sumlength);
+            blackbox(SystemCSim)%%
+                cout << "Data has been read" << endl;
+            %%;
+            sumint = 0;
+            for (i=0;i<sumlength;i++)
+                sumint = sumint + indata[i];
+            outport0.write(sumint);
+        }
+    }
+}
+
+public process datagen extends yapiprocess {
+
+    int iteration;
+    int prodlength;
+
+    datagen(String n,int pl) {
+        super(n);
+        iteration = 50;
+        prodlength = pl;
+    }
+
+
+
+    public void execute() {
+        //Generate the data do be written
+        int i;
+        int[] outdata= new int[prodlength];
+        while (iteration > 0) {
+            //val = nondeterminism(int);
+            for (i=0;i<prodlength;i++)
+                outdata[i] = iteration;
+            outport0.write(outdata,prodlength);
+            blackbox(SystemCSim)%%
+                cout << "Data has been written" << endl;
+            %%;
+            iteration--;
+        }
+
+        blackbox(SystemCSim)%%
+            sc_stop();
+        %%;
+    }
+}
+
+public netlist sumnet extends yapinetlist{
+    sum[] dummy_sum;
+    public sumnet(String n) {
+        super(n);
+        datagen dg1 = new datagen("datagen1",13);
+        sum s1 = new sum("sum1",11);
+        stfunc st = new stfunc();
+        yapi2TTLchannel y2bf = new yapi2TTLchannel("y2bf1",4,4,st);
+        TTL2yapichannel bf2y = new TTL2yapichannel("bf2y1",4,4,st);
+
+        rdwrthreshold rwtr = new rdwrthreshold("rwth");
+
+        boundedfifo bf = new boundedfifo("bf1",4,4,0);
+
+        yapichannel dummych = new yapichannel("ch1",100);
+
+        addcomponent(dg1,this,"dg1_comp");
+        addcomponent(s1,this);
+        addcomponent(y2bf,this);
+        addcomponent(bf2y,this);
+        addcomponent(rwtr,this);
+        addcomponent(bf,this);
+
+        //blackbox(elaborator)%%
+        //            System.out.println(" ");
+        //%%;
+
+        int j;
+        dummy_sum = new sum[5];
+        for (j = 0; j<5; j++) {
+            dummy_sum[j] = new sum("dummy_sum" + j, j);
+            addcomponent(dummy_sum[j], this);
+        }
+
+        connect(dg1,outport0,y2bf);
+        connect(s1,inport0,bf2y);
+        connect(y2bf,tofifo,bf);
+        connect(bf2y,fromfifo,bf);
+        connect(y2bf,fromfifo,bf);
+        connect(bf2y,tofifo,bf);
+        connect(y2bf,rdwrth,rwtr);
+        connect(bf2y,rdwrth,rwtr);
+
+        addcomponent(dummych,this);
+
+        connect(dg1,inport0,dummych);
+        connect(dg1,inport1,dummych);
+        connect(dg1,inport2,dummych);
+        connect(dg1,inport3,dummych);
+        connect(dg1,outport1,dummych);
+        connect(dg1,outport2,dummych);
+        connect(dg1,outport3,dummych);
+        connect(s1,inport1,dummych);
+        connect(s1,inport2,dummych);
+        connect(s1,inport3,dummych);
+        connect(s1,outport0,dummych);
+        connect(s1,outport1,dummych);
+        connect(s1,outport2,dummych);
+        connect(s1,outport3,dummych);
+
+        int m;
+        m = getconnectionnum(y2bf, yapioutinterface);
+
+        //loc latency (event e1, event e2) (forall (int i) (t@(e1, i) - t@(e2, i) <= 10));
+        //ltl check_data(event e) (e => data == 5);
+
+        constraint {
+            //process P = getnthconnectionsrc(ch,yapioutinterface,0);
+            //process C = getnthconnectionsrc(ch,yapiininterface,0);
+
+            int i=0, k=5, g = getconnectionnum(y2bf, yapioutinterface);
+            int[] data;
+            event Wevent = beg(getnthconnectionsrc(y2bf,yapioutinterface,0), y2bf.tokenLabel);
+            event Revent = beg(s1, bf2y.tokenLabel);
+            GlobalTime t1 = new GlobalTime("T1");
+            GlobalTime t2 = new GlobalTime("T2");
+
+            //not supported yet
+            //loc latency(Wevent, Revent);
+
+            //not supported yet
+            //loc(forall (int i) (data[k@(Wevent,i)]@(Wevent, i) == data[k@(Revent,i)]@(Revent, i)));
+
+            loc(forall (int i) (k@(Wevent,i) == k@(Revent,i)));
+            loc(forall (int i) (k@(Wevent,i) >= (g+k)*5));
+            loc(forall (int i) (k@(Wevent,i) >= (getconnectionnum(y2bf, yapioutinterface)+k)*5));
+
+            loc mindelta(t1, beg(getnthconnectionsrc(y2bf,yapioutinterface,0), y2bf.tokenLabel), Revent, g);
+            loc period(t2, Wevent, g);
+
+            ltl synch(Wevent, beg(dg1, bf2y.tokenLabel));
+            ltl synch(Wevent, beg(dg1, bf2y.tokenLabel): a@(Wevent, i) == b@(beg(dg1, bf2y.tokenLabel),i));
+        }
+
+    }
+
+}

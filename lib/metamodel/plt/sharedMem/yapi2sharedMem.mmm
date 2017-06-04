@@ -1,0 +1,360 @@
+/*
+  @Copyright (c) 2004-2005 The Regents of the University of California.
+  All rights reserved.
+
+  Permission is hereby granted, without written agreement and without
+  license or royalty fees, to use, copy, modify, and distribute this
+  software and its documentation for any purpose, provided that the
+  above copyright notice and the following two paragraphs appear in all
+  copies of this software and that appropriate acknowledgments are made
+  to the research of the Metropolis group.
+
+  IN NO EVENT SHALL THE UNIVERSITY OF CALIFORNIA BE LIABLE TO ANY PARTY
+  FOR DIRECT, INDIRECT, SPECIAL, INCIDENTAL, OR CONSEQUENTIAL DAMAGES
+  ARISING OUT OF THE USE OF THIS SOFTWARE AND ITS DOCUMENTATION, EVEN IF
+  THE UNIVERSITY OF CALIFORNIA HAS BEEN ADVISED OF THE POSSIBILITY OF
+  SUCH DAMAGE.
+
+  THE UNIVERSITY OF CALIFORNIA SPECIFICALLY DISCLAIMS ANY WARRANTIES,
+  INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+  MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. THE SOFTWARE
+  PROVIDED HEREUNDER IS ON AN "AS IS" BASIS, AND THE UNIVERSITY OF
+  CALIFORNIA HAS NO OBLIGATION TO PROVIDE MAINTENANCE, SUPPORT, UPDATES,
+  ENHANCEMENTS, OR MODIFICATIONS.
+
+  METROPOLIS_COPYRIGHT_VERSION_1
+  COPYRIGHTENDKEY
+*/
+package metamodel.plt.sharedMem;
+import metamodel.plt.yapitemplate.*;
+
+public interface dataNeededWriterInterface extends Port
+{
+    update void setNeeded(int items);
+    update LinkedList getPlaces();
+}
+
+public interface dataNeededReaderInterface extends Port
+{
+    eval int getNeeded();
+    update void setPlaces(LinkedList n);
+}
+
+interface dataNeededFlag extends Port {}
+//*****************************************************************************
+//*****************************************************************************
+public medium dataNeeded implements dataNeededWriterInterface, dataNeededReaderInterface, dataNeededFlag
+{
+    int _tokens_requested;
+    LinkedList stored;
+
+    //*****************************************************************************
+    public dataNeeded(String n)
+        {
+            super(n);
+            _tokens_requested = 0;
+        }
+    //*****************************************************************************
+    // set the field that indicates how many items for this channel are requested
+    // by the reader process
+    public update void setNeeded(int tokens)
+        {
+            await
+                {
+                    (true; this.dataNeededFlag; this.dataNeededFlag)
+                        {
+                            _tokens_requested = tokens;
+                        }
+                }
+        }
+    //*****************************************************************************
+    // returns the number of items previously requested by the reader. The function
+    // blocks until at least one item is requested
+    public eval int getNeeded()
+        {
+            await
+                {
+                    (_tokens_requested > 0; this.dataNeededFlag; this.dataNeededFlag)
+                        {
+                            return _tokens_requested;
+                        }
+                }
+        }
+
+    //*****************************************************************************
+    // set the addresses of the locations in which items have been stored,
+    // append to the list
+    public update void setPlaces(LinkedList places)
+        {
+
+            if (places == null || places.size() <= 0)
+                {
+                    return;
+                }
+            LinkedList newList = new LinkedList();
+
+            await
+                {
+                    (true; this.dataNeededFlag; this.dataNeededFlag)
+                        {
+                            // copy the old list
+                            if (stored != null)
+                                {
+                                    for (int i = 0; i < stored.size(); i++)
+                                        {
+                                            newList.addLast(((yapiint)stored.get(i)).clone());
+                                            blackbox(SystemCSim)
+                                                %%;
+                                            delete stored->get(caller, i);
+                                            %%;
+                                        }
+                                }
+
+                            for (int i = 0; i < places.size(); i++)
+                                {
+                                    newList.addLast(((yapiint)places.get(i)).clone());
+                                }
+
+                            blackbox(SystemCSim)
+                                %%;
+                            delete [] stored;
+                            %%;
+
+                            if (_tokens_requested < places.size())
+                                {
+                                    blackbox(SystemCSim)
+                                        %%;
+                                    cerr << "Illegal use of sharedMem, too many items written" << endl;
+                                    exit(1);
+                                    %%;
+                                }
+                            _tokens_requested -= places.size();
+
+                        }
+                }
+            stored = newList;
+
+        }
+
+    //*****************************************************************************
+    // return all the places that have been written to by the writer,
+    // block until at least one space is available
+    public update LinkedList getPlaces()
+        {
+            LinkedList retlist = new LinkedList();
+
+            await
+                {
+                    (stored != null && stored.size() > 0; this.dataNeededFlag; this.dataNeededFlag)
+                        {
+                            for (int i = 0; i < stored.size(); i++)
+                                {
+                                    retlist.addLast(((yapiint)stored.get(i)).clone());
+                                    blackbox(SystemCSim)
+                                        %%;
+                                    delete stored->get(caller, i);
+                                    %%;
+                                }
+
+                            blackbox(SystemCSim)
+                                %%;
+                            delete [] stored;
+                            %%;
+                            stored = null;
+                        }
+                }
+
+            return retlist;
+        }
+}
+//*****************************************************************************
+//*****************************************************************************
+template(T)
+        public medium yapi2sharedMem implements yapioutinterface-<T>- {
+
+    port sbfinterface-<T>- tofifo;
+    port dataNeededReaderInterface dnread;
+
+    parameter int tokensize;
+    parameter int numberoftokens;
+    parameter int id;
+
+    //*****************************************************************************
+    public yapi2sharedMem(String n, int ts, int nt, int id_arg)
+        {
+            super(n);
+            id = id_arg;
+            tokensize = ts;
+            numberoftokens = nt;
+        }
+    //*****************************************************************************
+    public update void write(T[][] data,int n,int m)
+        {
+            int i,j;
+            T[] MtoV = new T[n*m];
+            for (i=0;i<n;i++)
+                for (j=0;j<m;j++)
+                    {
+                        MtoV[i*m + j] = data[i][j].clone();
+                    };
+            write(MtoV,n*m);
+            blackbox(SystemCSim)
+                %%;
+            for (i=0;i<n*m;i++)
+                delete MtoV[i];
+            delete[] MtoV;
+            %%;
+        }
+    //*****************************************************************************
+    public update void write(T data)
+        {
+            T[] DtoV = new T[1];
+            DtoV[0] = data.clone();
+            write(DtoV,1);
+            blackbox(SystemCSim)%%
+                delete DtoV[0];
+            delete[] DtoV;
+            %%;
+        }
+    //*****************************************************************************
+
+    public update void write(T[] data, int n)
+        {
+
+            if (data == null || n <= 0)
+                {
+                    return;
+                }
+
+            T[] current_slice = data;
+            int total_written = 0;
+
+            while (total_written < n) // stay in the loop until we have written all
+                {
+                    int needed = dnread.getNeeded();
+
+                    if (needed > n - total_written) // want more than we have
+                        {
+                            needed = n - total_written;
+                        }
+
+                    LinkedList written = tofifo.allocate(id, needed, current_slice);
+
+                    if (written != null && written.size() > 0) // progress made
+                        {
+                            total_written += written.size();
+
+                            if (total_written < n) // ... but more to do later
+                                {
+                                    // set up the slice for the next loop iteration
+                                    blackbox(SystemCSim)
+                                        %%;
+                                    current_slice = &(data[total_written]);
+                                    %%;
+                                }
+
+                            // put linked list of places into the dn media
+                            dnread.setPlaces(written);
+                        }
+                }
+        }
+    //*****************************************************************************
+    public eval boolean checkfifo(int n,int dir)
+        {
+            // not implemented
+            return true;
+        }
+}
+//*****************************************************************************
+//*****************************************************************************
+template(T)
+        public medium sharedMem2yapi implements yapiininterface-<T>- {
+
+    port sbfinterface-<T>- fromfifo;
+    port dataNeededWriterInterface dnwrite;
+
+    parameter int tokensize;
+    parameter int numberoftokens;
+    parameter int id;
+
+    //*****************************************************************************
+
+    public sharedMem2yapi(String n, int ts, int nt, int id_arg)
+        {
+            super(n);
+            id = id_arg;
+            tokensize = ts;
+            numberoftokens = nt;
+        }
+
+    //*****************************************************************************
+
+    public update void read(T[] data, int n)
+        {
+
+            if (data == null || n <= 0)
+                {
+                    return;
+                }
+
+            T[] current_slice = data;
+            int total_read = 0;
+
+            dnwrite.setNeeded(n);
+
+            while (total_read < n) // stay in the loop until we have read all
+                {
+                    LinkedList places = dnwrite.getPlaces(); // block until we get something
+                    fromfifo.free(id, places, current_slice);
+                    total_read += places.size();
+
+                    // set up the slice for the next loop iteration
+                    blackbox(SystemCSim)
+                        %%;
+                    current_slice = &(data[total_read]);
+                    %%;
+                }
+        }
+
+    //*****************************************************************************
+
+    public update void read(T[][] data,int n,int m)
+        {
+            T[] Mtov = new T[n*m];
+            for (int i=0;i<n*m;i++)
+                Mtov[i] = null;
+            read(Mtov,n*m);
+            blackbox(SystemCSim)%%
+                for (int i=0 ; i<n ; i++)
+                    for (int j=0 ; j<m ; j++)
+                        if (data[i][j]) delete data[i][j];
+            %%;
+            for (int i=0;i<n;i++)
+                for (int j=0;j<m;j++)
+                    {
+                        data[i][j]= Mtov[i*m + j].clone();
+                    };
+            blackbox(SystemCSim)%%
+                for (int i=0 ; i<n*m ; i++)
+                    delete Mtov[i];
+            delete[] Mtov;
+            %%;
+        }
+    //*****************************************************************************
+    public update T read()
+        {
+            T[] DtoV = new T[1];
+            DtoV[0] = null;
+            read(DtoV,1);
+            return DtoV[0].clone();
+        }
+    //*****************************************************************************
+    public eval boolean checkfifo(int n,int dir)
+        {
+            // not implemented
+            return true;
+        }
+
+}
+//*****************************************************************************
+//*****************************************************************************

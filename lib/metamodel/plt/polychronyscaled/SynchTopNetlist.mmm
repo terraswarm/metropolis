@@ -1,0 +1,74 @@
+/*  Synchronous top level netlist
+
+Copyright (c) 2004-2005 The Regents of the University of California.
+All rights reserved.
+
+Permission is hereby granted, without written agreement and without
+license or royalty fees, to use, copy, modify, and distribute this
+software and its documentation for any purpose, provided that the
+above copyright notice and the following two paragraphs appear in all
+copies of this software and that appropriate acknowledgments are made
+to the research of the Metropolis group.
+
+IN NO EVENT SHALL THE UNIVERSITY OF CALIFORNIA BE LIABLE TO ANY PARTY
+FOR DIRECT, INDIRECT, SPECIAL, INCIDENTAL, OR CONSEQUENTIAL DAMAGES
+ARISING OUT OF THE USE OF THIS SOFTWARE AND ITS DOCUMENTATION, EVEN IF
+THE UNIVERSITY OF CALIFORNIA HAS BEEN ADVISED OF THE POSSIBILITY OF
+SUCH DAMAGE.
+
+THE UNIVERSITY OF CALIFORNIA SPECIFICALLY DISCLAIMS ANY WARRANTIES,
+INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. THE SOFTWARE
+PROVIDED HEREUNDER IS ON AN "AS IS" BASIS, AND THE UNIVERSITY OF
+CALIFORNIA HAS NO OBLIGATION TO PROVIDE MAINTENANCE, SUPPORT, UPDATES,
+ENHANCEMENTS, OR MODIFICATIONS.
+
+METROPOLIS_COPYRIGHT_VERSION_1
+COPYRIGHTENDKEY
+
+@ProposedRating yellow apinto@eecs.berkeley.edu
+
+*/
+
+package metamodel.plt.polychronyscaled;
+
+//////////////////////////////////////////////////////////////////////////
+//// SynchTopNetlist
+/**This is the top netlist that he user will extend to buil his netlist
+   of synchronous processes and media. The only thing he/she has to do is
+   is to instantiate the scheduled netlist (which he/she will build by
+   extending @see SynchScheduledNetlisT) and then call
+   the elaboration function initSynchTop.
+   @author Alessandro Pinto
+   @version $Id: SynchTopNetlist.mmm,v 1.11 2006/10/12 14:24:00 cxh Exp $
+*/
+
+
+public netlist SynchTopNetlist {
+
+    /** The predefined constructor takes only the netlist name as parameters.
+     *The user defined constructor in the extended netlist will also instantiate
+     *the extended SynchScheduledNetlist.
+     */
+    public SynchTopNetlist(String n) {
+        super(n);
+    }
+
+    ///////////////////////////////////////////////////////////////////
+    ////                  Elaboration Methods                      ////
+
+
+    /**This method adds the scheduled netlist to the top netlist,
+     *builds a scheduling netlist and adds it to the top netlist.
+     *@see metamodel.plt.polychronyscaled.SynchSchedulingNetlist
+     */
+    public elaborate void initSynchTop(SynchScheduledNetlist synchscheduled) {
+        addcomponent(synchscheduled,this,synchscheduled.getName() + "Inst");
+        SynchSchedulingNetlist synchscheduling = new SynchSchedulingNetlist(synchscheduled.getName() + "scheduling",
+                synchscheduled.getClockList(),
+                synchscheduled.getProcessList(),
+                synchscheduled.getNumberOfProcesses());
+        addcomponent(synchscheduling,this,synchscheduling.getName() + "Inst");
+    }
+
+}

@@ -1,0 +1,37 @@
+# $Id: DEBUGGING.txt,v 1.2 2004/01/08 20:58:17 allenh Exp $
+
+To build the example code for metamodel debugging:
+
+% make MMDEBUG=-mmdebug
+
+-----
+
+This has the following effects:
+
+- Preprocessor directives "#line <n> <.mmm file name>" are added to the
+    generated .cpp code.
+
+- For each generated blah.cpp file:
+    - Rename blah.cpp to blah.cpp.bak
+    - Copy blah.mmm to blah.cpp
+This causes gdb to use the metamodel code as the source code for debugging.
+
+-----
+
+The following changes were made to the metropolis code to provide this
+capability:
+
+- New class metropolis.metamodel.backends.systemc.LineList
+    (originally written by Daniele Gasperini).
+
+- In SystemCCodegenVisitor.java, all instances of 
+    LinkedList retlist = new LinkedList();
+  changed to 
+    LineList retlist = new LineList(node, emittingLineDirectives);
+  where the second argument is a boolean to turn on the output of
+  "#line" preprocessor directives to the generated .cpp code.
+
+- Fix $METRO/metropolis/metamodel/frontend/parser/Grammar.y to keep track
+  of line numbers at multiple levels of the parse tree.
+
+- Add -mmdebug option to $METRO/bin/systemc

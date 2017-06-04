@@ -1,0 +1,878 @@
+dnl	This file is an input file used by the GNU "autoconf" program to
+dnl	generate the file "configure", which is run to configure the 
+dnl	Makefile in this directory.
+
+# Version: $Id: configure.in,v 1.45 2006/10/12 00:59:08 cxh Exp $
+# Copyright (c) 2003-2004 The Regents of the University of California.
+# All rights reserved.
+#
+# Permission is hereby granted, without written agreement and without
+# license or royalty fees, to use, copy, modify, and distribute this
+# software and its documentation for any purpose, provided that the
+# above copyright notice and the following two paragraphs appear in all
+# copies of this software and that appropriate acknowledgments are made
+# to the research of the Metropolis group.
+# 
+# IN NO EVENT SHALL THE UNIVERSITY OF CALIFORNIA BE LIABLE TO ANY PARTY
+# FOR DIRECT, INDIRECT, SPECIAL, INCIDENTAL, OR CONSEQUENTIAL DAMAGES
+# ARISING OUT OF THE USE OF THIS SOFTWARE AND ITS DOCUMENTATION, EVEN IF
+# THE UNIVERSITY OF CALIFORNIA HAS BEEN ADVISED OF THE POSSIBILITY OF
+# SUCH DAMAGE.
+#
+# THE UNIVERSITY OF CALIFORNIA SPECIFICALLY DISCLAIMS ANY WARRANTIES,
+# INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+# MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. THE SOFTWARE
+# PROVIDED HEREUNDER IS ON AN "AS IS" BASIS, AND THE UNIVERSITY OF
+# CALIFORNIA HAS NO OBLIGATION TO PROVIDE MAINTENANCE, SUPPORT, UPDATES,
+# ENHANCEMENTS, OR MODIFICATIONS.
+#
+# 						PT_COPYRIGHT_VERSION_2
+# 						COPYRIGHTENDKEY
+
+# configure is derived from configure.in by running GNU autoconf
+# on configure.in. 
+
+# To modify configure:
+# 1. Edit configure.in
+# 2. Run: cd $METRO; rm config.*; autoconf; ./configure
+# 3. When you are satisfied with your changes, check in configure.in:
+#       cvs commit -m "Added xxx package" configure.in
+# 4. Since configure.in will have a more recent modification time than
+#    configure, be sure to run autoconf again
+# 5. Check in configure:
+#       cvs commit -m "configure.in changed" configure
+
+# NOTE: sometimes the order that the files are updated when cvs update
+# is run can cause configure.in to have a more recent mod time than
+# configure.  If this is the case, try editing configure and adding
+# a space to a comment line and commiting the change.
+
+AC_INIT(mk/metro.mk.in)
+
+# We must have METRO set before running configure.
+if test ! -z "$METRO"; then
+    ac_default_prefix=$METRO
+else
+    echo "You must set the METRO environment variable before running configure"
+    exit 3
+fi
+
+if test  ! -d "$METRO"; then
+    echo "\$METRO is set to '$METRO', but it does not exist"
+    exit 3
+fi
+
+if test  ! -w "$METRO"; then
+    echo "Warning: \$METRO is set to '$METRO', but it is not writable by you."
+    echo "This may or may not be a problem.  If you are running under"
+    echo "Windows, then you might be able to ignore this problem and"
+    echo "proceed with the build.  If you continue to have problems,"
+    echo "try upgrading to cygwin1.1.0 or later"
+fi
+
+case "$METRO" in
+    */) AC_MSG_ERROR([METRO has a trailing /, which will cause
+    problems when building.
+    The value of METRO was '$METRO'])
+	     ;;
+    *\\*) AC_MSG_ERROR([METRO contains backslashes, which could
+    cause problems when building.  METRO should be set to use
+    forward slashes.
+    The value of METRO was '$METRO'])
+	     ;;
+esac
+
+case "`uname -s`" in
+    CYGWIN*)
+        AC_MSG_CHECKING([if \$METRO ('$METRO') contains "cygwin" or "cygdrive"])
+        cygpath -w "$METRO" | egrep 'cygwin|cygdrive' > /dev/null
+        status=$?
+        if test "$status" -eq 1 ; then
+	     AC_MSG_RESULT([ok
+  \$METRO is '$METRO', which does not contain cygwin, which is right.])
+        else
+    AC_MSG_WARN([
+'cygpath -w \$METRO' == '`cygpath -w $METRO`'
+which contains 'cygwin'.
+This could happen if your home directory is in the default location
+for cygwin which cygwin thinks is /home/yourname,
+but windows thinks is c:\\cygwin\\home\\yourname.
+This will cause problems with non-Cygwin tools like javac that do
+not understand Cygwin directory structure and mounts will not
+be able to find files in $METRO.
+The solution is to move the Metropolis tree outside of
+c:\\cygwin and to set the METRO variable to point to that location
+and then rerun
+  cd \$METRO  
+  ./configure
+See $METRO/README.txt for details.'])
+     fi
+     ;;
+esac 
+
+
+# If we are under Cygwin, check that we can find CMD
+case "`uname -s`" in
+    CYGWIN*)
+	AC_PATH_PROG(CMD_PATH, cmd)
+	if test ! -x "$CMD_PATH"; then
+			AC_MSG_WARN([Failed to find the 'cmd' command, which
+    is used by the $METRO/bin/systemc script.
+    Under Windows 2000, cmd is usually found at c:\\winnt\\system32\\cmd.exe.
+    Under Windows XP, cmd is usually found at c:\\windows\\system32\\cmd.exe.
+    You may need to modify your PATH to explicitly include 
+    c:\\winnt\\system32 by going or c:\\windows\\system32 by going to
+    to Start->Settings->Control Panels->System->Environment and changing
+    %SystemRoot%\\system32 to c:\\winnt\\system32 or c:\\windows\\system32.])
+	fi
+	;;
+
+    *) ;;
+esac
+
+METRO_DEFAULT=$METRO
+
+# The default value of prefix
+AC_PREFIX_DEFAULT($METRO)
+
+
+#--------------------------------------------------------------------
+#	The METRO directory as a URL
+#--------------------------------------------------------------------
+
+# Read the METRO variable and substitute forward slashes
+# for backward slashes
+
+case "`uname -s`" in
+CYGWIN_ME-*)
+	# Windows ME is not a real os, and it does not have CMD.
+	# So, we punt
+	METRO_DIR=$METRO
+	;;
+CYGWIN_98-*) 
+	# Windows 98 is not a real os, and it does not have CMD.
+	# So, we punt
+	METRO_DIR=$METRO
+	;;
+CYGWIN*)
+	# We use cmd /c chdir here to get rid of /cygwin/c
+	METRO_DIR=`(cd "$METRO"; cmd /c chdir) | tr -d '\r' | sed 's@\\\@/@g'`
+	;;
+*)
+	METRO_DIR=$METRO
+	;;
+esac
+
+# OS is used in metroworkspace/lib/yapi-systemc
+OS="`uname`"
+
+#--------------------------------------------------------------------
+#	See if there was a command-line option for where Java is;  if
+#	not, check to see if the METRO_JDK environment variable is set;
+#       if it is not, look for javac on the path.
+#--------------------------------------------------------------------
+
+AC_ARG_WITH(java, [  --with-java=DIR         use Java binaries from DIR,
+                           defaults to the value of the
+                           METRO_JDK environment variable],
+    METRO_JDK=$withval)
+
+if test -d "$METRO_JDK"; then
+    case "$METRO_JDK" in
+	 */) AC_MSG_ERROR([METRO_JDK has a trailing /, which will cause
+    problems when building.
+    The value of METRO_JDK was '$METRO_JDK'])
+	     ;;
+	 *\\*) AC_MSG_ERROR([METRO_JDK contains backslashes, which could
+    cause problems when building.  METRO_JDK should be set to use
+    forward slashes.
+    The value of METRO_JDK was '$METRO_JDK'])
+	     ;;
+	 *\\) AC_MSG_ERROR([METRO_JDK has a trailing backslash, which will
+    cause problems when building.  METRO_JDK should be set to use
+    forward slashes.
+    The value of METRO_JDK was '$METRO_JDK'])
+	     ;;
+	 *)
+	AC_MSG_RESULT([
+    METRO_JDK environment variable was set to
+    '$METRO_JDK', and there is a directory
+    at that location, so we will try it.])
+             ;;
+    esac
+else
+    if test -z "$METRO_JDK"; then
+	AC_MSG_RESULT([METRO_JDK environment variable was not set,
+    so we search for the java compiler.])
+
+    else
+	AC_MSG_WARN([METRO_JDK environment variable is set to
+    '${METRO_JDK}', which is not a directory,
+    so we search for the java compiler.])
+    fi
+    AC_PATH_PROG(JAVAC, javac)
+    if test -x "$JAVAC"; then
+	JAVABIN=`dirname "$JAVAC"`
+	METRO_JDK=`dirname "$JAVABIN"`
+	if test "$METRO_JDK" = "/"; then
+	    if test -d /usr/java; then
+		METRO_JDK=/usr/java
+	        AC_MSG_WARN([ Found javac in "$JAVABIN", /usr/java exists, so
+  we are setting METRO_JDK to '$METRO_JDK'])
+	    fi
+	fi
+
+    else
+        AC_MSG_WARN([ Failed to find javac, perhaps Java is not installed?])
+    fi
+
+    # The default location that we look for the JDK.  This should probably
+    # be a list that includes /usr/local/jdk and /opt/jdk
+    if test ! -d "$METRO_JDK"; then
+	DEFAULT_JDK=/opt/j2sdk1.4.2_02
+	if test -d "$DEFAULT_JDK"; then
+	    METRO_JDK=`cd "$DEFAULT_JDK"; pwd`
+	    AC_MSG_WARN(['${METRO_JDK}' is not a directory, using the default '${DEFAULT_JDK}'])
+
+	else
+	    DEFAULT_JDK=/usr/java
+	    if test -d "$DEFAULT_JDK"; then
+		METRO_JDK=`cd "$DEFAULT_JDK"; pwd`
+		AC_MSG_WARN(['${METRO_JDK}' is not a directory, using the default '${DEFAULT_JDK}'])
+	    else
+			    AC_MSG_ERROR([
+Java directory $DEFAULT_JDK doesn't exist.
+Be sure that the directory that contains javac and java is in your path.
+Typically, under Windows, this directory might be c:\jdk1.3.1\bin
+For instructions about adding to a directory to your path permanently,
+consult your user documentation.
+Under bash, you may temporarily add a directory with something like:
+  PATH=/cygdrive/c/j2sdk1.4.2_02/bin:\$PATH
+  export PATH
+  rm config.*; ./configure
+You may also try --with-java=DIR, or set the METRO_JDK environment variable
+to the directory where your jdk is located:
+  METRO_JDK=/cygdrive/c/j2sdk1.4.2_02
+  export PATH
+  rm config.*; ./configure
+but adding the directory to your path is likely to work best.])
+	    fi
+	fi
+    fi
+fi
+
+#
+# Check that we have the javac that corresponds with METRO_JDK in our path
+#
+AC_MSG_CHECKING([for the java runtime in $METRO_JDK/bin])
+if test -f "$METRO_JDK/bin/java" -o -f "$METRO_JDK/bin/java.exe"; then
+    AC_MSG_RESULT($METRO_JDK/bin/java)
+    AC_MSG_CHECKING([that you have the right java in your path.])
+    AC_PATH_PROG(JAVA, java)
+    if test "$METRO_JDK/bin/java" = "$JAVA"; then
+	AC_MSG_RESULT([    You have the right java in your path,
+    "$METRO_JDK/bin/java"
+      = "$JAVA"])
+    else
+	AC_MSG_WARN(['$METRO_JDK/bin/java' is not
+    the same as '$JAVA'.
+    Perhaps '$JAVA' is in your path before
+    '$METRO_JDK/bin/java'?
+    If you have problems later, be sure that you don't have a mismatch
+    in JDK versions.])
+	JAVA="$METRO_JDK/bin/java"
+    fi
+else
+    AC_MSG_ERROR([
+  Cannot find '$METRO_JDK/bin/java'.
+  Try --with-java=DIR, or set the METRO_JDK environment variable.
+])
+fi
+
+#
+# Check that we have the javac that corresponds with METRO_JDK in our path
+#
+AC_MSG_CHECKING([for the java compiler in $METRO_JDK/bin])
+if test -f "$METRO_JDK/bin/javac"; then
+    AC_MSG_RESULT($METRO_JDK/bin/javac)
+    AC_MSG_CHECKING([that you have the right javac in your path.])
+    AC_PATH_PROG(JAVAC, javac)
+    if test ! -x "$JAVAC"; then
+	AC_MSG_WARN([Failed to find the 'javac' command in your path.
+        This is not necessarily a problem, since
+	'$METRO_JDK/bin/javac' was found, but if you have problems,
+	then you may want to adjust your path])
+    fi
+    if test "$METRO_JDK/bin/javac" = "$JAVAC"; then
+        AC_MSG_RESULT([    You have the right javac in your path,
+    "$METRO_JDK/bin/javac"
+     = "$JAVAC"])
+    else
+        AC_MSG_WARN(['$METRO_JDK/bin/javac' is not
+	 the same as '$JAVAC'.
+	 Perhaps '$JAVAC' is in your path
+	 before '$METRO_JDK/bin/javac'?
+	 If you have problems later, be sure that you don't have a mismatch
+	 in JDK versions.])
+	JAVAC="$METRO_JDK/bin/javac"
+    fi
+else
+    AC_MSG_ERROR([
+  Cannot find '$METRO_JDK/bin/javac'.
+  Try --with-java=DIR, or set the METRO_JDK environment variable.])
+fi
+
+#--------------------------------------------------------------------
+#	Test the Java Compiler (javac)
+#--------------------------------------------------------------------
+AC_MSG_CHECKING([the Java compiler with a simple compile])
+JVERSION=unknown
+# We need to run javac in the config directory so that javac from jdk1.1.6
+# under NT and cygwin works properly
+startdir=`pwd`
+cd "$srcdir/config"
+if "$JAVAC" confTest.java ; then
+    AC_MSG_RESULT(ok)
+
+    AC_MSG_CHECKING([the value of the java.version Property ])
+    # Older versions of cygwin might not have env, but 1.1 does
+    if env CLASSPATH="$METRO/config" "$JAVA" confTest > /dev/null; then
+	# Run it again and get the results
+	JVERSION=`CLASSPATH="$METRO/config" "$JAVA" confTest`
+	AC_MSG_RESULT($JVERSION)
+    else	
+	AC_MSG_ERROR(['CLASSPATH="$METRO/config" "$JAVA" confTest failed.
+If java fails, then you will not be able to run Metropolis
+This could be because your METRO variable is set incorrectly, perhaps
+it has 'cygwin' or 'cygdrive' in it?
+
+Under Cygwin, try setting METRO in the control panel 
+(Start->Control Panels->Advanced->Environment Variables)
+or temporary set it within bash:
+  METRO=c:/users/yourname/METRO
+  export METRO
+and then rerun
+  ./configure
+See $METRO/doc/install.htm for details.'])
+   fi
+else
+   AC_MSG_ERROR(['CLASSPATH="$METRO/config" "$JAVAC" confTest.java failed.
+If javac fails, then you will not be able to compile Metropolis
+This could be because your METRO variable is set incorrectly.
+Under Cygwin, try setting METRO in the control panel 
+(Start->Control Panels->Advanced->Environment Variables)
+or temporary set it within bash:
+  METRO=c:/users/yourname/METRO
+  export METRO
+and then rerun
+  ./configure
+See $METRO/doc/install.htm for details.'])
+
+fi
+
+cd "$startdir"
+
+#--------------------------------------------------------------------
+#	We require JDK1.4 or later because we use Exception Chaining
+#--------------------------------------------------------------------
+
+AC_MSG_CHECKING([the JDK version])
+JDOCSIZE=
+UPGRADE_JVM=no
+case "$JVERSION" in
+ 	1.1.*) UPGRADE_JVM=yes;;
+	1.2.*) UPGRADE_JVM=yes;;
+ 	1.3.*) UPGRADE_JVM=yes;;
+	1.4)	
+		JDOCBREAKITERATOR=-breakiterator
+		if [ "`uname -s`" = "Linux" ]; then
+		    AC_MSG_WARN([You are running Java 1.4 under Linux.
+   Java 1.4 under versions of RedHat earlier than RH 8.0
+   hung while compiling code in
+   src/metropolis/metamodel/backends/elaborator/
+   You may want to upgrade Java]) 
+		else
+		    AC_MSG_RESULT([ok, you are running 1.4 or later])
+		fi	
+		;;
+ 	1.4.*)
+ 		# If we call the jdk1.4 javadoc without -breakiterator,
+ 		# then we get lots of warnings
+		JDOCBREAKITERATOR=-breakiterator
+ 		AC_MSG_RESULT([ok, you are running 1.4 or later])
+         ;;
+ 	*) AC_MSG_RESULT([ok, you are running $JVERSION])
+ 	;;
+esac
+
+if test "$UPGRADE_JVM" = "yes"; then
+ 		AC_MSG_ERROR([Metropolis requires JDK 1.4 or later.
+     Metropolis uses exception chaining, which is present in 1.4 and later.
+     Please upgrade your JDK to 1.4 and try again]) 	
+fi
+
+
+#
+# Check that jar can handle the -i argument
+#
+AC_MSG_CHECKING([for the jar command in $METRO_JDK/bin])
+if test -f "$METRO_JDK/bin/jar"; then
+    AC_MSG_RESULT($METRO_JDK/bin/jar)
+    AC_MSG_CHECKING([that $METRO_JDK/bin/jar can handle -i])
+
+    cd "$srcdir/config"
+
+    "$METRO_JDK/bin/jar" -cf jarTest.jar confTest.class
+    if "$METRO_JDK/bin/jar" -i jarTest.jar; then
+        AC_MSG_RESULT([$METRO_JDK/bin/jar -i worked])
+	JAR_INDEX='"$(JAR)" -i tmp.jar'
+    else
+        AC_MSG_WARN([$METRO_JDK/bin/jar -i jarTest.jar failed,
+    so we will not index the jar files.  Perhaps you need to put the Sun jar
+    commnand in your path before the GNU jar command?])
+	JAR_INDEX=""
+    fi
+
+    cd "$startdir"
+
+else
+    AC_MSG_WARN([Cannot find '$METRO_JDK/bin/jar'.
+    This is usually only a problem if you run 'make install'])
+fi
+
+
+#--------------------------------------------------------------------
+#	Figure out which separator to use for CLASSPATH
+#	So much for write once, run everywhere.
+#       Find NT4 and Windows 2000 (CYGWIN_NT-4.0 and
+#       CYGWIN_NT-5.0 respectively)
+#--------------------------------------------------------------------
+AC_MSG_CHECKING([for the proper CLASSPATH separator])
+
+# If you mess with this, consider changing the jdkClassPathSeparator
+# proc in METRO/util/testsuite/jdktools.tcl
+case "`uname -s`" in
+    CYGWIN_ME-*) CLASSPATHSEPARATOR=";";;
+    CYGWIN_NT-*) CLASSPATHSEPARATOR=";";;
+    CYGWIN_98-*) CLASSPATHSEPARATOR=";";;
+    *) CLASSPATHSEPARATOR=":";;
+esac
+AC_MSG_RESULT(['$CLASSPATHSEPARATOR'])
+
+
+#--------------------------------------------------------------------
+#	Get ready to accumulate information for Eclipse
+#--------------------------------------------------------------------
+
+# These directories are always excluded from Eclipse
+ECLIPSE_EXCLUDING_SRC="|metropolis/metamodel/backends/javasim/GenerateHeaderVisitor.java|metropolis/metamodel/backends/javasim/lib/|metropolis/metamodel/backends/metamodel/GenerateHeaderVisitor.java|metropolis/metamodel/backends/systemc_v0/|/metropolis/metamodel/backends/systemc_v1/|metropolis/metamodel/templates/"
+
+# Jar files to include in the Eclipse library
+#ECLIPSE_CLASSPATHENTRY_LIBS='<classpathentry kind="lib" path="lib/diva.jar"/>'
+
+
+# Look for various tools.  We determine what tools to use at configure-time
+# so that if the user later adjusts their path, the tools that were
+# used at configure-time will still be used until the user re-runs configure.
+
+# Look for ar
+AC_PATH_PROG(METRO_AR, ar, ar)
+
+# Make sure that we check for CXX before cding in to config
+AC_PROG_CXX
+METRO_CXX=$CXX
+
+AC_PATH_PROG(METRO_CC, gcc)
+if test "${METRO_CC:-none}" = "none"; then
+    AC_MSG_WARN([Failed to find gcc])
+    AC_PATH_PROG(METRO_CC, cc)
+    if test "${METRO_CC:-none}" != "none"; then
+        AC_MSG_RESULT([$METRO_CC])
+    else    
+        AC_MSG_WARN([Failed to find gcc or cc!])
+    fi
+fi
+
+# Look for ranlib
+AC_PATH_PROG(METRO_RANLIB, ranlib, ranlib)
+
+# Look for make
+AC_PATH_PROG(METRO_MAKE, make)
+if test "${METRO_MAKE:-none}" = "none"; then
+    AC_MSG_WARN([Failed to find make])
+    AC_PATH_PROG(METRO_MAKE, gmake)
+    if test "${METRO_MAKE:-none}" = "none"; then
+        AC_MSG_ERROR([Could not find make or gmake.  You can download
+    GNU make from http://www.gnu.org/software/make/
+    Solaris users, make sure /usr/ccs/bin is in your path.])
+    fi
+fi
+
+#####################################################################
+#####################################################################
+#       Below here we look for various packages.
+#       Not all Metropolis software products need all packages, so
+#       we usually look for a directory that uses the package first
+#
+#       Please try to keep the packages vaguely alphabetical
+#####################################################################
+#####################################################################
+
+
+#--------------------------------------------------------------------
+#       arm_sim is a ARM Simulator based on GDB-5.0/sim/arm
+#       arm_sim uses libbfd and libiberty
+#       
+#--------------------------------------------------------------------
+# We only need to look if this directory is present
+METRO_ARM_SIM_USER_DIR="$METRO/examples/yapi_cpus/arm/arm_sim"
+
+# Set to arm_sim and used in $METRO/examples/yapi_cpus/makefile if libbfd
+# is found.
+METRO_ARM_SIM_DIR=
+
+if test -d "$METRO_ARM_SIM_USER_DIR"; then
+    AC_MSG_CHECKING([for libbfd])
+    AC_CHECK_LIB(bfd, bfd_close, METRO_BFD=yes, METRO_BFD=no)
+    if test "$METRO_BFD" = "yes"; then
+	METRO_ARM_SIM_DIR=arm_sim
+    else      
+        AC_MSG_WARN([Failed to find libbfd, so we will not build the
+    ARM Simulator that is used in \$METRO/examples/yapi_cpus/arm.
+    The ARM Simulator is only necessary if you would like to create
+    your own trace files.  Most users need not build the ARM Simulator.])
+   fi
+fi
+
+
+#--------------------------------------------------------------------
+#       javasim was not shipped in Metropolis-1.0
+#       uses bison and flex
+#       
+#--------------------------------------------------------------------
+# We only need to look if this directory is present
+METRO_JAVASIM_USER_DIR="$METRO/src/metropolis/metamodel/backends/javasim/"
+
+# Set to javasim and used in $METRO/bin/makefile if javasim sources are found.
+METRO_JAVASIM=
+
+# We silently set javasim so as not to confuse release installers who
+# do not otherwise have javasim in their trees.
+if test -d "$METRO_JAVASIM_USER_DIR"; then
+    METRO_JAVASIM=javasim
+fi
+
+#--------------------------------------------------------------------
+#       locgen, a program to convert LOC formula into trace checker
+#       uses bison and flex
+#       
+#--------------------------------------------------------------------
+# We only need to look for SystemC if this directory is present
+METRO_LOCGEN_USER_DIR="$METRO/src/util/locgen"
+
+# Set to locgen and used in src/util/makefile if bison and flex are found
+METRO_LOCGEN_DIR=
+
+# Define METRO_BISON and METRO_FLEX so that even if they are not found,
+# the makefile makes some sense.
+METRO_BISON=bison 
+METRO_FLEX=flex
+
+if test ! -d "$METRO_LOCGEN_USER_DIR"; then
+    AC_MSG_RESULT([$METRO_LOCGEN_USER_DIR is not present,
+	so we need not find bison and flex.])
+else
+    AC_PATH_PROG(METRO_BISON, bison)
+    if test "${METRO_BISON:-none}" = "none"; then
+        AC_MSG_WARN([Failed to find bison])
+	METRO_BISON=bison 
+    else 
+        AC_PATH_PROG(METRO_FLEX, flex)
+	if test "${METRO_FLEX:-none}" = "none"; then
+	    METRO_LOCGEN_DIR=
+	    METRO_FLEX=flex
+	else
+	    METRO_LOCGEN_DIR=locgen
+        fi
+    fi
+
+    if test "$METRO_LOCGEN_DIR" != "locgen"; then
+        AC_MSG_WARN([Failed to find either bison or flex, so we will
+   not compile locgen, a program to convert LOC formula into trace checker])
+    fi
+fi    
+
+#--------------------------------------------------------------------
+#       PtJacl - Jacl is a 100% Java implementation of a subset of Tcl
+#       PtJacl is based on Jacl 1.1.1
+#--------------------------------------------------------------------
+
+PTJACL_JAR=$METRO/lib/ptjacl.jar
+
+# JTCLSH uses JAVAFLAGS for use with the 
+JTCLSH='["$(JAVA)" $(JAVAFLAGS) $(JTCLSHFLAGS) tcl.lang.Shell]'
+
+# Set to shell and used in src/metropolis/metamodel/makefile if ptjacl is found
+PTJACL_DIR=
+
+if test ! -f "$PTJACL_JAR"; then
+    AC_MSG_RESULT([$PTJACL_JAR is not present,
+	so we need not find Jacl.])
+else
+    AC_MSG_CHECKING([for ptjacl.jar])
+    AC_ARG_WITH(ptjacl_jar, [  --with-ptjacl_jar=PTJACL.JAR  ptjacl.jar file,
+                           used for running the test scripts],
+	PTJACL_JAR=$withval, PTJACL_JAR=$METRO/lib/ptjacl.jar)
+
+    if test -f "$PTJACL_JAR"; then
+	AC_MSG_RESULT([$PTJACL_JAR])
+	PTJACL_DIR=shell
+
+	AC_MSG_CHECKING([for how to run jacl with "$JAVA"])
+	# This command starts up Jacl
+	if echo "set java::jdkVersion; exit" | CLASSPATH="$PTJACL_JAR" "$JAVA" tcl.lang.Shell; then
+		AC_MSG_RESULT(ok)
+	else
+		AC_MSG_RESULT([CLASSPATH="$PTJACL_JAR" "$JAVA" tcl.lang.Shell failed])
+		AC_MSG_CHECKING([for how to run jacl with "$JAVA" "$PTJACL_FLAG]")
+		if echo "set java::jdkVersion; exit" | CLASSPATH="$PTJACL_JAR" "$JAVA" tcl.lang.Shell; then
+			AC_MSG_RESULT(ok)
+		else
+			AC_MSG_RESULT(['CLASSPATH="$PTJACL_JAR" "$JAVA" tcl.lang.Shell' failed,
+	use 'CLASSPATH="$PTJACL_JAR" "$JAVA" tcl.lang.Shell'
+	instead. ptjacl is used by the test suite, so you may be able to
+	ignore this error.])
+		fi
+		JTCLSH='["$(JAVA)" $(JAVAFLAGS) $(JTCLFLAGS tcl.lang.Shell]'
+	fi
+    else
+	AC_MSG_WARN([The ptjacl.jar file was not found at '$PTJACL_JAR'
+    ptjacl.jar is only necessary if you plan on running the test suite.
+    You can download ptjacl.jar from
+    http://ptolemy.eecs.berkeley.edu/~cxh/java/jacl/ptjacl.html])
+    fi
+fi
+
+if test ! -z "$PTJACL_DIR"; then
+   ECLIPSE_CLASSPATHENTRY_LIBS="$ECLIPSE_CLASSPATHENTRY_LIBS \
+    <classpathentry kind=\"lib\" path=\"$PTJACL_JAR\"/>"
+fi 
+
+#--------------------------------------------------------------------
+#       SystemC
+#       
+#--------------------------------------------------------------------
+# We only need to look for SystemC if this directory is present
+METRO_SYSTEMC_USER_DIR="$METRO/src/metropolis/metamodel/backends/systemc"
+
+METRO_SYSTEMC=no
+if test ! -d "$METRO_SYSTEMC_USER_DIR"; then
+    AC_MSG_RESULT([$METRO_SYSTEMC_USER_DIR is not present,
+	so we need not find SystemC.])
+else
+    AC_MSG_CHECKING([for SystemC directory])
+
+    AC_ARG_WITH(systemc, [  --with-systemc=DIR       use SystemC from DIR,
+                          defaults to /usr/local/systemc-2.1],
+	SYSTEMC=$withval,
+	SYSTEMC=/usr/local/systemc-2.1)
+
+    if test -d "$SYSTEMC"; then
+	AC_MSG_RESULT([$SYSTEMC])
+        METRO_SYSTEMC=yes
+    else
+	AC_MSG_RESULT([not found, still looking])
+    fi
+
+    if test "$METRO_SYSTEMC" = "no"; then
+        dirs="$HOME/src/systemc-2.1
+            $HOME/src/systemc-2.1.v1
+            $HOME/src/systemc-2.1-beta
+            $HOME/src/systemc_2_1.oct_12_2004.beta
+            $HOME/src/systemc-2.1beta11
+            $HOME/src/systemc-2.0.1
+            $HOME/src/systemc-2.0
+	    /usr/share/systemc-2.1.v1
+	    /usr/share/systemc-2.0.1 
+	    /usr/share/systemc-2.0
+            /usr/local/systemc-2.1
+            /usr/local/systemc-2.1.v1
+            /usr/local/systemc-2.1-beta
+            /usr/local/systemc_2_1.oct_12_2004.beta
+            /usr/local/systemc-2.1beta11
+            /usr/local/systemc-2.0.1
+            /usr/local/systemc-2.0"
+	for dir in $dirs
+	do
+            AC_MSG_CHECKING([for SystemC in $dir])
+  	    if test -f "$dir/include/systemc.h"; then
+		AC_MSG_RESULT([ok])
+		SYSTEMC=$dir
+		METRO_SYSTEMC=yes
+		break
+	    else
+		AC_MSG_RESULT([not found, keep looking])
+	    fi    
+	done
+    fi
+
+    if test "$METRO_SYSTEMC" = "no"; then
+        AC_MSG_WARN([Failed to find SystemC directory, please install
+   SystemC from www.systemc.org or rerun 
+   configure --with-systemc=/where/systemc/is/located])
+        AC_MSG_CHECKING([for systemc.h])
+        AC_CHECK_HEADERS(systemc.h, METRO_SYSTEMC=yes, METRO_SYSTEMC=no)
+    fi
+
+    if test ! -d "$SYSTEMC"; then
+        AC_MSG_WARN([Failed to find SystemC directory
+    $SYSTEMC])
+    fi
+
+
+    case "`uname -s`" in
+	Linux) SYSTEMC_LIB=lib-linux;;
+	SunOS) SYSTEMC_LIB=lib-gccsparcOS5;;
+	CYGWIN*) SYSTEMC_LIB=lib-cygwin;;
+        *) SYSTEMC_LIB=lib;;
+    esac
+
+    AC_MSG_CHECKING([for SystemC library directory])
+    AC_ARG_WITH(systemc-lib, [  --with-systemc-lib=DIR       use SystemC libs from DIR,
+                          defaults to "lib", another choice is "lib-linux"],
+	SYSTEMC_LIB=$withval,
+	SYSTEMC_LIB=$SYSTEMC_LIB)
+
+
+    if test -d "${SYSTEMC}/${SYSTEMC_LIB}"; then
+        AC_MSG_RESULT([$SYSTEMC_LIB])	
+    else
+	if test -d "$SYSTEMC"; then
+	    OLD_SYSTEMC_LIB=$SYSTEMC_LIB
+	    SYSTEMC_LIB=`cd ${SYSTEMC}; ls -d lib-* | head -1`
+	    if test -d "${SYSTEMC_LIB}"; then
+	        AC_MSG_RESULT([$SYSTEMC_LIB])
+	    else 
+		AC_MSG_WARN([Failed to find SystemC library directory,
+    $SYSTEMC/$OLD_SYSTEMC_LIB did not exist.])
+            fi
+        fi
+    fi
+fi    
+
+# We need two .classpath files one at
+#  $METRO/src/.classpath for Eclipse users that are not using cvs
+#  $METRO/.classpath for Eclipse users that are using cvs
+# So, we do some substitution to create a variable that contains the
+# directories to be excluded for use in $METRO/.classpath
+ECLIPSE_EXCLUDING=`echo $ECLIPSE_EXCLUDING_SRC | sed 's@|metropolis@|src/metropolis@g'`
+
+#--------------------------------------------------------------------
+#       zchaff
+#       backends/systemc/zchaff has a platform dependency
+#       which we handle here to avoid needing gmake
+#--------------------------------------------------------------------
+RAND_MAX_FLAG=
+case "`uname -s`" in
+    SunOS) RAND_MAX_FLAG=-D_NEED_REDEFINE_RAND_MAX_;;
+esac
+
+#####################################################################
+#####################################################################
+#
+#       Substitutions that configure performs
+#
+#       Keep these substitutions alphabetical, with a description
+
+# Separator in CLASSPATH,  For Unix, this should be :, for Cygwin use ;
+AC_SUBST(CLASSPATHSEPARATOR)
+
+# Eclipse .classpath excluding values
+# of the form "|src/metropolis" for use in $METRO/.classpath
+AC_SUBST(ECLIPSE_EXCLUDING)
+
+# Eclipse .classpath excluding src values
+# of the form "|metropolis" for use in $METRO/src/.classpath
+AC_SUBST(ECLIPSE_EXCLUDING_SRC)
+
+# Eclipse .classpath lib elements of the format
+#    <classpathentry kind="lib" path="lib/diva.jar"/>
+AC_SUBST(ECLIPSE_CLASSPATHENTRY_LIBS)
+
+# Command to run that indexes a jar file named tmp.jar
+# Usually it looks like '"$(JAR)" -i tmp.jar'
+AC_SUBST(JAR_INDEX)
+
+# If we are running under JDK1.4, then set JDOCBREAKITERATOR = -breakiterator
+AC_SUBST(JDOCBREAKITERATOR)
+
+# jtclsh script, used for test suites
+AC_SUBST(JTCLSH)
+
+# JDK Version determined by running confTest.class and getting java.version
+AC_SUBST(JVERSION)
+
+# The major type of OS we are running under.
+# Under all forms Windows, this should be Windows; under Linux: Linux, etc.
+AC_SUBST(MAJOR_OS_NAME)
+
+# Location of the the METRO directory
+AC_SUBST(METRO)
+
+# Archiver, such as ar, used to create libraries from .o files
+AC_SUBST(METRO_AR)
+
+# Set to arm_sim and used in $METRO/examples/yapi_cpus/makefile if libbfd
+# is found.
+AC_SUBST(METRO_ARM_SIM_DIR)
+
+# Bison, used by locgen.
+AC_SUBST(METRO_BISON)
+
+# Set to gcc if gcc was found
+AC_SUBST(METRO_CC)
+
+# C++ compiler, such as g++
+AC_SUBST(METRO_CXX)
+
+# Default location of Metropolis, chosen when configure was run, used
+# in bin/metroinvoke.in
+AC_SUBST(METRO_DEFAULT)
+
+# flex, used by locgen.
+AC_SUBST(METRO_FLEX)
+
+# Location of the JDK
+AC_SUBST(METRO_JDK)
+
+# Set to locgen and used in src/util/makefile if bison and flex are found
+AC_SUBST(METRO_LOCGEN_DIR)
+
+# Set to javasim and used in bin/makefile if 
+# src/metropolis/metamodel/backends/javasim/ exists.
+AC_SUBST(METRO_JAVASIM)
+
+# ranlib, used to generate the index of an archive created by METRO_AR 
+AC_SUBST(METRO_RANLIB)
+
+# OS is used in metroworkspace/lib/yapi-systemc
+AC_SUBST(OS)
+
+# Set to shell and used in src/metropolis/metamodel/makefile if ptjacl is found
+AC_SUBST(PTJACL_DIR)
+
+# Location of ptjacl.jar
+AC_SUBST(PTJACL_JAR)
+
+# backends/systemc/zchaff under Solaris has a platform dependency 
+AC_SUBST(RAND_MAX_FLAG)
+
+# Location of the SystemC directory
+AC_SUBST(SYSTEMC)
+
+# Location of the SystemC libraries
+AC_SUBST(SYSTEMC_LIB)
+
+# Files we substitute in 
+AC_OUTPUT(mk/metro.mk bin/metroinvoke .classpath src/.classpath, chmod a+x bin/metroinvoke)
+

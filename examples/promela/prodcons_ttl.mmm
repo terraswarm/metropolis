@@ -1,0 +1,662 @@
+/*
+  @Copyright (c) 2004-2005 The Regents of the University of California.
+  All rights reserved.
+
+  Permission is hereby granted, without written agreement and without
+  license or royalty fees, to use, copy, modify, and distribute this
+  software and its documentation for any purpose, provided that the
+  above copyright notice and the following two paragraphs appear in all
+  copies of this software and that appropriate acknowledgments are made
+  to the research of the Metropolis group.
+
+  IN NO EVENT SHALL THE UNIVERSITY OF CALIFORNIA BE LIABLE TO ANY PARTY
+  FOR DIRECT, INDIRECT, SPECIAL, INCIDENTAL, OR CONSEQUENTIAL DAMAGES
+  ARISING OUT OF THE USE OF THIS SOFTWARE AND ITS DOCUMENTATION, EVEN IF
+  THE UNIVERSITY OF CALIFORNIA HAS BEEN ADVISED OF THE POSSIBILITY OF
+  SUCH DAMAGE.
+
+  THE UNIVERSITY OF CALIFORNIA SPECIFICALLY DISCLAIMS ANY WARRANTIES,
+  INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+  MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. THE SOFTWARE
+  PROVIDED HEREUNDER IS ON AN "AS IS" BASIS, AND THE UNIVERSITY OF
+  CALIFORNIA HAS NO OBLIGATION TO PROVIDE MAINTENANCE, SUPPORT, UPDATES,
+  ENHANCEMENTS, OR MODIFICATIONS.
+
+  METROPOLIS_COPYRIGHT_VERSION_1
+  COPYRIGHTENDKEY
+*/
+//package ttl_channel;
+//import metamodel.plt.TTL.*;
+//import metamodel.plt.yapi.*;
+
+public interface yapioutinterface extends Port{
+    update void write(int[] outdata,int n);
+}
+
+public interface yapiininterface extends Port {
+    update void read(int[] indata,int n);
+}
+
+process sum{
+
+    port yapiininterface inport0;
+    int sumlength = 11;
+
+    sum(String n){}
+
+    void thread() {
+        int[] indata= new int[11];
+        int i;
+        int sumint;
+
+        while (true) {
+            inport0.read(indata,sumlength);
+            sumint = 0;
+            for (i=0;i<sumlength;i++) {
+                sumint = sumint + indata[i];
+            }
+            //outport0.write(sumint);
+        }
+    }
+}
+
+process datagen{
+
+    int iteration = 30;
+    int prodlength = 13;
+    port yapioutinterface outport0;
+
+    datagen(String n){}
+
+    void thread() {
+        //Generate the data do be written
+        int i;
+        int[] outdata= new int[13];
+
+        while (iteration > 0) {
+            for (i=0;i<prodlength;i++)
+                outdata[i] = iteration;
+
+            outport0.write(outdata,prodlength);
+            iteration--;
+        }
+
+        blackbox(PromelaFV)%%
+            printf("Execution Stop!");
+        %%;
+
+    }
+}
+
+public netlist sumnet{
+    public sumnet(String name) {
+
+        datagen dg1 = new datagen("dg1");
+        sum s1 = new sum("s1");
+        yapiM m0 = new yapiM("m0");
+
+        addcomponent(dg1,this);
+        addcomponent(s1,this);
+        addcomponent(m0,this);
+
+        connect(dg1,outport0,m0);
+        connect(s1,inport0,m0);
+    }
+}
+
+medium yapiM implements yapioutinterface, yapiininterface, ttlwri, ttlrdi,
+    rdrdi,
+    wrrdi,
+    rdwri,
+    wrwri,
+    rdwkrdi,
+    wrwkrdi,
+    rdwkwri,
+    wrwkwri{
+
+    // yapi2TTLchannel
+    int tokensize = 4;
+    int numberoftokens = 4;
+    int untransferredwrite = 0;
+    int[] buffercopywrite = new int[4];
+
+    // TTL2yapichannel
+    //int tokensize;
+    //int numberoftokens;
+    int untransferredread = 0;
+    int[] buffercopyread = new int[4];
+
+    // boundedfifo
+    int[] FIFO = new int[16];
+    int rp = 0;
+    int wp = 0;
+    int ntokens = 0;
+
+    // rdwrthreshold
+    int wtr = 0;
+    int rtr = 0;
+    boolean wkrd,wkwr;
+
+    public yapiM(String name){}
+
+    public update void write(int[] data,int n) {
+        int datatobetransferred = n;
+        int spaces,i;
+        int transferredtokens;
+        int tokenstobetransferred;
+        int threshold;
+        int index = 0;
+
+        int tmp0;
+        int tmp1;
+
+        while (datatobetransferred > 0) {
+            if ((untransferredwrite + datatobetransferred) < tokensize){ // x <= 0
+                for (i=0;i<datatobetransferred;i++) {
+                    buffercopywrite[untransferredwrite + i] = data[index];
+                    index ++;
+                }
+                untransferredwrite = untransferredwrite + datatobetransferred;
+                datatobetransferred = 0;
+            }
+            else { //x > 0
+
+                transferredtokens = 0;
+
+                //spaces = tofifo.query_space(); //inline
+
+                await{
+                    (true;this.ttlrdi;this.ttlwri)
+                        spaces =  numberoftokens - ntokens;
+                }
+
+                if ((datatobetransferred + untransferredwrite) <= tokensize * spaces){  // x <= spaces
+                    //transfer all tokens
+                    for (i=untransferredwrite;i<tokensize;i++) {
+                        buffercopywrite[i] = data[index];
+                        index ++;
+                    }
+
+                    //tofifo.release_data(buffercopywrite);        //inline
+                    await{
+                        (true;this.ttlrdi;this.ttlwri) {
+                            for (i=0;i<tokensize;i++) {
+                                FIFO[wp] = buffercopywrite[i];
+                                wp = (wp + 1)%(tokensize*numberoftokens);
+                            }
+                            ntokens++;
+                        }
+                    }
+
+                    datatobetransferred = datatobetransferred - (tokensize - untransferredwrite);
+
+                    while (datatobetransferred >= tokensize) {
+                        for (i=0;i<tokensize;i++) {
+                            buffercopywrite[i] = data[index];
+                            index ++;
+                        }
+
+                        //tofifo.release_data(buffercopywrite);        //inline
+                        await{
+                            (true;this.ttlrdi;this.ttlwri) {
+                                for (i=0;i<tokensize;i++) {
+                                    FIFO[wp] = buffercopywrite[i];
+                                    wp = (wp + 1)%(tokensize*numberoftokens);
+                                }
+                                ntokens++;
+                            }
+                        }
+
+                        datatobetransferred = datatobetransferred - tokensize;
+                        transferredtokens++;
+                    }
+
+                    for (i=0;i<datatobetransferred;i++) {
+                        buffercopywrite[i] = data[index];
+                        index ++;
+                    }
+
+                    untransferredwrite = datatobetransferred;
+                    datatobetransferred = 0;
+
+                    //rdwrth.setwritethreshold(0);                //inline
+                    await{
+                        (true;this.rdwri;this.wrwri) {
+                            wtr = 0;
+                        }
+                    }
+
+                    //if ((rdwrth.getreadthreshold() > 0) &&
+                    //(fromfifo.query_data() >= rdwrth.getreadthreshold())){
+                    //rdwrth.wakeuprd();
+                    //}
+
+                    //fromfifo.query_data()                        //inline
+                    await{
+                        (true;this.ttlwri;this.ttlrdi)
+                            tmp0 =  ntokens;
+                    }
+
+                    //rdwrth.getreadthreshold()                        //inline
+                    await{
+                        (true;this.wrrdi;this.rdrdi)
+                            tmp1 = rtr;
+                    }
+
+                    //rdwrth.wakeuprd();                        //inline
+                    if (tmp1 > 0 && tmp0 >= tmp1) {
+                        await{
+                            (true;this.rdwkrdi;this.wrwkrdi)
+                                wkrd = true;
+                        }
+                    }
+
+                }
+                else {
+
+                    //rdwrth.getreadthreshold()                        //inline
+                    await{
+                        (true;this.wrrdi;this.rdrdi)
+                            tmp1 = rtr;
+                    }
+
+                    if (tmp1 > 0){ // rtr > 0
+                        //tokenstobetransferred = spacetokens.f(((datatobetransferred + untransferredwrite)/tokensize),spaces);
+                        tokenstobetransferred = spaces;
+
+                        if (tokenstobetransferred > 0) {
+                            //transfer x' tokens
+                            for (i=untransferredwrite;i<tokensize;i++) {
+                                buffercopywrite[i] = data[index];
+                                index ++;
+                            }
+
+                            //tofifo.release_data(buffercopywrite);        //inline
+                            await{
+                                (true;this.ttlrdi;this.ttlwri) {
+                                    for (i=0;i<tokensize;i++) {
+                                        FIFO[wp] = buffercopywrite[i];
+                                        wp = (wp + 1)%(tokensize*numberoftokens);
+                                    }
+                                    ntokens++;
+                                }
+                            }
+
+                            transferredtokens++;
+
+                            datatobetransferred = datatobetransferred - (tokensize - untransferredwrite);
+
+                            while (transferredtokens < tokenstobetransferred) {
+                                for (i=0;i<tokensize;i++) {
+                                    buffercopywrite[i] = data[index];
+                                    index ++;
+                                }
+
+                                //tofifo.release_data(buffercopywrite);        //inline
+                                await{
+                                    (true;this.ttlrdi;this.ttlwri) {
+                                        for (i=0;i<tokensize;i++) {
+                                            FIFO[wp] = buffercopywrite[i];
+                                            wp = (wp + 1)%(tokensize*numberoftokens);
+                                        }
+                                        ntokens++;
+                                    }
+                                }
+
+                                datatobetransferred = datatobetransferred - tokensize;
+                                transferredtokens++;
+                            }
+                            untransferredwrite = 0;
+
+                        }
+                        threshold = datatobetransferred/tokensize; // YW
+
+                        //rdwrth.setwritethreshold(threshold);                //inline
+                        await{
+                            (true;this.rdwri;this.wrwri)
+                                wtr = threshold;
+                        }
+
+                        //rdwrth.wakeuprd();                                //inline
+                        await{
+                            (true;this.rdwkrdi;this.wrwkrdi)
+                                wkrd = true;
+                        }
+
+                        //blackbox(SystemCSim)%%
+                        //  cout << " Data to be send " << datatobetransferred/tokensize << endl;
+                        //%%;
+
+                        if (threshold > 0){ // YW
+                            await{
+                                (wkwr;;) {
+                                    //rdwrth.resetwakeupwr();                //inline
+                                    await{
+                                        (true;this.rdwkwri;this.wrwkwri)
+                                            wkwr = false;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    else {
+                        threshold = (untransferredwrite + datatobetransferred)/tokensize; // YW
+
+                        //rdwrth.setwritethreshold(threshold);                         //inline
+                        await{
+                            (true;this.rdwri;this.wrwri)
+                                wtr = threshold;
+                        }
+
+                        //rdwrth.wakeuprd();                                        //inline
+                        await{
+                            (true;this.rdwkrdi;this.wrwkrdi)
+                                wkrd = true;
+                        }
+
+                        //blackbox(SystemCSim)%%
+                        //  cout << " Data to be send " << datatobetransferred/tokensize << endl;
+                        //%%;
+
+                        if (threshold > 0){ // YW
+                            await{
+                                (wkwr;;) {
+                                    //rdwrth.resetwakeupwr();                //inline
+                                    await{
+                                        (true;this.rdwkwri;this.wrwkwri)
+                                            wkwr = false;
+                                    }
+                                }
+                            }
+                        }
+
+                    }
+
+                }
+
+            }
+
+        }
+
+    }
+
+    public update void read(int[] data,int n) {
+        int datatobetransferred = n;
+        int tokens,i;
+        int transferredtokens;
+        int tokenstobetransferred;
+        int threshold;
+        int index = 0;
+
+        int tmp0;
+        int tmp1;
+
+        while (datatobetransferred > 0) {
+            if (untransferredread >= datatobetransferred){ // x <= 0
+                for (i=0;i<datatobetransferred;i++) {
+                    data[index] = buffercopyread[i];
+                    index++;
+                }
+
+                for (i=datatobetransferred;i<untransferredread;i++)
+                    buffercopyread[i - datatobetransferred] = buffercopyread[i];
+                untransferredread = untransferredread - datatobetransferred;
+                datatobetransferred = 0;
+            }
+            else { //x > 0
+
+                transferredtokens = 0;
+
+                //tokens = fromfifo.query_data();                //inline
+                await{
+                    (true;this.ttlwri;this.ttlrdi)
+                        tokens = ntokens;
+                }
+
+                // if (((datatobetransferred - untransferredread)/tokensize) + 1 <= tokens){  // x <= n
+                if (datatobetransferred - untransferredread <= tokensize * tokens){  // x <= n
+                    //transfer all tokens
+
+                    //flush previous read data
+                    for (i=0;i<untransferredread;i++) {
+                        data[index] = buffercopyread[i];
+                        index++;
+                    }
+
+                    datatobetransferred = datatobetransferred - untransferredread;
+
+                    //read until the remaining data to be transferred are less then a token
+                    while (datatobetransferred >= tokensize) {
+
+                        //fromfifo.claim_data(buffercopyread);        //inline
+                        await{
+                            (ntokens > 0;this.ttlwri;this.ttlrdi) {
+                                for (i=0;i<tokensize;i++) {
+                                    buffercopyread[i] = FIFO[rp];
+                                    rp = (rp + 1)%(tokensize*numberoftokens);
+                                }
+                            }
+                        }
+
+                        for (i=0;i<tokensize;i++) {
+                            data[index] = buffercopyread[i];
+                            index ++;
+                        }
+
+                        //fromfifo.release_space();                //inline
+                        await{
+                            (true;this.ttlwri;this.ttlrdi)
+                                ntokens--;
+                        }
+
+                        datatobetransferred = datatobetransferred - tokensize;
+                        transferredtokens++;
+                    }
+
+                    //read the last data
+                    if (datatobetransferred > 0){ // YW
+
+                        //fromfifo.claim_data(buffercopyread);                //inline
+                        await{
+                            (ntokens > 0;this.ttlwri;this.ttlrdi) {
+                                for (i=0;i<tokensize;i++) {
+                                    buffercopyread[i] = FIFO[rp];
+                                    rp = (rp + 1)%(tokensize*numberoftokens);
+                                }
+                            }
+                        }
+
+                        for (i=0;i<datatobetransferred;i++) {
+                            data[index] = buffercopyread[i];
+                            index ++;
+                        }
+
+                        for (i=datatobetransferred;i<tokensize;i++)
+                            buffercopyread[i - datatobetransferred] = buffercopyread[i];
+
+                        untransferredread = tokensize - datatobetransferred;
+                        datatobetransferred = 0;
+
+                        //fromfifo.release_space();                                //inline
+                        await{
+                            (true;this.ttlwri;this.ttlrdi)
+                                ntokens--;
+                        }
+                    }
+                    else {
+                        untransferredread = 0;  // YW
+                    }
+
+                    //rdwrth.setreadthreshold(0);                                //inline
+                    await{
+                        (true;this.rdrdi;this.wrrdi)
+                            rtr=0;
+                    }
+
+                    //if ((rdwrth.getwritethreshold() > 0)
+                    //        && (tofifo.query_space() >= rdwrth.getwritethreshold()))
+                    //          rdwrth.wakeupwr();
+
+                    //rdwrth.getwritethreshold()                //inline
+                    await{
+                        (true;this.wrwri;this.rdwri)
+                            tmp0 = wtr;
+                    }
+
+                    //tofifo.query_space()                        //inline
+                    await{
+                        (true;this.ttlrdi;this.ttlwri)
+                            tmp1 = (numberoftokens - ntokens);
+                    }
+
+                    if (tmp0 > 0 && tmp1 >= tmp0)
+                        //wakeupwr();                                //inline
+                        await{
+                        (true;this.rdwkwri;this.wrwkwri)
+                            wkwr =true;
+                    }
+                }
+                else {
+                    //rdwrth.getwritethreshold()                //inline
+                    await{
+                        (true;this.wrwri;this.rdwri)
+                            tmp0 = wtr;
+                    }
+
+                    if (tmp0 > 0){ // wtr > 0
+                        //tokenstobetransferred = spacetokens.f(((datatobetransferred - untransferredread)/tokensize),tokens);
+                        tokenstobetransferred = tokens;
+
+                        //transfer x' tokens
+                        if (tokenstobetransferred > 0) {
+                            for (i=0;i<untransferredread;i++) {
+                                data[index]=buffercopyread[i];
+                                index++;
+                            }
+
+                            datatobetransferred = datatobetransferred - untransferredread;
+
+                            while (transferredtokens < tokenstobetransferred){
+
+                                //fromfifo.claim_data(buffercopyread);        //inline
+                                await{
+                                    (ntokens > 0;this.ttlwri;this.ttlrdi) {
+                                        for (i=0;i<tokensize;i++) {
+                                            buffercopyread[i] = FIFO[rp];
+                                            rp = (rp + 1)%(tokensize*numberoftokens);
+                                        }
+                                    }
+                                }
+
+                                for (i=0;i<tokensize;i++) {
+                                    data[index]=buffercopyread[i];
+                                    index ++;
+                                }
+
+                                //fromfifo.release_space();                        //inline
+                                await{
+                                    (true;this.ttlwri;this.ttlrdi)
+                                        ntokens--;
+                                }
+
+                                datatobetransferred = datatobetransferred - tokensize;
+                                transferredtokens++;
+                            }
+                            untransferredread = 0;
+
+                        }
+
+                        // YW threshold = datatobetransferred / tokensize + 1;
+
+                        threshold = datatobetransferred / tokensize;
+                        if (tokensize * threshold != datatobetransferred) {
+                            threshold = threshold + 1;
+                        }
+
+                        //rdwrth.setreadthreshold(threshold);                //inline
+                        await{
+                            (true;this.rdrdi;this.wrrdi)
+                                rtr=threshold;
+                        }
+
+                        //rdwrth.wakeupwr();                                //inline
+                        await{
+                            (true;this.rdwkwri;this.wrwkwri)
+                                wkwr =true;
+                        }
+
+                        //blackbox(SystemCSim)%%
+                        //    cout << " Data to be received " << datatobetransferred/tokensize << endl;
+                        //%%;
+
+                        await{
+                            (wkrd;;)
+                                {
+                                    //rdwrth.resetwakeuprd();                        //inline
+                                    await{
+                                        (true;this.rdwkrdi;this.wrwkrdi)
+                                            wkrd = false;
+                                    }
+                                }
+                        }
+                    }
+
+                    else {
+                        // YW threshold = datatobetransferred/tokensize + 1;
+
+                        threshold = datatobetransferred/tokensize;
+                        if (tokensize * threshold != datatobetransferred) {
+                            threshold = threshold + 1;
+                        }
+
+                        //rdwrth.setreadthreshold(threshold);                //inline
+                        await{
+                            (true;this.rdrdi;this.wrrdi)
+                                rtr=threshold;
+                        }
+
+                        //rdwrth.wakeupwr();                                //inline
+                        await{
+                            (true;this.rdwkwri;this.wrwkwri)
+                                wkwr =true;
+                        }
+
+                        //blackbox(SystemCSim)%%
+                        //    cout << " Data to be received " << datatobetransferred/tokensize << endl;
+                        //%%;
+
+                        await{
+                            (wkrd;;)
+                                {
+                                    //rdwrth.resetwakeuprd();                        //inline
+                                    await{
+                                        (true;this.rdwkrdi;this.wrwkrdi)
+                                            wkrd = false;
+                                    }
+                                }
+                        }
+
+                    }
+
+                }
+            }
+        }
+    }
+
+
+
+}
+interface ttlwri extends Port{}
+interface ttlrdi extends Port{}
+
+interface rdrdi extends Port {}
+interface wrrdi extends Port {}
+
+interface rdwri extends Port {}
+interface wrwri extends Port {}
+
+interface rdwkrdi extends Port {}
+interface wrwkrdi extends Port {}
+
+interface rdwkwri extends Port {}
+interface wrwkwri extends Port {}

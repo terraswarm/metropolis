@@ -1,0 +1,212 @@
+/*
+
+@Copyright (c) 2004-2005 The Regents of the University of California.
+All rights reserved.
+
+Permission is hereby granted, without written agreement and without
+license or royalty fees, to use, copy, modify, and distribute this
+software and its documentation for any purpose, provided that the
+above copyright notice and the following two paragraphs appear in all
+copies of this software and that appropriate acknowledgments are made
+to the research of the Metropolis group.
+
+IN NO EVENT SHALL THE UNIVERSITY OF CALIFORNIA BE LIABLE TO ANY PARTY
+FOR DIRECT, INDIRECT, SPECIAL, INCIDENTAL, OR CONSEQUENTIAL DAMAGES
+ARISING OUT OF THE USE OF THIS SOFTWARE AND ITS DOCUMENTATION, EVEN IF
+THE UNIVERSITY OF CALIFORNIA HAS BEEN ADVISED OF THE POSSIBILITY OF
+SUCH DAMAGE.
+
+THE UNIVERSITY OF CALIFORNIA SPECIFICALLY DISCLAIMS ANY WARRANTIES,
+INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. THE SOFTWARE
+PROVIDED HEREUNDER IS ON AN "AS IS" BASIS, AND THE UNIVERSITY OF
+CALIFORNIA HAS NO OBLIGATION TO PROVIDE MAINTENANCE, SUPPORT, UPDATES,
+ENHANCEMENTS, OR MODIFICATIONS.
+
+METROPOLIS_COPYRIGHT_VERSION_1
+COPYRIGHTENDKEY
+
+*/
+
+package pip.architecture.vertical;
+
+/////////////////////////////////////////////////////////////////////
+//        Design Example of Metropolis
+//        PiP Architecture
+//
+//        Author: Alessandro Pinto
+//                Yoshi Watanabe
+//                Haibo Zeng
+//                Doug Densmore
+/////////////////////////////////////////////////////////////////////
+
+/*Cleaned up for vertical release; rev 2.0
+  Added a simulate flag to switch which thread runs; i.e. mapping(0)
+  or simulation (1)
+
+  1. SwTasks are the same regardless of architecture type (vertical, etc). It is
+  the resposibility of the designer to implement a service which
+  provides a SwTaskService interface consistent with this.
+
+*/
+
+
+
+// public process SwTask implements TtlService{
+public process SwTask {
+
+    ///////////////////////////////////////////////////////////////////
+    ////                         public variables                  ////
+
+    ///////////////////////////////////////////////////////////////////
+    ////                         protected variables               ////
+
+    ///////////////////////////////////////////////////////////////////
+    ////                         private variables                 ////
+
+    final static int FUNCTION_ID_REQUEST                         = 0;
+    final static int FUNCTION_ID_READ                         = 1;
+    final static int FUNCTION_ID_READ_LONG                         = 2;
+    final static int FUNCTION_ID_READ_PROTECTED                 = 3;
+    final static int FUNCTION_ID_READ_LONG_PROTECTED         = 4;
+    final static int FUNCTION_ID_WRITE                         = 5;
+    final static int FUNCTION_ID_WRITE_LONG                 = 6;
+    final static int FUNCTION_ID_WRITE_PROTECTED                 = 7;
+    final static int FUNCTION_ID_WRITE_LONG_PROTECTED        = 8;
+
+    port SwTaskService[]  _portSlaves;
+    port StateMediumProc[] _portSM;
+
+    int _swtaskID;
+    int _simulate;
+    ///////////////////////////////////////////////////////////////////
+    ////                         public methods                    ////
+
+    // Constructor
+    public SwTask(String n, int id, int num_sms, int num_cpus, int sim){
+        super(n);
+
+        _portSlaves = new SwTaskService[num_cpus];
+        _portSM = new StateMediumProc[num_sms];
+
+        _simulate = sim;
+        _swtaskID = id;
+
+        blackbox(SystemCSim)%%
+            //                        glb_counter = 0;
+
+            //                        counter_read[_swtaskID] = 0;
+            //                        counter_write[_swtaskID] = 0;
+            //                        counter_execute[_swtaskID] = 0;
+            %%;
+    }
+
+
+    public void thread() {
+        if (_simulate == 0) {
+            int i=0;
+            Nondet base, offset, objSize, numObj;
+            Nondet funId, comp;
+
+            base    = new Nondet();
+            offset  = new Nondet();
+            objSize = new Nondet();
+            numObj  = new Nondet();
+            funId   = new Nondet();
+            comp    = new Nondet();
+
+            base.setAny();
+            offset.setAny();
+            objSize.setAny();
+            numObj.setAny();
+            funId.setAny();
+            comp.setAny();
+
+
+            while (true) {
+                await{
+                    (true; ; )        read(base, offset, objSize, numObj);
+                    (true; ; )        write(base, offset, objSize, numObj);
+                    (true; ; )        execute(funId, comp);
+                }
+                i++;
+            }
+        }
+        else if (_simulate == 1) {
+            int i=0;
+            Nondet base, offset, objSize, numObj;
+            Nondet funId, comp;
+
+            base    = new Nondet();
+            offset  = new Nondet();
+            objSize = new Nondet();
+            numObj  = new Nondet();
+            funId   = new Nondet();
+            comp    = new Nondet();
+
+            while (i < 1) {
+                funId.set(0);
+                comp.set(10);
+                execute(funId, comp);
+
+                base.set(0);
+                offset.set(0);
+                objSize.set(1);
+                numObj.set(10);
+                read(base, offset, objSize, numObj);
+
+                base.set(0);
+                offset.set(0);
+                objSize.set(1);
+                numObj.set(10);
+                write(base, offset, objSize, numObj);
+
+                i++;
+            }
+
+        }
+    }
+
+    public void execute(Nondet funId, Nondet comp)
+        {
+            if (funId.isNondet() || comp.isNondet()) {
+                return;
+            }
+
+            _portSlaves[0].request(comp.get());
+            double time = _portSlaves[0].ATime(this, FUNCTION_ID_REQUEST, true);
+            time = _portSlaves[0].ATime(this, FUNCTION_ID_REQUEST, false);
+        }
+
+
+    public void read(Nondet base, Nondet offset, Nondet objSize, Nondet numObj)
+        {
+            if (base.isNondet() || offset.isNondet() || objSize.isNondet() || numObj.isNondet()) {
+                return;
+            }
+
+            int n = objSize.get() * numObj.get();
+            _portSlaves[0].readProtect(base.get(), offset.get(), n);
+            double time = _portSlaves[0].ATime(this, FUNCTION_ID_READ_PROTECTED, true);
+            time = _portSlaves[0].ATime(this, FUNCTION_ID_READ_PROTECTED, false);
+        }
+
+    public void write(Nondet base, Nondet offset, Nondet objSize, Nondet numObj)
+        {
+            if (base.isNondet() || offset.isNondet() || objSize.isNondet() || numObj.isNondet()) {
+                return;
+            }
+
+            int n = objSize.get() * numObj.get();
+            _portSlaves[0].writeProtect(base.get(), offset.get(), n);
+            double time = _portSlaves[0].ATime(this, FUNCTION_ID_WRITE_PROTECTED, true);
+            time = _portSlaves[0].ATime(this, FUNCTION_ID_WRITE_PROTECTED, false);
+        }
+
+    ///////////////////////////////////////////////////////////////////
+    ////                         protected methods                 ////
+
+    ///////////////////////////////////////////////////////////////////
+    ////                         private methods                  ////
+
+}

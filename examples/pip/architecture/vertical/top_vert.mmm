@@ -1,0 +1,279 @@
+/*
+  @Copyright (c) 2004-2005 The Regents of the University of California.
+  All rights reserved.
+
+  Permission is hereby granted, without written agreement and without
+  license or royalty fees, to use, copy, modify, and distribute this
+  software and its documentation for any purpose, provided that the
+  above copyright notice and the following two paragraphs appear in all
+  copies of this software and that appropriate acknowledgments are made
+  to the research of the Metropolis group.
+
+  IN NO EVENT SHALL THE UNIVERSITY OF CALIFORNIA BE LIABLE TO ANY PARTY
+  FOR DIRECT, INDIRECT, SPECIAL, INCIDENTAL, OR CONSEQUENTIAL DAMAGES
+  ARISING OUT OF THE USE OF THIS SOFTWARE AND ITS DOCUMENTATION, EVEN IF
+  THE UNIVERSITY OF CALIFORNIA HAS BEEN ADVISED OF THE POSSIBILITY OF
+  SUCH DAMAGE.
+
+  THE UNIVERSITY OF CALIFORNIA SPECIFICALLY DISCLAIMS ANY WARRANTIES,
+  INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+  MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. THE SOFTWARE
+  PROVIDED HEREUNDER IS ON AN "AS IS" BASIS, AND THE UNIVERSITY OF
+  CALIFORNIA HAS NO OBLIGATION TO PROVIDE MAINTENANCE, SUPPORT, UPDATES,
+  ENHANCEMENTS, OR MODIFICATIONS.
+
+  METROPOLIS_COPYRIGHT_VERSION_1
+  COPYRIGHTENDKEY
+*/
+//////////////////////////////////////////////////
+//        Design Example of Metropolis
+//        PiP Architecture Vertical Refinement
+//
+//        Author: Alessandro Pinto
+//                Yoshi Watanabe
+//                Haibo Zeng
+//                Doug Densmore
+//////////////////////////////////////////////////
+
+//Cleaned for inital metro release, rev 2.0
+
+/* Top level netlist for the Vertical Refinement
+ * 1. Need to add parameters for whatever new services you are adding to the scheduled
+ * netlist.
+ *         - This should represent some aspect of the service which will effect the
+ *         simulation annotation information.
+ * 2. Need to introduce those parameteres into the instanciation of the Architecture
+ *         - Make sure to change the constructor for the architecture
+ * Optional: Change the names of the instances if desired
+ *         - Useful if you view the elaborated netlist
+ */
+
+//simulation flag added here at the top level
+
+package pip.architecture.vertical;
+
+public netlist TopNet {
+
+    final static int SCHEDULING_ALGORITHM_FIFO                        = 0;
+    final static int SCHEDULING_ALGORITHM_ROUND_ROBIN                = 1;
+    final static int SCHEDULING_ALGORITHM_PRIORITY_BASED                = 2;
+    final static int SCHEDULING_ALGORITHM_TIME_SLICE_BASED                 = 3;
+
+    final static int SERVICE_ID_REQUEST                                 = 0;
+    final static int SERVICE_ID_READ_INIT                                = 1;
+    final static int SERVICE_ID_READ                                 = 2;
+    final static int SERVICE_ID_READ_PROTECTED_INIT                        = 3;
+    final static int SERVICE_ID_READ_PROTECTED                         = 4;
+    final static int SERVICE_ID_WRITE_INIT                                = 5;
+    final static int SERVICE_ID_WRITE                                 = 6;
+    final static int SERVICE_ID_WRITE_PROTECTED_INIT                = 7;
+    final static int SERVICE_ID_WRITE_PROTECTED                        = 8;
+    final static int SERVICE_ID_RELEASE                                 = 9;
+    final static int SERVICE_ID_CONTEXT_SWITCH                        = 10;
+    final static int NUMBER_OF_SERVICES                                = 11;
+
+    public TopNet(String n) {
+        super(n);
+
+        int simulation = 1;
+
+        //same settings as with the OLD standard architecture
+        /*double cpu_clock         = 0.001;
+          double bus_clock         = 0.001;
+          double mem_clock         = 0.001;
+          int mem_space        = 1000;
+          int num_swtasks        = 2;
+        */
+
+        //CHANGE TO ALLOW MULTIPLE SETTINGS/DEVICE TYPE
+        //double cpu_clock    = 0.000000005; //200mhz
+        //double bus_clock         = 0.000000005;
+        //double mem_clock         = 0.000000005;
+        //int mem_space        = 1000;
+
+        int num_swtasks = 4;
+        int num_cpus = 1;
+        int num_buses = 1;
+        int num_mems = 1;
+
+        //add for new services
+        int num_cache = 1;
+        int num_rtos = 1;
+
+        //new parameters; MOVED TO ALLOW MULTIPLE SETTINGS
+        //int cache_space        = 50; //added the cache; 1/20th the size of mem
+        //double cache_access = 0.000000005; //represents the cache access time
+        //double rtos_overhead = 0.0000005; //context switch; 100 cycles
+        //double rtos_overhead = 0.000000005; //will be the clock
+
+
+        int i, j;
+
+
+        double[] cpu_clock = new double[num_cpus];
+        int[] cpu_sched_alg = new int[num_cpus];
+        //double[] time_slice = new double[num_cpus];
+        int[][] cpu_service_cycle = new int[num_cpus][NUMBER_OF_SERVICES];
+        for (i=0; i<num_cpus; i++) {
+            cpu_sched_alg[i] = SCHEDULING_ALGORITHM_FIFO;
+            //cpu_sched_alg[i] = SCHEDULING_ALGORITHM_TIME_SLICE_BASED;
+            //time_slice[i] = 20;
+            cpu_service_cycle[i][SERVICE_ID_REQUEST]                 = 1;
+            cpu_service_cycle[i][SERVICE_ID_READ_INIT]                = 0;
+            cpu_service_cycle[i][SERVICE_ID_READ]                         = 7;
+            cpu_service_cycle[i][SERVICE_ID_READ_PROTECTED_INIT]         = 0;
+            cpu_service_cycle[i][SERVICE_ID_READ_PROTECTED]         = 7;
+            cpu_service_cycle[i][SERVICE_ID_WRITE_INIT]                = 0;
+            cpu_service_cycle[i][SERVICE_ID_WRITE]                         = 1;
+            cpu_service_cycle[i][SERVICE_ID_WRITE_PROTECTED_INIT]         = 0;
+            cpu_service_cycle[i][SERVICE_ID_WRITE_PROTECTED]         = 1;
+            cpu_service_cycle[i][SERVICE_ID_RELEASE]                 = 0;
+            cpu_service_cycle[i][SERVICE_ID_CONTEXT_SWITCH]         = 0;
+        }
+
+        cpu_clock[0] = 0.000000005; //1/200MHZ
+        //cpu_clock[1] = 0.000000005; //1/200MHZ
+
+
+
+        double[] bus_clock = new double[num_buses];
+        int[] bus_sched_alg = new int[num_buses];
+        int[][] bus_service_cycle = new int[num_buses][NUMBER_OF_SERVICES];
+        for (i=0; i<num_buses; i++) {
+            bus_sched_alg[i] = SCHEDULING_ALGORITHM_FIFO;
+            bus_clock[i] = 0.000000005; //1/200MHZ
+            bus_service_cycle[i][SERVICE_ID_REQUEST]                 = 0;
+            bus_service_cycle[i][SERVICE_ID_READ_INIT]                = 4;
+            bus_service_cycle[i][SERVICE_ID_READ]                         = 1;
+            bus_service_cycle[i][SERVICE_ID_READ_PROTECTED_INIT]         = 4;
+            bus_service_cycle[i][SERVICE_ID_READ_PROTECTED]         = 1;
+            bus_service_cycle[i][SERVICE_ID_WRITE_INIT]                = 4;
+            bus_service_cycle[i][SERVICE_ID_WRITE]                         = 1;
+            bus_service_cycle[i][SERVICE_ID_WRITE_PROTECTED_INIT]         = 4;
+            bus_service_cycle[i][SERVICE_ID_WRITE_PROTECTED]         = 1;
+            bus_service_cycle[i][SERVICE_ID_RELEASE]                 = 0;
+            bus_service_cycle[i][SERVICE_ID_CONTEXT_SWITCH]         = 0;
+        }
+
+        double[] mem_clock = new double[num_mems];
+        int[] mem_space = new int[num_mems];
+        int[] mem_sched_alg = new int[num_mems];
+        int[][] mem_service_cycle = new int[num_mems][NUMBER_OF_SERVICES];
+        for (i=0; i<num_mems; i++) {
+            mem_sched_alg[i] = SCHEDULING_ALGORITHM_FIFO;
+            mem_clock[i] = 0.000000005; //1/200MHZ
+            mem_space[i] = 1000;
+            mem_service_cycle[i][SERVICE_ID_REQUEST]                 = 0;
+            mem_service_cycle[i][SERVICE_ID_READ_INIT]                = 0;
+            mem_service_cycle[i][SERVICE_ID_READ]                         = 1;
+            mem_service_cycle[i][SERVICE_ID_READ_PROTECTED_INIT]         = 0;
+            mem_service_cycle[i][SERVICE_ID_READ_PROTECTED]         = 1;
+            mem_service_cycle[i][SERVICE_ID_WRITE_INIT]                = 0;
+            mem_service_cycle[i][SERVICE_ID_WRITE]                         = 1;
+            mem_service_cycle[i][SERVICE_ID_WRITE_PROTECTED_INIT]         = 0;
+            mem_service_cycle[i][SERVICE_ID_WRITE_PROTECTED]         = 1;
+            mem_service_cycle[i][SERVICE_ID_RELEASE]                 = 0;
+            mem_service_cycle[i][SERVICE_ID_CONTEXT_SWITCH]         = 0;
+        }
+
+
+        double[] cache_clock = new double[num_cache];
+        int[] cache_space = new int[num_cache];
+        int[] block_size = new int[num_cache];
+        int[] assoc = new int[num_cache];
+        int[] mis_pen = new int[num_cache];
+        int[] cache_sched_alg = new int[num_cache];
+        int[][] cache_service_cycle = new int[num_cache][NUMBER_OF_SERVICES];
+        for (i=0; i<num_cache; i++) {
+            cache_sched_alg[i] = SCHEDULING_ALGORITHM_FIFO;
+            cache_clock[i] = 0.0000000005; //1/2GB; Faster then MEM
+            cache_space[i] = 50; //should be proportionally smaller then mem
+            block_size[i] = 32;
+            assoc[i] = 2;
+            mis_pen[i] = 10;
+            cache_service_cycle[i][SERVICE_ID_REQUEST]                 = 0;
+            cache_service_cycle[i][SERVICE_ID_READ_INIT]                = 1;
+            cache_service_cycle[i][SERVICE_ID_READ]                 = 0;
+            cache_service_cycle[i][SERVICE_ID_READ_PROTECTED_INIT]         = 1;
+            cache_service_cycle[i][SERVICE_ID_READ_PROTECTED]         = 0;
+            cache_service_cycle[i][SERVICE_ID_WRITE_INIT]                = 1;
+            cache_service_cycle[i][SERVICE_ID_WRITE]                 = 0;
+            cache_service_cycle[i][SERVICE_ID_WRITE_PROTECTED_INIT] = 1;
+            cache_service_cycle[i][SERVICE_ID_WRITE_PROTECTED]         = 0;
+            cache_service_cycle[i][SERVICE_ID_RELEASE]                 = 0;
+            cache_service_cycle[i][SERVICE_ID_CONTEXT_SWITCH]         = 0;
+        }
+
+        //Not a clock so as much as an indication of atomic transaction time
+        double[] rtos_clock = new double[num_rtos];
+        double[] time_slice = new double[num_rtos];
+        int[] rtos_sched_alg = new int[num_rtos];
+        int[][] rtos_service_cycle = new int[num_rtos][NUMBER_OF_SERVICES];
+        for (i=0; i<num_rtos; i++) {
+            //rtos_sched_alg[i] = SCHEDULING_ALGORITHM_FIFO;
+            time_slice[i] = 20;
+            rtos_clock[i] = 0.00000005; //order magnitude slower than HW
+            rtos_sched_alg[i] = SCHEDULING_ALGORITHM_TIME_SLICE_BASED;
+            rtos_service_cycle[i][SERVICE_ID_REQUEST]                 = 1;
+            rtos_service_cycle[i][SERVICE_ID_READ_INIT]                = 0;
+            rtos_service_cycle[i][SERVICE_ID_READ]                         = 0;
+            rtos_service_cycle[i][SERVICE_ID_READ_PROTECTED_INIT]         = 0;
+            rtos_service_cycle[i][SERVICE_ID_READ_PROTECTED]         = 0;
+            rtos_service_cycle[i][SERVICE_ID_WRITE_INIT]                = 0;
+            rtos_service_cycle[i][SERVICE_ID_WRITE]                 = 0;
+            rtos_service_cycle[i][SERVICE_ID_WRITE_PROTECTED_INIT]         = 0;
+            rtos_service_cycle[i][SERVICE_ID_WRITE_PROTECTED]         = 0;
+            rtos_service_cycle[i][SERVICE_ID_RELEASE]                 = 10;
+            rtos_service_cycle[i][SERVICE_ID_CONTEXT_SWITCH]         = 10;
+        }
+
+
+        //connections
+
+        int[][] task_to_rtos = new int[num_swtasks][num_rtos];
+
+        //will return the rtos number if the task is assigned to this rtos
+        task_to_rtos[0][0] = 0;
+        task_to_rtos[1][0] = 0;
+        task_to_rtos[2][0] = 0;
+        task_to_rtos[3][0] = 0;
+
+        int[][] rtos_to_cpu = new int[num_rtos][num_cpus];
+
+        rtos_to_cpu[0][0] = 0;
+
+        int[][] cpu_to_cache = new int[num_cpus][num_cache];
+
+        cpu_to_cache[0][0] = 0;
+
+        int[][] bus_to_mem = new int[num_buses][num_mems];
+
+        bus_to_mem[0][0] = 0;
+
+        int[][] cpu_to_bus = new int[num_cpus][num_buses];
+
+        cpu_to_bus[0][0] = 0;
+
+
+        //int[] p = new int[1];
+        //p[0] = 0;
+
+        Architecture arch = new Architecture("PiPArchitecture_Vert", num_swtasks,
+                num_cpus, num_buses, num_mems,
+                num_rtos, num_cache, cpu_clock,
+                cpu_sched_alg, time_slice,
+                cpu_service_cycle, bus_clock,
+                bus_sched_alg, bus_service_cycle,
+                mem_clock, mem_space, mem_sched_alg,
+                mem_service_cycle, rtos_clock,
+                rtos_sched_alg, rtos_service_cycle,
+                cache_clock, cache_space, block_size, assoc, mis_pen,
+                cache_sched_alg, cache_service_cycle,
+                task_to_rtos, rtos_to_cpu, cpu_to_cache,
+                bus_to_mem, cpu_to_bus, simulation);
+
+        addcomponent(arch,this,"ArchitectureInst_Vert");
+    }
+}
+
+//rev 2.0; Release Version; DMD

@@ -1,0 +1,733 @@
+/* An implementation of a resizable array (see java.util.Vector).
+
+Metropolis: Design Environment for Heterogeneus Systems.
+
+Copyright (c) 1998-2005 The Regents of the University of California.
+All rights reserved.
+
+Permission is hereby granted, without written agreement and without
+license or royalty fees, to use, copy, modify, and distribute this
+software and its documentation for any purpose, provided that the
+above copyright notice and the following two paragraphs appear in all
+copies of this software and that appropriate acknowledgments are made
+to the research of the Metropolis group.
+
+IN NO EVENT SHALL THE UNIVERSITY OF CALIFORNIA BE LIABLE TO ANY PARTY
+FOR DIRECT, INDIRECT, SPECIAL, INCIDENTAL, OR CONSEQUENTIAL DAMAGES
+ARISING OUT OF THE USE OF THIS SOFTWARE AND ITS DOCUMENTATION, EVEN IF
+THE UNIVERSITY OF CALIFORNIA HAS BEEN ADVISED OF THE POSSIBILITY OF
+SUCH DAMAGE.
+
+THE UNIVERSITY OF CALIFORNIA SPECIFICALLY DISCLAIMS ANY WARRANTIES,
+INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. THE SOFTWARE
+PROVIDED HEREUNDER IS ON AN "AS IS" BASIS, AND THE UNIVERSITY OF
+CALIFORNIA HAS NO OBLIGATION TO PROVIDE MAINTENANCE, SUPPORT, UPDATES,
+ENHANCEMENTS, OR MODIFICATIONS.
+
+METROPOLIS_COPYRIGHT_VERSION_1
+COPYRIGHTENDKEY
+
+*/
+
+package metamodel.util;
+
+
+public class Vector extends AbstractList implements List
+{
+    protected int elementCount;
+    protected int capacityIncrement;
+    protected Object elementData[];
+    public List theList;
+
+    public Vector()
+    {
+        this(0, 10);
+    }
+
+    /**
+     * WARNING: must throw NullPointerException if (col == null)
+     */
+    public Vector(Collection col)
+    {
+        this(0, 10);
+        addAll(col);
+    }
+
+    /**
+     */
+    public Vector(int initialCapacity)
+    {
+        this(initialCapacity, 0);
+    }
+
+    /**
+     */
+    public Vector(int initialCapacity, int capacityIncrement)
+    {
+        this.capacityIncrement = capacityIncrement;
+        this.elementData = new Object[initialCapacity];
+        elementCount = 0;
+    }
+
+    /**
+     */
+    public Object clone()
+    {
+        Vector newVector = new Vector(elementData.length, capacityIncrement);
+        for (int i = 0; i < size(); i ++)
+            newVector.elementData[i] = elementData[i];
+        //     System.arraycopy(elementData, 0, newVector.elementData, 0, elementCount);
+        //     copyInto(newVector.elementData);
+        newVector.elementCount = elementCount;
+        return newVector;
+    }
+
+    /**
+     * WARNING: must throw ArrayIndexOutOfBoundsException if (index < 0 || index > size())
+     */
+    public void add(int index, Object ob)
+    {
+        insertElementAt(ob, index);
+    }
+
+    /**
+     * WARNING: must throw ClassCastException - if the class of the specified element prevents it from being added to this collection.
+     * WARNING: must throw IllegalArgumentException - if some aspect of this element prevents it from being added to this collection.
+     */
+    public boolean add(Object ob)
+    {
+        addElement(ob);
+        return true;
+    }
+
+    /**
+     * WARNING: must throw NullPointerException - if the specified collection is null.
+     */
+    public boolean addAll(Collection col)
+    {
+        if (col == null)
+            return false; // must throw NullPointerException here
+        return addAll(0, col);
+    }
+
+    /**
+     * WARNING: must throw NullPointerException - if the specified collection is null.
+     * WARNING: must throw ArrayIndexOutOfBoundsException - index is out of range (index < 0 || index > size()).
+     */
+    public boolean addAll(int index, Collection col)
+    {
+        if (col == null)
+            return false; // must throw NullPointerException here
+        if (index < 0 || index > size())
+            return false; // must throw ArrayIndexOutOfBoundsException here.
+        int newElementCount = elementCount + col.size();
+        ensureCapacity(newElementCount);
+        for (int i = size()-1; i >= index; i --)
+            elementData[i+col.size()] = elementData[i];
+        Iterator iter = col.iterator();
+        for (int i = index; i < newElementCount; i ++)
+            //     while (iter.hasNext())
+            elementData[i] = iter.next();
+        elementCount = newElementCount;
+        if (col.size() != 0)
+            {
+                modified();
+                return true;
+            }
+        return false;
+    }
+
+    /**
+     */
+    public void addElement(Object ob)
+    {
+        ensureCapacity(elementCount + 1);
+        elementData[elementCount] = ob;
+        elementCount ++;
+    }
+
+    /**
+     * WARNING: must throw ArrayIndexOutOfBoundsException - index is out of range (index < 0 || index > size()).
+     */
+    public void insertElementAt(Object ob, int index)
+    {
+        if (index < 0 || index > size())
+            return; // must throw ArrayIndexOutOfBoundsException here.
+        ensureCapacity(size() + 1);
+        modified();
+        for (int i = size()-1; i >= index; i --)
+            elementData[i+1] = elementData[i];
+        /*     int elementsToShift = elementCount - index;
+               if (elementsToShift > 0)
+               System.arraycopy(elementData, index, elementData, index + 1, elementsToShift);
+        */
+        elementData[index] = ob;
+        elementCount ++;
+    }
+
+    /**
+     * WARNING: must throw NullPointerException if (array == null)
+     * WARNING: must throw IndexOutOfBoundsException if (array.length < )
+     */
+    public void copyInto(Object[] array)
+    {
+        if (array == null)
+            return; // must throw NullPointerException here
+        for (int i = 0; i < elementCount; i ++)
+            array[i] = elementData[i];
+        //     System.arraycopy(elementData, 0, array, 0, elementCount);
+    }
+
+    /**
+     */
+    public void trimToSize()
+    {
+        if (elementCount < elementData.length)
+            {
+                Object newTable[] = new Object[elementCount];
+                copyInto(newTable);
+                elementData = newTable;
+            }
+    }
+
+    /**
+     */
+    public void ensureCapacity(int minCapacity)
+    {
+        if (capacity() < minCapacity)
+            {
+                int newCapacity = capacity() + ((capacityIncrement <= 0) ? capacity() : capacityIncrement);
+                if (newCapacity < minCapacity)
+                    newCapacity = minCapacity;
+                Object newTable[] = new Object[newCapacity];
+                copyInto(newTable);
+                elementData = newTable;
+            }
+    }
+
+    /**
+     * WARNING: must throw ArrayIndexOutOfBoundsException if (newSize < 0)
+     */
+    public void setSize(int newSize)
+    {
+        if (newSize < 0)
+            return; // must throw ArrayIndexOutOfBoundsException here
+        ensureCapacity(newSize);
+        /*        if (newSize > elementData.length)
+                  {
+                  Object newTable[] = new Object[newSize];
+                  copyInto(newTable);
+                  elementData = newTable;
+                  }*/
+        if (elementCount > newSize)
+            modified();
+        for (int i = size(); i < newSize; i ++)
+            elementData[i] = null;
+        elementCount = newSize;
+    }
+
+    /**
+     */
+    public int capacity()
+    {
+        return elementData.length;
+    }
+
+    /**
+     */
+    public int size()
+    {
+        //if (elementCount < 0)
+        //    System.out.print("size() is negative!\n");
+        return elementCount;
+    }
+
+    /**
+     */
+    public boolean isEmpty()
+    {
+        return (size() == 0);
+    }
+
+    /**
+     */
+    public boolean contains(Object ob)
+    {
+        return (indexOf(ob) >= 0);
+    }
+
+    /**
+     */
+    public int indexOf(Object ob)
+    {
+        if (ob == null)
+            {
+                for (int i = 0; i < size(); i ++)
+                    if (elementData[i] == null)
+                        return i;
+            }
+        else
+            {
+                for (int i = 0; i < size(); i ++)
+                    if (ob.equals(elementData[i]))
+                        return i;
+            }
+        return -1;
+    }
+
+    /**
+     * WARNING: must throw IndexOutOfBoundsException - if index is negative.
+     */
+    public int indexOf(Object ob, int minIndex)
+    {
+        if (minIndex < 0 || minIndex >= size())
+            return -1; // must throw IndexOutOfBoundsException here
+        if (ob == null)
+            {
+                for (int i = minIndex; i < size(); i ++)
+                    if (elementData[i] == null)
+                        return i;
+            }
+        else
+            {
+                for (int i = minIndex; i < size(); i ++)
+                    if (ob.equals(elementData[i]))
+                        return i;
+            }
+        return -1;
+    }
+
+    /**
+     */
+    public int lastIndexOf(Object ob)
+    {
+        if (ob == null)
+            {
+                for (int i = size() -1; i >= 0; i --)
+                    if (elementData[i] == null)
+                        return i;
+            }
+        else
+            {
+                for (int i = size() -1; i >= 0; i --)
+                    if (ob.equals(elementData[i]))
+                        return i;
+            }
+        return -1;
+    }
+
+    /**
+     * WARNING: must throw IndexOutOfBoundsException - if index is negative.
+     */
+    public int lastIndexOf(Object ob, int maxIndex)
+    {
+        if (maxIndex < 0 || maxIndex >= size())
+            return -1; // must throw IndexOutOfBoundsException here
+        if (ob == null)
+            {
+                for (int i = maxIndex; i >= 0; i --)
+                    if (elementData[i] == null)
+                        return i;
+            }
+        else
+            {
+                for (int i = maxIndex; i >= 0; i --)
+                    if (ob.equals(elementData[i]))
+                        return i;
+            }
+        return -1;
+    }
+
+    /**
+     * WARNING: must throw ArrayIndexOutOfBoundsException - index is out of range (index < 0 || index >= size()).
+     */
+    public Object get(int index)
+    {
+        if (index < 0 || index >= size())
+            return null; // must throw ArrayIndexOutOfBoundsException here
+        return elementData[index];
+    }
+
+    /**
+     * WARNING: must throw ArrayIndexOutOfBoundsException - if the index is negative or not less than the current size of this Vector
+     */
+    public Object elementAt(int index)
+    {
+        if (index < 0 || index >= size())
+            return null; // must throw ArrayIndexOutOfBoundsException here
+        return elementData[index];
+    }
+
+    /**
+     * WARNING: must throw NoSuchElementException - if this vector has no components.
+     */
+    public Object firstElement()
+    {
+        if (size() == 0)
+            return null; // must throw NoSuchElementException here
+        return elementData[0];
+    }
+
+    /**
+     * WARNING: must throw NoSuchElementException - if this vector has no components.
+     */
+    public Object lastElement()
+    {
+        if (size() == 0)
+            return null; // must throw NoSuchElementException here
+        return elementData[size()-1];
+    }
+
+    /**
+     */
+    public boolean remove(Object ob)
+    {
+        return removeElement(ob);
+    }
+
+    /**
+     * WARNING: must throw ArrayIndexOutOfBoundsException if (index < 0 || index > size())
+     */
+    public Object remove(int index)
+    {
+        if (index < 0 || index > size())
+            return null; // must throw ArrayIndexOutOfBoundsException here.
+        modified();
+        Object obRemoved = elementData[index];
+        for (int i = index + 1; i < size(); i ++)
+            elementData[i-1] = elementData[i];
+        /*     int elementsToShift = elementCount - index - 1;
+               if (elementsToShift > 0)
+               System.arraycopy(elementData, index + 1, elementData, index, elementsToShift);
+        */
+        elementCount --;
+        elementData[elementCount] = null; /* to let gc do its work */
+        return obRemoved;
+    }
+
+    /**
+     */
+    public void clear()
+    {
+        removeAllElements();
+    }
+
+    /**
+     * WARNING: must throw ArrayIndexOutOfBoundsException if ((index >= elementCount) || (index < 0))
+     */
+    public void removeElementAt(int index)
+    {
+        remove(index);
+    }
+
+    /**
+     */
+    public boolean removeElement(Object ob)
+    {
+        int index = indexOf(ob);
+        if (index < 0)
+            return false;
+        removeElementAt(index);
+        return true;
+    }
+
+    /**
+     */
+    public void removeAllElements()
+    {
+        modified();
+        elementCount = 0;
+    }
+
+    /**
+     */
+    protected void removeRange(int fromIndex, int toIndex)
+    {
+        if (fromIndex >= toIndex || elementCount <= toIndex)
+            // the operation has no effect
+            return;
+        modified();
+        int diff = elementCount >= fromIndex ? toIndex - fromIndex : toIndex - elementCount;
+        for (int i = toIndex; i < size(); i ++)
+            elementData[i-diff] = elementData[i];
+        /*     int elementsToShift = elementCount - index - diff;
+               if (elementsToShift > 0)
+               System.arraycopy(elementData, index + diff, elementData, index, elementsToShift);
+        */
+        elementCount = elementCount - diff;
+        if (elementCount < elementData.length)
+            elementData[elementCount] = null; /* to let gc do its work */
+    }
+
+    /**
+     * WARNING: must throw NullPointerException - if the specified collection is null.
+     */
+    public boolean removeAll(Collection col)
+    {
+        if (col == null)
+            return false; // must throw NullPointerException here
+        int n = elementCount;
+        Iterator iter = col.iterator();
+        for (int i = 0; i < col.size(); i ++)
+            //     while (iter.hasNext())
+            remove(iter.next());
+        return (n != elementCount);
+    }
+
+    /**
+     * WARNING: must throw NullPointerException - if the specified collection is null.
+     */
+    public boolean retainAll(Collection col)
+    {
+        if (col == null)
+            return false; // must throw NullPointerException here
+        int n = elementCount;
+        for (int i = size() - 1; i >= 0; i --)
+            if (!col.contains(elementData[i]))
+                remove(i);
+        return (n != elementCount);
+    }
+
+    /**
+     */
+    public Object[] toArray()
+    {
+        Object array[] = new Object[size()];
+        copyInto(array);
+        return array;
+    }
+
+    /**
+     * WARNING: must throw ArrayStoreException if the runtime type of a is not a supertype of the runtime type of every element in this Vector.
+     * WARNING: must throw NullPointerException if (array == null)
+     */
+    public Object[] toArray(Object[] array)
+    {
+        if (array.length < size())
+            {
+                //in Java the array is allocated of the runtime of the array specified as a parameter
+                //array = array.getClass().newInstance();
+                array = new Object[size()];
+            }
+        else
+            if (array.length > size())
+                array[size()] = null;
+        copyInto(array);
+        return array;
+    }
+
+    /**
+     * WARNING: must throw ArrayIndexOutOfBoundsException - index is out of range (index < 0 || index >= size()).
+     */
+    public Object set(int index, Object ob)
+    {
+        if (index < 0 || index >= size())
+            return null; // must throw ArrayIndexOutOfBoundsException here
+        Object prevOb = elementData[index];
+        elementData[index] = ob;
+        return prevOb;
+    }
+
+    /**
+     * WARNING: must throw ArrayIndexOutOfBoundsException if ((index >= elementCount) || (index < 0))
+     */
+    public void setElementAt(Object ob, int index)
+    {
+        if (index < 0 || index >= size())
+            return; // must throw ArrayIndexOutOfBoundsException here.
+        elementData[index] =  ob;
+    }
+
+    /**
+     * WARNING: must throw NullPointerException - if the specified collection is null.
+     */
+    public boolean containsAll(Collection col)
+    {
+        if (col == null)
+            return false; // must throw NullPointerException here
+        Iterator iter = col.iterator();
+        for (int i = 0; i < col.size(); i ++)
+            //     while (iter.hasNext())
+            if (!contains(iter.next()))
+                return false;
+        return true;
+    }
+
+    /**
+     */
+    public boolean equals(Object ob)
+    {
+        if (ob == null)
+            return false;
+        if (ob == this)
+            return true;
+        List list = (List)ob;
+        Iterator iter = list.iterator();
+        for (int i = 0; i < size(); i ++)
+            if (elementData[i] == null)
+                {
+                    if (iter.next() != null)
+                        return false;
+                }
+            else
+                {
+                    if (!elementData[i].equals(iter.next()))
+                        return false;
+                }
+        return true;
+    }
+
+    /**
+     */
+    public int hashCode()
+    {
+        int hashCode = 1;
+        for (int i = 0; i < size(); i ++)
+            hashCode = 31 * hashCode + (elementData[i] == null ? 0 : elementData[i].hashCode());
+        return hashCode;
+    }
+
+    /**
+     * "null" is placed in the string on the place of the null elements
+     */
+    public String toString()
+    {
+        String buf = new String();
+        buf += "[";
+        if (size() > 0)
+            buf += elementData[0] == null ? "null" : elementData[0].toString();
+        int i = 1;
+        while (i < size())
+            {
+                buf += ", ";
+                // this implementation is safe in the sense that if some Vetor element is null "null" will upper in its place in the string. The original Java implementation fails here.
+                buf += elementData[i] == null ? "null" : elementData[i].toString();
+                i ++;
+            }
+        buf += "]";
+        return buf;
+    }
+
+    /**
+     * WARNING: must throw IndexOutOfBoundsException - endpoint index value out of range (fromIndex < 0 || toIndex > size)
+     * WARNING: must throw IllegalArgumentException - endpoint indices out of order (fromIndex > toIndex)
+     */
+    public List subList(int fromIndex, int toIndex)
+    {
+        if (fromIndex < 0 || toIndex > size())
+            return null; // must throw IndexOutOfBoundsException here
+        if (fromIndex > toIndex)
+            return null; // must throw IllegalArgumentException here
+        return new AbstractList.SubList(this, fromIndex, toIndex);
+    }
+
+    /**
+     */
+    public Enumeration elements()
+    {
+        return new VectorEnumerator(this);
+    }
+
+    /**
+     */
+    public Iterator iterator()
+    {
+        //     return new AbstractList.Itr(this);
+        return new VectorItr(this);
+    }
+
+    class SubVector extends AbstractList.SubList implements List
+    {
+        // more efficient subVector function implementations
+        // overriding the AbstractList.SubList methods
+        // can be plased in this class
+
+        SubVector(Vector vector, int fromIndex, int toIndex)
+        {
+            super(vector, fromIndex, toIndex);
+        }
+    }
+
+    class VectorItr implements Iterator
+    {
+        protected int modCount; /** used for failing safely if the parent collection is modifie outside the VectorItr's remove() method */
+        Vector m_vector;        /** parent vector object */
+        boolean m_stateValid;   /** used for determining if the state is valid for remove() */
+        int m_index;            /** current iterator state pointer */
+
+        VectorItr(Vector vector)
+        {
+            m_vector = vector;
+            m_index = 0;
+            modCount = vector.modCount;
+            m_stateValid = false;
+        }
+
+        /**
+         * WARNING: must throw ConcurrentModificationException if the parent collection is structurally changed to ensure that the iterator is fail-fast
+         */
+        public boolean hasNext()
+        {
+            if (modCount != m_vector.modCount)
+                return false; // must throw ConcurrentModificationException here
+            return (m_index < m_vector.size());
+        }
+
+        /**
+         * WARNING: must throw ConcurrentModificationException if the parent collection is structurally changed to ensure that the iterator is fail-fast
+         * WARNING: must throw NoSuchElementException - iteration has no more elements.
+         */
+        public Object next()
+        {
+            if (modCount != m_vector.modCount)
+                return null; // must throw ConcurrentModificationException here
+            if (m_index >= m_vector.size())
+                return null; // must throw NoSuchElementException here
+            m_stateValid = true;
+            return m_vector.get(m_index ++);
+        }
+
+        /**
+         * WARNING: must throw ConcurrentModificationException if the parent collection is structurally changed to ensure that the iterator is fail-fast
+         * WARNING: must throw IllegalStateException - if the next method has not yet been called, or the remove method has already been called after the last call to the next method.
+         */
+        public void remove()
+        {
+            if (modCount != m_vector.modCount)
+                return; // must throw ConcurrentModificationException here
+            if (!m_stateValid)
+                return; // must throw IllegalStateException here
+            m_stateValid = false;
+            m_vector.remove(m_index-1);
+            modCount = m_vector.modCount;
+        }
+    }
+
+    class VectorEnumerator implements Enumeration
+    {
+        Vector m_vector;
+        int m_index;
+
+        VectorEnumerator(Vector vector)
+        {
+            m_vector = vector;
+            m_index = 0;
+        }
+
+        public boolean hasMoreElements()
+        {
+            return (m_index < m_vector.size());
+        }
+
+        /**
+         * WARNING: must throw NoSuchElementException if the array is empty or the upper bound is passed
+         */
+        public Object nextElement()
+        {
+            if (m_index < m_vector.size())
+                return m_vector.elementData[m_index ++];
+            return null; //must throw NoSuchElementException here
+        }
+    }
+}

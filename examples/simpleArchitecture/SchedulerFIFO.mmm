@@ -1,0 +1,504 @@
+/*
+
+Copyright (c) 2004-2005 The Regents of the University of California.
+All rights reserved.
+
+Permission is hereby granted, without written agreement and without
+license or royalty fees, to use, copy, modify, and distribute this
+software and its documentation for any purpose, provided that the
+above copyright notice and the following two paragraphs appear in all
+copies of this software and that appropriate acknowledgments are made
+to the research of the Metropolis group.
+
+IN NO EVENT SHALL THE UNIVERSITY OF CALIFORNIA BE LIABLE TO ANY PARTY
+FOR DIRECT, INDIRECT, SPECIAL, INCIDENTAL, OR CONSEQUENTIAL DAMAGES
+ARISING OUT OF THE USE OF THIS SOFTWARE AND ITS DOCUMENTATION, EVEN IF
+THE UNIVERSITY OF CALIFORNIA HAS BEEN ADVISED OF THE POSSIBILITY OF
+SUCH DAMAGE.
+
+THE UNIVERSITY OF CALIFORNIA SPECIFICALLY DISCLAIMS ANY WARRANTIES,
+INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. THE SOFTWARE
+PROVIDED HEREUNDER IS ON AN "AS IS" BASIS, AND THE UNIVERSITY OF
+CALIFORNIA HAS NO OBLIGATION TO PROVIDE MAINTENANCE, SUPPORT, UPDATES,
+ENHANCEMENTS, OR MODIFICATIONS.
+
+METROPOLIS_COPYRIGHT_VERSION_1
+COPYRIGHTENDKEY
+
+*/
+
+package simpleArchitecture;
+
+/////////////////////////////////////////////////////////////////////
+//        Design Example of Metropolis
+//        PiP Architecture
+//
+//        Author: Alessandro Pinto
+//                                        Yoshi Watanabe
+//                                        Haibo Zeng
+/////////////////////////////////////////////////////////////////////
+
+public quantity SchedulerFIFO extends MyScheduler {
+
+    ///////////////////////////////////////////////////////////////////
+    ////                         public variables                  ////
+
+    ///////////////////////////////////////////////////////////////////
+    ////                         protected variables               ////
+
+    ///////////////////////////////////////////////////////////////////
+    ////                         private variables                 ////
+
+    final static int SERVICE_ID_REQUEST                                                                         = 0;
+    final static int SERVICE_ID_READ_INIT                                                                        = 1;
+    final static int SERVICE_ID_READ                                                                                         = 2;
+    final static int SERVICE_ID_READ_PROTECTED_INIT                                = 3;
+    final static int SERVICE_ID_READ_PROTECTED                                                 = 4;
+    final static int SERVICE_ID_WRITE_INIT                                                                = 5;
+    final static int SERVICE_ID_WRITE                                                                                 = 6;
+    final static int SERVICE_ID_WRITE_PROTECTED_INIT                        = 7;
+    final static int SERVICE_ID_WRITE_PROTECTED                                                = 8;
+    final static int SERVICE_ID_RELEASE                                                                         = 9;
+    final static int SERVICE_ID_CONTEXT_SWITCH                                                = 10;
+    final static int NUMBER_OF_SERVICES                                                                         = 11;
+
+    private String _name;
+    private int _schID;
+    private double _clk;
+    private int _nSM;
+    //        private ProcessAccount _processAccount;
+
+    private int[] _servCycle;
+
+    private ArrayList _pendingList;
+    private ArrayList _selectedList;
+    private int _currentSMID;
+    private process _currentProc;
+    private int _preSMID;
+    private process _preProc;
+
+    private boolean _stable;
+
+    ///////////////////////////////////////////////////////////////////
+    ////                         public methods                    ////
+
+    // Constructor
+    public SchedulerFIFO(String n, int id, double clock, int[] service_cycle, int num_sms, int[] sms) {
+        super(n, num_sms);
+
+        _name = n;
+        _schID = id;
+
+        _clk = clock;
+        if (_clk <= 0) {
+            blackbox(SystemCSim)%%
+                cout <<"Wrong initial condition in "<<*_name<<" : clock cylce "<<_clk<<endl;
+            exit(-1);
+            %%;
+        }
+
+        _nSM                 = num_sms;
+        if (_nSM <= 0) {
+            blackbox(SystemCSim)%%
+                cout <<"Wrong initial condition in "<<*_name<<" : number of connected statemedia "<<_nSM<<endl;
+            exit(-1);
+            %%;
+        }
+
+        _currentProc        = null;
+        _currentSMID         = -1;
+        _preProc        = null;
+        _preSMID         = -1;
+
+        _servCycle = new int[NUMBER_OF_SERVICES];
+        for (int i=0; i<NUMBER_OF_SERVICES; i++) {
+            _servCycle[i] = service_cycle[i];
+        }
+
+        //                _portSM = new StateMediumSched[_nSM];
+        //                _processAccount = new ProcessAccount();
+
+        _pendingList        = new ArrayList();
+        _selectedList        = new ArrayList();
+        _pendingList.clear();
+        _selectedList.clear();
+
+        _stable = false;
+    }
+
+
+    //
+    // This should be provided as the default, so that the user does not need to implement it.
+    public eval void request(event e, RequestClass rc) {
+        blackbox(SystemCSim)%%
+            cout << "Process:- " << caller->name() << " Address :- " << caller << " Event:- " << e<<endl;
+        %%;
+
+        SchedReqClass csr = (SchedReqClass)rc;
+        int i = csr.getServiceID();
+        if ((i>=NUMBER_OF_SERVICES) || (i<0)) {
+            blackbox(SystemCSim)%%
+                cout << "Unknonwn service id "<<i<<endl;
+            exit(-1);
+            %%;
+        }
+
+        if (!_isAdded(csr)) {
+            _pendingList.add((Object)csr.clone());
+        }
+        //                _processAccount.addToProcessAccount(e, (SchedReqClass)csr);
+
+    }
+
+    public update void resolve() {
+        int i;
+        SchedReqClass csr;
+        event req_event;
+
+        if (!_stable) {
+            for (i=0; i<_pendingList.size(); i++) {
+                csr          = (SchedReqClass)_pendingList.get(i);
+                req_event  = csr.getReqEvent();
+
+                int smid = _smID(req_event);
+                if ((smid != -1) && (!_portSM[smid].isEventEnabled(req_event))) {
+                    _pendingList.remove(i);
+                    blackbox(SystemCSim)%%
+                        //                                                cout <<*_name<<": event "<<req_event<<" should have been satisfied." << endl;
+                        %%;
+                }
+            }
+
+            _schedFIFO();
+            _stable = true; // _checkFairness();
+
+            for (i=0; i<_selectedList.size(); i++) {
+                csr          = (SchedReqClass)_selectedList.get(i);
+                req_event  = csr.getReqEvent();
+                _timeRequest(req_event, csr);
+            }
+        }
+    }
+
+    public update void postcond() {
+        int i, smid;
+        SchedReqClass pending_csr;
+        event pending_event;
+
+        for (i=0; i<_pendingList.size(); i++) {
+            pending_csr          = (SchedReqClass)_pendingList.get(i);
+            pending_event = pending_csr.getReqEvent();
+
+            smid = _smID(pending_event);
+            if (smid == -1) {
+                blackbox(SystemCSim)%%
+                    cout <<*_name<< ": unknown event "<<pending_event<< endl;
+                exit(-1);
+                %%;
+            }
+
+            if (!_isSelected(pending_event)) {
+                _portSM[smid].setMustNotDo(pending_event);
+            }
+        }
+
+        _updateStatus();
+
+        // need to free each request class instance in pending for simulation
+        //                _pendingList.clear();
+        _selectedList.clear();
+
+        _stable = false;
+    }
+
+    public eval boolean stable() {
+        return _stable;
+    }
+
+    public eval int A(event e, int i) { return 0; }
+
+
+    ///////////////////////////////////////////////////////////////////
+    ////                         private methods                  ////
+
+    private boolean _isAdded(SchedReqClass src) {
+        int i;
+        SchedReqClass pending_csr;
+        event pending_event;
+
+        for (i=0; i<_pendingList.size(); i++) {
+            pending_csr         = (SchedReqClass)_pendingList.get(i);
+            pending_event = pending_csr.getReqEvent();
+
+            if (src.getReqEvent()==pending_event) return true;
+        }
+
+        return false;
+    }
+
+    private int _smID(event e) {
+        int i;
+        if (e==null) return -1;
+
+        for (i=0; i<_nSM; i++) {
+            if (_portSM[i].getProcess() == getprocess(e)) return i;
+            //        if (_portSM[i].isEventEnabled(e))        return i;
+        }
+
+        return -1;
+    }
+
+    private boolean _isSelected(event e) {
+        int i;
+        SchedReqClass selected_csr;
+        event selected_event;
+
+        for (i=0; i<_selectedList.size(); i++) {
+            selected_csr         = (SchedReqClass)_selectedList.get(i);
+            selected_event = selected_csr.getReqEvent();
+
+            if (e==selected_event) return true;
+        }
+
+        return false;
+    }
+
+    private boolean _checkFairness() {
+        if ((_pendingList.size()==0) || (_selectedList.size()==0)) return true;
+
+        int i;
+        int owner_id = -1;
+
+        double selected_min_time;
+
+        SchedReqClass csr;
+        event req_event, ref_event;
+
+
+        csr        = (SchedReqClass)_selectedList.get(0);
+        ref_event = csr.getRefEvent();
+
+        if (ref_event == null) {
+            return true;
+        } else {
+            selected_min_time = csr.getTime();
+        }
+
+        for (i=1; i<_selectedList.size(); i++) {
+            csr        = (SchedReqClass)_selectedList.get(i);
+            ref_event = csr.getRefEvent();
+
+            if (ref_event == null) {
+                return true;
+            } else {
+                double t = csr.getTime();
+
+                if (selected_min_time > t) selected_min_time = t;
+            }
+        }
+
+        for (i=0; i<_pendingList.size(); i++) {
+            csr          = (SchedReqClass)_pendingList.get(i);
+            req_event = csr.getReqEvent();
+
+            if (_isSelected(req_event)) continue;
+
+            ref_event = csr.getRefEvent();
+            if (ref_event == null) {
+                if (getprocess(req_event)==_currentProc)
+                    return false;
+            } else {
+                double t = csr.getTime();
+
+                if (selected_min_time > t) return false;
+            }
+        }
+
+        return true;
+    }
+
+    private void _timeRequest(event e, SchedReqClass csr) {
+        if ((e==null) || (csr == null))        return;
+        if (e!=csr.getReqEvent()) return;
+
+        event ref_event = csr.getRefEvent();
+        double t;
+
+        t = _portGT.getCurrentTime();
+        blackbox(SystemCSim)%%
+            cout << "Current Global Time is: "<<t<< endl;
+        %%;
+
+        t = csr.getTime();
+        if (t < 0) {
+            t = _calReqTime(csr);
+            csr.setTime(t);
+        }
+
+        _portGT.request(e, new GlobalTimeRequestClass(t));
+        blackbox(SystemCSim)%%
+            cout << "In "<<*_name<<", make request to GTime, e: "<<e<<", Time: "<<t<< endl;
+        %%;
+    }
+
+    private double _calReqTime(SchedReqClass csr) {
+        double t;
+        event ref_event = csr.getRefEvent();
+
+        t = _portGT.getCurrentTime();
+        t += csr.getAmount() * _servCycle[csr.getServiceID()] * _clk;
+        // TCM
+        /*
+          if ((csr.getServiceID()!=SERVICE_ID_CONTEXT_SWITCH) || (_preProc!=null) || (_preProc!=_currentProc)) {
+          t += csr.getAmount() * _servCycle[csr.getServiceID()] * _clk;
+          }
+        */
+        return t;
+    }
+
+    private void _schedFIFO() {
+
+        _currentSMID = -1;
+        for (int i=0; i<_nSM; i++) {
+            if ((_currentProc!= null) && (_portSM[i].getProcess() == _currentProc)) {
+                _currentSMID = i;
+                break;
+            }
+        }
+        if (_currentSMID == -1) {
+            _currentProc = null;
+            _findWinner();
+        }        else {
+            _tryRelease();
+        }
+    }
+
+    private void _findWinner() {
+        int i, smid;
+
+        SchedReqClass pending_csr;
+        event pending_event;
+
+        for (i=0; i<_pendingList.size(); i++) {
+            pending_csr          = (SchedReqClass)_pendingList.get(i);
+            pending_event = pending_csr.getReqEvent();
+
+            smid = _smID(pending_event);
+
+            if (smid == -1) {
+                blackbox(SystemCSim)%%
+                    cout << *_name<<": unknown event "<<pending_event<< endl;
+                exit(-1);
+                %%;
+            }
+
+            if (_portSM[smid].isEventEnabled(pending_event)) {
+                //                                _currentProc                = getprocess(pending_event);
+                //                                _currentSMID                 = smid;
+                if (!_isSelected(pending_event)) {
+                    //                                        _selectedList.add((Object)pending_csr.clone());
+                    _selectedList.add((Object)pending_csr);
+                }
+
+                process tmp = getprocess(pending_event);
+                blackbox(SystemCSim)%%
+                    cout << *_name<<" Resolve: FindWinner "<<tmp->name()<< endl;
+                %%;
+
+                return;
+            }
+        }
+
+        return;
+
+    }
+
+    private void _tryRelease() {
+        int i;
+        int owner_id = -1;
+
+        SchedReqClass pending_csr;
+        event pending_event;
+
+        for (i=0; i<_pendingList.size(); i++) {
+            pending_csr          = (SchedReqClass)_pendingList.get(i);
+            pending_event = pending_csr.getReqEvent();
+
+            if (getprocess(pending_event) == _currentProc) {
+                owner_id = i;
+
+                if (pending_csr.getServiceID() == SERVICE_ID_RELEASE){
+                    // Case 1
+                    blackbox(SystemCSim)%%
+                        cout << *_name<<" Resolve: Release "<<_currentProc->name()<< endl;
+                    %%;
+
+                    //                                        _currentProc = null;
+                    //                                        _currentSMID = -1;
+                    if (!_isSelected(pending_event)) {
+                        //                                                _selectedList.add((Object)pending_csr.clone());
+                        _selectedList.add((Object)pending_csr);
+                    }
+
+                    break;
+                }        else {
+                    if (_smID(pending_event) != -1){ //???
+                        // Case 2
+                        //                                                _currentSMID = _smID(pending_event);
+                        if (!_isSelected(pending_event)) {
+                            //                                                        _selectedList.add((Object)pending_csr.clone());
+                            _selectedList.add((Object)pending_csr);
+                        }
+
+                        blackbox(SystemCSim)%%
+                            cout << *_name<<" Resolve: Keep "<<_currentProc->name()<< endl;
+                        %%;
+
+                        break;
+                    }
+                    else {
+                        blackbox(SystemCSim)%%
+                            cout << *_name<<" resolve: requested event not enabled."<< endl;
+                        %%;
+                    }
+                }
+            }
+        }
+
+        // Case 3
+        if (owner_id == -1) {
+            if (_portSM[_currentSMID].getNumEnabledEvents() == 0) {
+                //                                _currentSMID = -1;
+                //                                _currentProc = null;
+            }
+        }
+    }
+
+
+    private void _updateStatus() {
+        for (int i=0; i<_selectedList.size(); i++) {
+            if (i>=1) {
+                blackbox(SystemCSim)%%
+                    cout << *_name<<" resolve: More than 1 event are selected."<< endl;
+                exit(-1);
+                %%;
+            }
+            SchedReqClass csr = _selectedList.get(i);
+            event e = csr.getReqEvent();
+
+            int smid = _smID(e);
+            if (_portSM[smid].isEventEnabled(e)) {
+                if (csr.getServiceID() == SERVICE_ID_RELEASE) {
+                    _preProc = _currentProc;
+                    _preSMID = _currentSMID;
+                    _currentProc = null;
+                    _currentSMID = -1;
+                } else {
+                    _currentProc = getprocess(e);
+                    _currentSMID = smid;
+                }
+            }
+        }
+    }
+}

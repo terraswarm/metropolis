@@ -1,0 +1,29 @@
+#!/bin/sh
+#
+# $Id: test_pnext,v 1.1 2005/02/09 18:33:01 allenh Exp $
+# Author: Allen Hopkins
+# 
+# A simple test run of mgdb, using canned input, and cooking down the output
+# for comparison to expected output.
+
+METRO=../..
+${METRO}/bin/mgdb run.x  << END_CMDS 2>&1 | \
+sed 's/^(mgdb) //' | \
+awk '/>>>>/ {p = 1; next;}
+     /<<<</ {p = 0; print "-"; next;}
+     p == 1
+            {next}'
+set pagination off
+break C.mmm:36
+run
+delete
+printf ">>>>\n"
+mwhere
+pnext
+pnext
+pnext
+pnext
+pnext
+printf "<<<<\n"
+quit
+END_CMDS

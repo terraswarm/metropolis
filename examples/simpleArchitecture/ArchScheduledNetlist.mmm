@@ -1,0 +1,299 @@
+/*
+
+Copyright (c) 2004-2005 The Regents of the University of California.
+All rights reserved.
+
+Permission is hereby granted, without written agreement and without
+license or royalty fees, to use, copy, modify, and distribute this
+software and its documentation for any purpose, provided that the
+above copyright notice and the following two paragraphs appear in all
+copies of this software and that appropriate acknowledgments are made
+to the research of the Metropolis group.
+
+IN NO EVENT SHALL THE UNIVERSITY OF CALIFORNIA BE LIABLE TO ANY PARTY
+FOR DIRECT, INDIRECT, SPECIAL, INCIDENTAL, OR CONSEQUENTIAL DAMAGES
+ARISING OUT OF THE USE OF THIS SOFTWARE AND ITS DOCUMENTATION, EVEN IF
+THE UNIVERSITY OF CALIFORNIA HAS BEEN ADVISED OF THE POSSIBILITY OF
+SUCH DAMAGE.
+
+THE UNIVERSITY OF CALIFORNIA SPECIFICALLY DISCLAIMS ANY WARRANTIES,
+INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. THE SOFTWARE
+PROVIDED HEREUNDER IS ON AN "AS IS" BASIS, AND THE UNIVERSITY OF
+CALIFORNIA HAS NO OBLIGATION TO PROVIDE MAINTENANCE, SUPPORT, UPDATES,
+ENHANCEMENTS, OR MODIFICATIONS.
+
+METROPOLIS_COPYRIGHT_VERSION_1
+COPYRIGHTENDKEY
+
+*/
+
+package simpleArchitecture;
+
+/////////////////////////////////////////////////////////////////////
+//        Design Example of Metropolis
+//        PiP Architecture
+//
+//        Author: Alessandro Pinto
+//                                        Yoshi Watanabe
+//                                        Haibo Zeng
+/////////////////////////////////////////////////////////////////////
+
+public netlist ArchScheduledNetlist {
+
+    ///////////////////////////////////////////////////////////////////
+    ////                         public variables                  ////
+
+    ///////////////////////////////////////////////////////////////////
+    ////                         protected variables               ////
+
+    SwTask[] _swTasks;
+    Cpu[] _cpus;
+    Bus[] _buses;
+    Mem[] _mems;
+
+
+    ///////////////////////////////////////////////////////////////////
+    ////                         private variables                 ////
+
+
+    ///////////////////////////////////////////////////////////////////
+    ////                         public methods                    ////
+
+    // Constructors
+    public ArchScheduledNetlist(String n,
+            int num_sms, int num_tasks, int num_cpus, int num_buses, int num_mems,
+            int[] mem_space,
+            int[][] task_to_cpu, int[][] task_to_sm, int[] num_conn_tasksm,
+            int[][] cpu_to_bus, int[] cpu_to_sm,
+            int[][] bus_to_mem, int[] bus_to_sm,
+            int[] mem_to_sm,
+            SchedToQuantity[] state_media)
+    {
+        super(n);
+
+        int i, j, m;
+        int id_cpu, id_bus, id_mem, id_sm;
+        int[] num_conn_taskcpu = new int[num_tasks];
+        int[] num_conn_cpubus = new int[num_cpus];
+        int[] num_conn_busmem = new int[num_buses];
+
+        int[] connected = new int[num_sms];
+        for (i=0; i<num_sms; i++) {
+            connected[i] = 0;
+        }
+
+        int[][] cpu_to_mem = new int[num_cpus][num_mems];
+        for (i=0; i<num_cpus; i++) {
+            for (j=0; j<num_mems; j++) {
+                cpu_to_mem[i][j] = -1;
+            }
+        }
+
+
+        _swTasks         = new SwTask[num_tasks];
+        _cpus                 = new Cpu[num_cpus];
+        _buses                 = new Bus[num_buses];
+        _mems                 = new Mem[num_mems];
+
+        for (i=0; i<num_buses; i++) {
+            num_conn_busmem[i] = 0;
+
+            for (j=0; j<num_mems; j++) {
+                id_mem = bus_to_mem[i][j];
+                if ((id_mem>=0) && (id_mem<num_mems)) {
+                    num_conn_busmem[i]++;
+                } else if (id_mem == -1) {
+                    break;
+                } else {
+                    blackbox(SystemCSim)%%
+                        cout << "Wrong initial condition: bus_to_mem should be in the range of [0, num_mems)"<< endl;
+                    exit(-1);
+                    %%;
+                }
+            }
+        }
+
+        for (i=0; i<num_cpus; i++) {
+            num_conn_cpubus[i] = 0;
+
+            for (j=0; j<num_buses; j++) {
+                id_bus = cpu_to_bus[i][j];
+                if ((id_bus>=0) && (id_bus<num_buses)) {
+                    num_conn_cpubus[i]++;
+
+                    for (m=0; m<num_conn_busmem[id_bus]; m++) {
+                        id_mem = bus_to_mem[id_bus][m];
+                        if (cpu_to_mem[i][id_mem] != -1) {
+                            blackbox(SystemCSim)%%
+                                cout << "Wrong initial condition: cpu"<<i<<" connects to mem"<<id_mem
+                                     <<" by more than one buses "<<id_bus<< endl;
+                            exit(-1);
+                            %%;
+                        }
+                        cpu_to_mem[i][id_mem] = j; //id_bus;
+                    }
+                } else if (id_bus == -1) {
+                    break;
+                } else {
+                    blackbox(SystemCSim)%%
+                        cout << "Wrong initial condition: cpu_to_bus should be in the range of [0, num_buses)"<< endl;
+                    exit(-1);
+                    %%;
+                }
+            }
+        }
+
+        for (i=0; i<num_tasks; i++) {
+            num_conn_taskcpu[i] = 0;
+
+            for (j=0; j<num_cpus; j++) {
+                id_cpu = task_to_cpu[i][j];
+                if ((id_cpu>=0) && (id_cpu<num_cpus)) {
+                    num_conn_taskcpu[i]++;
+                } else if (id_cpu == -1) {
+                    break;
+                } else {
+                    blackbox(SystemCSim)%%
+                        cout << "Wrong initial condition: task_to_cpu should be in the range of [0, num_cpus)"<< endl;
+                    exit(-1);
+                    %%;
+                }
+            }
+
+            if (num_conn_taskcpu[i] > 1) {
+                blackbox(SystemCSim)%%
+                    cout << "Wrong initial condition: task"<<i<<" connects to more than one cpus"<< endl;
+                exit(-1);
+                %%;
+            }
+        }
+
+
+        for (i=0; i<num_mems; i++) {
+            _mems[i] = new Mem("Mem"+i, i, mem_space[i]);
+            addcomponent(_mems[i], this, "MemInst"+i);
+
+            id_sm = mem_to_sm[i];
+            if ((id_sm<0) || (id_sm>=num_sms)) {
+                blackbox(SystemCSim)%%
+                    cout << "Bug! Mem"<<i<<" connects to state_medium"<<id_sm<<" which is non-existing"<< endl;
+                exit(-1);
+                %%;
+            }
+            if (connected[id_sm] == 1) {
+                blackbox(SystemCSim)%%
+                    cout << "Bug! state_medium"<<id_sm<<" has more than one connections, here to Mem"<<i<< endl;
+                exit(-1);
+                %%;
+            }
+            connect(_mems[i], _portSM, state_media[id_sm]);
+            connected[id_sm] = 1;
+        }
+
+        for (i=0; i<num_buses; i++) {
+            _buses[i] = new Bus("Bus"+i, i, num_conn_busmem[i], bus_to_mem[i]);
+            addcomponent(_buses[i], this, "BusInst"+i);
+
+            for (j=0; j<num_conn_busmem[i]; j++) {
+                id_mem = bus_to_mem[i][j];
+                connect(_buses[i], _portSlaves[j], _mems[id_mem]);
+            }
+
+            id_sm = bus_to_sm[i];
+            if ((id_sm<0) || (id_sm>=num_sms)) {
+                blackbox(SystemCSim)%%
+                    cout << "Bug! Bus"<<i<<" connects to state_medium"<<id_sm<<" which is non-existing"<< endl;
+                exit(-1);
+                %%;
+            }
+            if (connected[id_sm] == 1) {
+                blackbox(SystemCSim)%%
+                    cout << "Bug! state_medium"<<id_sm<<" has more than one connections, here to Bus"<<i<< endl;
+                exit(-1);
+                %%;
+            }
+            connect(_buses[i], _portSM, state_media[id_sm]);
+            connected[id_sm] = 1;
+        }
+
+        for (i=0; i<num_cpus; i++) {
+            _cpus[i] = new Cpu("Cpu"+i, i, num_conn_cpubus[i], cpu_to_bus[i], num_mems, cpu_to_mem[i]);
+            addcomponent(_cpus[i], this, "CpuInst"+i);
+
+            for (j=0; j<num_conn_cpubus[i]; j++) {
+                id_bus = cpu_to_bus[i][j];
+                connect(_cpus[i], _portSlaves[j], _buses[id_bus]);
+            }
+
+            id_sm = cpu_to_sm[i];
+            if ((id_sm<0) || (id_sm>=num_sms)) {
+                blackbox(SystemCSim)%%
+                    cout << "Bug! Cpu"<<i<<" connects to state_medium"<<id_sm<<" which is non-existing"<< endl;
+                exit(-1);
+                %%;
+            }
+            if (connected[id_sm] == 1) {
+                blackbox(SystemCSim)%%
+                    cout << "Bug! state_medium"<<id_sm<<" has more than one connections, here to Cpu"<<i<< endl;
+                exit(-1);
+                %%;
+            }
+            connect(_cpus[i], _portSM, state_media[id_sm]);
+            connected[id_sm] = 1;
+        }
+
+        for (i=0; i<num_tasks; i++) {
+            _swTasks[i] = new SwTask("SwTask"+i, i, num_conn_tasksm[i], num_conn_taskcpu[i]);
+            addcomponent(_swTasks[i], this, "SwTaskInst"+i);
+
+            for (j=0; j<num_conn_taskcpu[i]; j++) {
+                id_cpu = task_to_cpu[i][j];
+                connect(_swTasks[i], _portSlaves[j], _cpus[id_cpu]);
+            }
+
+
+            for (j=0; j<num_conn_tasksm[i]; j++) {
+                id_sm = task_to_sm[i][j];
+                if ((id_sm<0) || (id_sm>=num_sms)) {
+                    blackbox(SystemCSim)%%
+                        cout << "Bug! Task"<<i<<" connects to state_medium"<<id_sm<<" which is non-existing"<< endl;
+                    exit(-1);
+                    %%;
+                }
+                if (connected[id_sm] == 1) {
+                    blackbox(SystemCSim)%%
+                        cout << "Bug! state_medium"<<id_sm<<" has more than one connections, here to Task"<<i<< endl;
+                    exit(-1);
+                    %%;
+                }
+                connect(_swTasks[i], _portSM[j], state_media[id_sm]);
+                connected[id_sm] = 1;
+            }
+        }
+
+        for (i=0; i<num_sms; i++) {
+            if (connected[i] == 0) {
+                blackbox(SystemCSim)%%
+                    cout << "Bug! state_medium"<<i<<" has no connection in SchedulingNetlist"<< endl;
+                exit(-1);
+                %%;
+            }
+        }
+
+    }
+
+    // Abhijit: added task accessor function
+    public elaborate SwTask[] getSwTasks()
+    {
+        return _swTasks;
+    }
+    // end modifications
+
+    ///////////////////////////////////////////////////////////////////
+    ////                         protected methods                 ////
+
+    ///////////////////////////////////////////////////////////////////
+    ////                         private methods                  ////
+
+}

@@ -1,0 +1,535 @@
+/* A TreeMap based implementation of a Set (see java.util.TreeSet).
+
+Metropolis: Design Environment for Heterogeneus Systems.
+
+Copyright (c) 1998-2005 The Regents of the University of California.
+All rights reserved.
+
+Permission is hereby granted, without written agreement and without
+license or royalty fees, to use, copy, modify, and distribute this
+software and its documentation for any purpose, provided that the
+above copyright notice and the following two paragraphs appear in all
+copies of this software and that appropriate acknowledgments are made
+to the research of the Metropolis group.
+
+IN NO EVENT SHALL THE UNIVERSITY OF CALIFORNIA BE LIABLE TO ANY PARTY
+FOR DIRECT, INDIRECT, SPECIAL, INCIDENTAL, OR CONSEQUENTIAL DAMAGES
+ARISING OUT OF THE USE OF THIS SOFTWARE AND ITS DOCUMENTATION, EVEN IF
+THE UNIVERSITY OF CALIFORNIA HAS BEEN ADVISED OF THE POSSIBILITY OF
+SUCH DAMAGE.
+
+THE UNIVERSITY OF CALIFORNIA SPECIFICALLY DISCLAIMS ANY WARRANTIES,
+INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. THE SOFTWARE
+PROVIDED HEREUNDER IS ON AN "AS IS" BASIS, AND THE UNIVERSITY OF
+CALIFORNIA HAS NO OBLIGATION TO PROVIDE MAINTENANCE, SUPPORT, UPDATES,
+ENHANCEMENTS, OR MODIFICATIONS.
+
+METROPOLIS_COPYRIGHT_VERSION_1
+COPYRIGHTENDKEY
+
+*/
+
+package metamodel.util;
+
+/**
+ * the class being a common parent of TreeSet and SubTreeSet to enable thir uniform referring
+ */
+abstract class AbstractTreeSet extends AbstractSet implements SortedSet
+{
+    abstract Object removeEntry(TreeMap.Entry eRemoved);
+}
+
+public class TreeSet extends AbstractTreeSet implements SortedSet
+{
+    TreeMap m_map;
+
+    /**
+     * type of the SubTreeSet content
+     * 1 - entries;
+     * 2 - keys;
+     * 3 - values;
+     */
+    int m_type;
+
+    boolean m_supportsAddition;
+
+    public TreeSet()
+    {
+        this((Comparator)null);
+    }
+
+    /**
+     */
+    public TreeSet(SortedSet set)
+    {
+        this(set.comparator());
+        Iterator iter = set.iterator();
+        for (int i = 0; i < set.size(); i ++)
+            m_map.put(iter.next(), null);
+    }
+
+    /**
+     */
+    public TreeSet(Collection col)
+    {
+        this((Comparator)null);
+        //     addAll(col);
+        Iterator iter = col.iterator();
+        for (int i = 0; i < col.size(); i ++)
+            m_map.put(iter.next(), null);
+    }
+
+    /**
+     */
+    public TreeSet(Comparator comparator)
+    {
+        m_map = new TreeMap(comparator);
+        m_type = 2; // keys by default
+        m_supportsAddition = true;
+    }
+
+    TreeSet(TreeMap map, int type, boolean supportsAddition)
+    {
+        m_map = map;
+        m_type = type;
+        m_supportsAddition = supportsAddition;
+    }
+
+    /**
+     */
+    public Iterator iterator()
+    {
+        return m_map.iterator(this, m_type, m_map.firstEntry());
+    }
+
+    /**
+     */
+    public int size()
+    {
+        return m_map.size();
+    }
+
+    /**
+     */
+    public boolean isEmpty()
+    {
+        return (size() == 0);
+    }
+
+    /**
+     */
+    public boolean contains(Object ob)
+    {
+        if (m_type == 3)
+            return m_map.containsValue(ob);
+        else
+            return m_map.containsKey(m_type == 2 ? ob : ((Map.Entry)ob).getKey());
+    }
+
+    /**
+     * WARNING: must throw Unsupported exception if created from an existing map if (!m_supportsAddition)
+     */
+    public boolean add(Object ob)
+    {
+        if (!m_supportsAddition)
+            return false; //must throw Unsupported exception here - created from an existing TreeMap
+        int n = size();
+        m_map.put(ob, null);
+        return (n != size());
+    }
+
+    /**
+     */
+    public boolean remove(Object ob)
+    {
+        int n = size();
+        if (m_type == 3)
+            {
+                Map.Entry entryToRemove = ob == null ? m_map.findValueNull(m_map.m_root) : m_map.findValue(m_map.m_root, ob);
+                m_map.remove(entryToRemove.getKey());
+            }
+        else
+            m_map.remove(m_type == 2 ? ob : ((Map.Entry)ob).getKey());
+        return (n != size());
+    }
+
+    /**
+     */
+    public void clear()
+    {
+        m_map.clear();
+    }
+
+    /**
+     * WARNING: must throw Unsupported exception if created from an existing map if (!m_supportsAddition)
+     */
+    public boolean addAll(Collection col)
+    {
+        if (!m_supportsAddition)
+            return false; //must throw Unsupported exception here - created from an existing TreeMap
+        int n = size();
+        Iterator iter = col.iterator();
+        for (int i = 0; i < col.size(); i ++)
+            m_map.put(iter.next(), null);
+        return (n != size());
+    }
+
+    /**
+     * WARNING: must throw IllegalArgumentException if ob0 < ob1
+     * WARNING: if ((comparator() == null) && ((ob0 == null) || (ob1 == null))) must throw NullPointerException
+     * WARNING: must throw ClassCastException - if fromElement and toElement cannot be compared to one another using this set's comparator (or, if the set has no comparator, using natural ordering). Implementations may, but are not required to, throw this exception if fromElement or toElement cannot be compared to elements currently in the set.
+     * WARNING: must throw IllegalArgumentException - if fromElement is greater than toElement; or if this set is itself a subSet, headSet, or tailSet, and fromElement or toElement are not within the specified range of the subSet, headSet, or tailSet.
+     * WARNING: must throw NullPointerException - if fromElement or toElement is null and this sorted set does not tolerate null elements.
+     */
+    public SortedSet subSet(Object ob0, Object ob1)
+    {
+        if (m_map.compare(ob0, ob1) > 0)
+            return null; // must throw IllegalArgumentException here
+        if ((comparator() == null) && ((ob0 == null) || (ob1 == null)))
+            return null; // must throw NullPointerException
+        TreeMap.Entry from = m_map.getEntry(ob0);
+        TreeMap.Entry to = m_map.getEntry(ob1);
+        return new SubTreeSet(m_map, from, to, m_type);
+    }
+
+    /**
+     */
+    public SortedSet headSet(Object ob)
+    {
+        TreeMap.Entry from = m_map.m_eNull;
+        TreeMap.Entry to = m_map.getEntry(ob);
+        return new SubTreeSet(m_map, from, to, m_type);
+    }
+
+    /**
+     */
+    public SortedSet tailSet(Object ob)
+    {
+        TreeMap.Entry from = m_map.getEntry(ob);
+        TreeMap.Entry to = m_map.m_eNull;
+        return new SubTreeSet(m_map, from, to, m_type);
+    }
+
+    /**
+     */
+    public Comparator comparator()
+    {
+        return m_map.comparator();
+    }
+
+    /**
+     * WARNING: must throw NoSuchElementException - sorted set is empty.
+     */
+    public Object first()
+    {
+        return m_type == 1 ? m_map.firstEntry() : m_type == 2 ? m_map.firstKey() : m_map.firstEntry().getValue();
+    }
+
+    /**
+     * WARNING: must throw NoSuchElementException - sorted set is empty.
+     */
+    public Object last()
+    {
+        return m_type == 1 ? m_map.lastEntry() : m_type == 2 ? m_map.lastKey() : m_map.lastEntry().getValue();
+    }
+
+    /**
+     */
+    public Object clone()
+    {
+        return new TreeSet((TreeMap)m_map.clone(), m_type, m_supportsAddition);
+    }
+
+    Object removeEntry(TreeMap.Entry eRemoved)
+    {
+        return m_map.removeEntry(eRemoved);
+    }
+
+    class SubTreeSet extends AbstractTreeSet implements SortedSet
+    {
+        TreeMap m_treeMap;
+        TreeMap.Entry m_from;
+        TreeMap.Entry m_to;
+        int m_size;
+
+        /**
+         * the values are defined in TreeSet
+         */
+        int m_type;
+
+        SubTreeSet(TreeMap treeMap, TreeMap.Entry from, TreeMap.Entry to, int type)
+        {
+            m_size = 0;
+            m_treeMap = treeMap;
+            m_type = type;
+
+            // special case - the set is created empty
+            if (from == to)
+                {
+                    m_from = treeMap.m_eNull;
+                    m_to = m_treeMap.m_eNull;
+                    return;
+                }
+            m_from = from == treeMap.m_eNull ? treeMap.firstEntry() : from;
+
+            // compute the subset size
+            if (to == m_treeMap.m_eNull)
+                {
+                    m_to = m_treeMap.m_eNull;
+                    // iterate through the elements of the subset to determine the subset size
+                    for (TreeMap.Entry e = m_from; e != to; e = m_treeMap.successor(e))
+                        m_size ++;
+                }
+            else
+                {
+                    m_size = 1;
+                    m_to = m_treeMap.predecessor(to);
+                    // iterate through the elements of the subset to determine the subset size
+                    for (TreeMap.Entry e = m_to; e != m_from; e = m_treeMap.predecessor(e))
+                        m_size ++;
+                }
+        }
+
+        public int size()
+        {
+            return m_size;
+        }
+
+        public boolean isEmpty()
+        {
+            return size() == 0;
+        }
+
+        TreeMap.Entry getEntry(Object key)
+        {
+            TreeMap.Entry e = m_from.right;
+            int res = m_treeMap.compare(key, m_from);
+            if (res < 0)
+                return m_map.m_eNull;
+            while (true)
+                {
+                    res = m_treeMap.compare(key, e);
+                    if (res == 0)
+                        return e;
+                    TreeMap.Entry eNext = (res < 0) ? e.left : e.right;
+                    if (eNext == m_treeMap.m_eNull)
+                        return m_map.m_eNull;
+                    else
+                        e = eNext;
+                }
+        }
+
+        public boolean contains(Object ob)
+        {
+            return getEntry(ob) == m_map.m_eNull;
+        }
+
+        public Object[] toArray()
+        {
+            Object array[] = new Object[size()];
+            Iterator iter = iterator();
+            for (int i = 0; i < size(); i ++)
+                array[i] = iter.next();
+            return array;
+        }
+
+        public Object[] toArray(Object[] array)
+        {
+            if (array.length < size())
+                {
+                    //in Java the array is allocated of the runtime of the array specified
+                    //array = array.getClass().newInstance();
+                    array = new Object[size()];
+                }
+            else
+                if (array.length > size())
+                    array[size()] = null;
+            Iterator iter = iterator();
+            for (int i = 0; i < size(); i ++)
+                array[i] = iter.next();
+            return array;
+        }
+
+        /**
+         * WARNING: must throw IllegalArgumentException if ob is outside of the set
+         */
+        public boolean add(Object ob)
+        {
+            if ((m_treeMap.compare(ob, m_from) < 0) || (m_treeMap.compare(ob, m_to) > 0))
+                return false; // must throw IllegalArgumentException here
+            int n = m_treeMap.size();
+            m_treeMap.put(ob, null);
+            if (n != m_treeMap.size())
+                m_size ++;
+            return n != m_treeMap.size();
+        }
+
+        /**
+         */
+        public boolean remove(Object key)
+        {
+            TreeMap.Entry e = getEntry(key);
+            if (e == m_map.m_eNull)
+                return false;
+            removeEntry(e);
+            return true;
+        }
+
+        public boolean containsAll(Collection col)
+        {
+            Iterator iter = col.iterator();
+            //            while (iter.hasNext())
+            for (int i = 0; i < col.size(); i ++)
+                if (!m_map.containsKey(iter.next()))
+                    return false;
+            return true;
+        }
+
+        boolean betweenTheBounds(Object ob)
+        {
+            return (m_treeMap.compare(ob, m_from) > 0) && (m_treeMap.compare(ob, m_to) < 0);
+        }
+
+        boolean inTheBounds(Object ob)
+        {
+            return (m_treeMap.compare(ob, m_from) >= 0) && (m_treeMap.compare(ob, m_to) <= 0);
+        }
+
+        public boolean addAll(Collection col)
+        {
+            int n = size();
+            Iterator iter = col.iterator();
+            //            while (iter.hasNext())
+            for (int i = 0; i < col.size(); i ++)
+                add(iter.next());
+            return size() != n;
+        }
+
+        public boolean retainAll(Collection col)
+        {
+            int n = size();
+            Iterator iter = iterator();
+            //            for (int i = 0; i < n; i ++)
+            while (iter.hasNext())
+                if (!col.contains(iter.next()))
+                    iter.remove();
+            return size() != n;
+        }
+
+        public boolean removeAll(Collection col)
+        {
+            int n = size();
+            Iterator iter = col.iterator();
+            //            while (iter.hasNext())
+            for (int i = 0; i < col.size(); i ++)
+                {
+                    Object ob = iter.next();
+                    if (inTheBounds(ob))
+                        {
+                            TreeMap.Entry e = m_treeMap.getEntry(ob);
+                            if (e != m_map.m_eNull)
+                                removeEntry(e);
+                        }
+                }
+            return size() != n;
+        }
+
+        public void clear()
+        {
+            Iterator iter = iterator();
+            //         for (int i = 0; i < size(); i ++)
+            while (iter.hasNext())
+                {
+                    iter.next();
+                    iter.remove();
+                }
+        }
+
+        public boolean equals(Object ob)
+        {
+            if (ob == this)
+                return true;
+            if (ob == null)
+                return false;
+            SortedSet sortedSet = (SortedSet)ob;
+            if (sortedSet.size() != size())
+                return false;
+            return containsAll(sortedSet);
+        }
+
+        public Iterator iterator()
+        {
+            return m_treeMap.iterator(this, m_type, m_from);
+        }
+
+        /**
+         * WARNING: must throw NoSuchElementException - sorted set is empty.
+         *          currently null is returned if a value or a key are requested and m_map.m_eNull entry as an entry
+         */
+        public Object first()
+        {
+            return m_type == 1 ? m_from : m_type == 2 ? m_from.getKey() : m_from.getValue();
+        }
+
+        /**
+         * WARNING: must throw NoSuchElementException - sorted set is empty.
+         *          currently null is returned if a value or a key are requested and m_map.m_eNull entry as an entry
+         */
+        public Object last()
+        {
+            return m_type == 1 ? m_to : m_type == 2 ? m_to.getKey() : m_to.getValue();
+        }
+
+        public SortedSet subSet(Object ob0, Object ob1)
+        {
+            if (m_treeMap.compare(ob0, m_from) < 0)
+                return null;    //out of bound
+            if (m_treeMap.compare(ob1, m_to) > 0)
+                return null;    //out of bound
+            TreeMap.Entry from = m_map.getEntry(ob0);
+            TreeMap.Entry to = m_map.getEntry(ob1);
+            return new SubTreeSet(m_map, from, to, m_type);
+        }
+
+        public SortedSet headSet(Object ob)
+        {
+            if (m_treeMap.compare(ob, m_to) > 0)
+                return null;    //out of bound
+            TreeMap.Entry from = m_map.m_eNull;
+            TreeMap.Entry to = m_map.getEntry(ob);
+            return new SubTreeSet(m_map, from, to, m_type);
+        }
+
+        public SortedSet tailSet(Object ob)
+        {
+            if (m_treeMap.compare(ob, m_from) < 0)
+                return null;    //out of bound
+            TreeMap.Entry from = m_map.getEntry(ob);
+            TreeMap.Entry to = m_map.m_eNull;
+            return new SubTreeSet(m_map, from, to, m_type);
+        }
+
+        public Comparator comparator()
+        {
+            return m_map.comparator();
+        }
+
+        Object removeEntry(TreeMap.Entry eRemoved)
+        {
+            if (eRemoved == m_map.m_eNull)
+                return null;
+            m_size --;
+            if (m_size == 0)
+                {
+                    m_from = m_map.m_eNull;
+                    m_to = m_map.m_eNull;
+                }
+            else if (m_from == eRemoved)
+                m_from = m_map.successor(eRemoved);
+            else if (m_to == eRemoved)
+                m_to = m_map.predecessor(eRemoved);
+            return m_map.removeEntry(eRemoved);
+        }
+    }
+}

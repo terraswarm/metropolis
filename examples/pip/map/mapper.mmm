@@ -1,0 +1,330 @@
+/*
+  Copyright (c) 2004-2005 The Regents of the University of California.
+  All rights reserved.
+
+  Permission is hereby granted, without written agreement and without
+  license or royalty fees, to use, copy, modify, and distribute this
+  software and its documentation for any purpose, provided that the
+  above copyright notice and the following two paragraphs appear in all
+  copies of this software and that appropriate acknowledgments are made
+  to the research of the Metropolis group.
+
+  IN NO EVENT SHALL THE UNIVERSITY OF CALIFORNIA BE LIABLE TO ANY PARTY
+  FOR DIRECT, INDIRECT, SPECIAL, INCIDENTAL, OR CONSEQUENTIAL DAMAGES
+  ARISING OUT OF THE USE OF THIS SOFTWARE AND ITS DOCUMENTATION, EVEN IF
+  THE UNIVERSITY OF CALIFORNIA HAS BEEN ADVISED OF THE POSSIBILITY OF
+  SUCH DAMAGE.
+
+  THE UNIVERSITY OF CALIFORNIA SPECIFICALLY DISCLAIMS ANY WARRANTIES,
+  INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+  MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. THE SOFTWARE
+  PROVIDED HEREUNDER IS ON AN "AS IS" BASIS, AND THE UNIVERSITY OF
+  CALIFORNIA HAS NO OBLIGATION TO PROVIDE MAINTENANCE, SUPPORT, UPDATES,
+  ENHANCEMENTS, OR MODIFICATIONS.
+
+  METROPOLIS_COPYRIGHT_VERSION_1
+  COPYRIGHTENDKEY
+*/
+
+package pip.map;
+
+import metamodel.plt.yapitemplate.*;
+import metamodel.plt.TTLtemplate.*;
+import metamodel.plt.storage.*;
+import pip.func.*;
+import pip.architecture.simple.*;
+
+public netlist Mapper
+{
+    final static int SCHEDULING_ALGORITHM_FIFO                 = 0;
+    final static int SCHEDULING_ALGORITHM_ROUND_ROBIN         = 1;
+    final static int SCHEDULING_ALGORITHM_PRIORITY_BASED         = 2;
+    final static int SCHEDULING_ALGORITHM_TIME_SLICE_BASED         = 3;
+
+    final static int SERVICE_ID_REQUEST                         = 0;
+    final static int SERVICE_ID_READ_INIT                        = 1;
+    final static int SERVICE_ID_READ                         = 2;
+    final static int SERVICE_ID_READ_PROTECTED_INIT                = 3;
+    final static int SERVICE_ID_READ_PROTECTED                 = 4;
+    final static int SERVICE_ID_WRITE_INIT                        = 5;
+    final static int SERVICE_ID_WRITE                         = 6;
+    final static int SERVICE_ID_WRITE_PROTECTED_INIT        = 7;
+    final static int SERVICE_ID_WRITE_PROTECTED                = 8;
+    final static int SERVICE_ID_RELEASE                         = 9;
+    final static int SERVICE_ID_CONTEXT_SWITCH                = 10;
+    final static int NUMBER_OF_SERVICES                         = 11;
+
+    public Mapper(String n)
+    {
+        super(n);
+        func my_func = new func("FuncDesign");
+        addcomponent(my_func, this, "FuncDesign");
+
+        LinkedList procs = my_func.getProcs();
+
+        int tasks_to_map = procs.size();
+
+        int num_tasks = tasks_to_map;
+        int num_cpus         = 2;
+        int num_buses        = 1;
+        int num_mems         = 1;
+
+        // Architecture component specifications
+        double[] cpu_clock = new double[num_cpus];
+        int[] cpu_sched_alg = new int[num_cpus];
+        double[] time_slice = new double[num_cpus];
+        int[][] cpu_service_cycle = new int[num_cpus][NUMBER_OF_SERVICES];
+        for (int i=0; i<num_cpus; i++) {
+            cpu_sched_alg[i] = SCHEDULING_ALGORITHM_FIFO; //SCHEDULING_ALGORITHM_TIME_SLICE_BASED;
+            time_slice[i] = 20;
+            cpu_service_cycle[i][SERVICE_ID_REQUEST]                 = 1;
+            cpu_service_cycle[i][SERVICE_ID_READ_INIT]                = 0;
+            cpu_service_cycle[i][SERVICE_ID_READ]                         = 7;
+            cpu_service_cycle[i][SERVICE_ID_READ_PROTECTED_INIT]         = 0;
+            cpu_service_cycle[i][SERVICE_ID_READ_PROTECTED]         = 7;
+            cpu_service_cycle[i][SERVICE_ID_WRITE_INIT]                = 0;
+            cpu_service_cycle[i][SERVICE_ID_WRITE]                         = 1;
+            cpu_service_cycle[i][SERVICE_ID_WRITE_PROTECTED_INIT]         = 0;
+            cpu_service_cycle[i][SERVICE_ID_WRITE_PROTECTED]         = 1;
+            cpu_service_cycle[i][SERVICE_ID_RELEASE]                 = 0;
+            cpu_service_cycle[i][SERVICE_ID_CONTEXT_SWITCH]         = 0;
+        }
+        cpu_clock[0] = 0.000000005; // 1/200M
+        cpu_clock[1] = 0.000000005; // 1/200M
+
+        double[] bus_clock = new double[num_buses];
+        int[] bus_sched_alg = new int[num_buses];
+        int[][] bus_service_cycle = new int[num_buses][NUMBER_OF_SERVICES];
+        for (int i=0; i<num_buses; i++) {
+            bus_clock[i] = 0.000000005; // 1/200M
+            bus_sched_alg[i] = SCHEDULING_ALGORITHM_FIFO;
+            bus_service_cycle[i][SERVICE_ID_REQUEST]                 = 0;
+            bus_service_cycle[i][SERVICE_ID_READ_INIT]                = 4;
+            bus_service_cycle[i][SERVICE_ID_READ]                         = 1;
+            bus_service_cycle[i][SERVICE_ID_READ_PROTECTED_INIT]         = 4;
+            bus_service_cycle[i][SERVICE_ID_READ_PROTECTED]         = 1;
+            bus_service_cycle[i][SERVICE_ID_WRITE_INIT]                = 4;
+            bus_service_cycle[i][SERVICE_ID_WRITE]                         = 1;
+            bus_service_cycle[i][SERVICE_ID_WRITE_PROTECTED_INIT]         = 4;
+            bus_service_cycle[i][SERVICE_ID_WRITE_PROTECTED]         = 1;
+            bus_service_cycle[i][SERVICE_ID_RELEASE]                 = 0;
+            bus_service_cycle[i][SERVICE_ID_CONTEXT_SWITCH]         = 0;
+        }
+
+        double[] mem_clock = new double[num_mems];
+        int[] mem_space = new int[num_mems];
+        int[] mem_sched_alg = new int[num_mems];
+        int[][] mem_service_cycle = new int[num_mems][NUMBER_OF_SERVICES];
+        for (int i=0; i<num_mems; i++) {
+            mem_clock[i] = 0.000000005; // 1/200M;
+            mem_space[i] = 1000;
+            mem_sched_alg[i] = SCHEDULING_ALGORITHM_FIFO;
+            mem_service_cycle[i][SERVICE_ID_REQUEST]                 = 0;
+            mem_service_cycle[i][SERVICE_ID_READ_INIT]                = 0;
+            mem_service_cycle[i][SERVICE_ID_READ]                         = 1;
+            mem_service_cycle[i][SERVICE_ID_READ_PROTECTED_INIT]         = 0;
+            mem_service_cycle[i][SERVICE_ID_READ_PROTECTED]         = 1;
+            mem_service_cycle[i][SERVICE_ID_WRITE_INIT]                = 0;
+            mem_service_cycle[i][SERVICE_ID_WRITE]                         = 1;
+            mem_service_cycle[i][SERVICE_ID_WRITE_PROTECTED_INIT]         = 0;
+            mem_service_cycle[i][SERVICE_ID_WRITE_PROTECTED]         = 1;
+            mem_service_cycle[i][SERVICE_ID_RELEASE]                 = 0;
+            mem_service_cycle[i][SERVICE_ID_CONTEXT_SWITCH]         = 0;
+        }
+
+        // Connections
+        int[][] task_to_cpu = new int[num_tasks][num_cpus + 1];
+
+        int ntc = num_tasks/num_cpus;
+
+        for (int i = 0; i < num_cpus; i++)
+            {
+                for (int j = 0; j < ntc; j++)
+                    {
+                        task_to_cpu[j + i * ntc][0] = i;
+                        task_to_cpu[j + i * ntc][1] = -1;
+                    }
+            }
+
+        for (int i = num_cpus * ntc; i < num_tasks; i++)
+            {
+                task_to_cpu[i][0] = num_cpus - 1;
+                task_to_cpu[i][1] =  -1;
+            }
+
+        int[][] cpu_to_bus  = new int[num_cpus][num_buses];
+
+        for (int i = 0; i < num_cpus; i++)
+            {
+                cpu_to_bus[i][0] = 0;
+            }
+
+        int[][] bus_to_mem  = new int[num_buses][num_mems];
+        bus_to_mem[0][0] = 0;
+
+        int mapped = 1;
+        Architecture my_arch = new Architecture("PiPArchitecture", num_tasks,
+                num_cpus, num_buses, num_mems,
+                cpu_clock, cpu_sched_alg,
+                time_slice, cpu_service_cycle,
+                bus_clock, bus_sched_alg,
+                bus_service_cycle, mem_clock,
+                mem_space, mem_sched_alg,
+                mem_service_cycle, task_to_cpu,
+                cpu_to_bus, bus_to_mem, null, mapped);
+
+        //arch my_arch = new arch("my_arch", tasks_to_map);
+        addcomponent(my_arch, this, "my_arch");
+        SwTask [] tasks = my_arch.getTasks();
+
+        // one to one mapping between processes and tasks
+        for (int i = 0; i < tasks_to_map; i++)
+            {
+                process this_proc = procs.get(i); // collect functional processes
+                SwTask this_task = tasks[i]; // collect architectural tasks
+
+                event e_task_read_begin = beg(this_task, this_task.read);
+                event e_task_read_end = end(this_task, this_task.read);
+                event e_task_write_begin = beg(this_task, this_task.write);
+                event e_task_write_end = end(this_task, this_task.write);
+
+                int max_num = 30;
+                event [] read_begin_array = new event[max_num];
+                event [] read_end_array = new event[max_num];
+                event [] write_begin_array = new event[max_num];
+                event [] write_end_array = new event[max_num];
+                int gs_counter = 0;
+
+                // gather all of the in/out ports of each interface type
+
+                int out_ports_int = 5;
+                int in_ports_int = 5;
+
+                for (int j = 0; j < out_ports_int; j++)
+                    {
+                        if (getnthport(this_proc, yapioutinterface-<yapiint>-, j) == null) break;
+                        medium m = getconnectiondest(this_proc, getnthport(this_proc, yapioutinterface-<yapiint>-, j));
+
+                        if (getnthport(m, boundedfifooutinterface-<yapiint>-, 0) != null) // this is TTL
+                            {
+                                boundedfifo-<yapiint>- bf = getconnectiondest(m, getnthport(m, boundedfifooutinterface-<yapiint>-, 0));
+                                genericStorage-<yapiint>- gs = getconnectiondest(bf, getnthport(bf, storageinterface-<yapiint>-, 0));
+
+                                read_begin_array[gs_counter] = beg(this_proc, gs.read);
+                                read_end_array[gs_counter] = end(this_proc, gs.read);
+                                write_begin_array[gs_counter] = beg(this_proc, gs.write);
+                                write_end_array[gs_counter] = end(this_proc, gs.write);
+                                gs_counter++;
+                            }
+                    }
+
+                for (int j = 0; j < in_ports_int; j++)
+                    {
+                        if (getnthport(this_proc, yapiininterface-<yapiint>-, j) == null) break;
+                        medium m = getconnectiondest(this_proc, getnthport(this_proc, yapiininterface-<yapiint>-, j));
+
+                        if (getnthport(m, boundedfifoininterface-<int>-, 0) != null) // this is TTL
+                            {
+                                boundedfifo-<yapiint>- bf = getconnectiondest(m, getnthport(m, boundedfifoininterface-<yapiint>-, 0));
+                                genericStorage-<yapiint>- gs = getconnectiondest(bf, getnthport(bf, storageinterface-<yapiint>-, 0));
+
+                                read_begin_array[gs_counter] = beg(this_proc, gs.read);
+                                read_end_array[gs_counter] = end(this_proc, gs.read);
+                                write_begin_array[gs_counter] = beg(this_proc, gs.write);
+                                write_end_array[gs_counter] = end(this_proc, gs.write);
+                                gs_counter++;
+                            }
+                    }
+
+                if (gs_counter == 0){
+                    continue; // nothing to map
+                }
+
+                for (int j = 0; j < gs_counter; j++) // go through all storage elements
+                    {
+                        event e_gs_read_begin = read_begin_array[j];
+                        event e_gs_read_end = read_end_array[j];
+                        event e_gs_write_begin = write_begin_array[j];
+                        event e_gs_write_end = write_end_array[j];
+
+                        constraint
+                            {
+                                ltl synch(e_gs_read_begin => e_task_read_begin:
+                                        _baseAddr@(e_task_read_begin, i) == 0@(e_gs_read_begin, i),
+                                        _offset@(e_task_read_begin, i) == offset@(e_gs_read_begin, i),
+                                        _numObj@(e_task_read_begin, i) == items@(e_gs_read_begin, i),
+                                        _sizeObj@(e_task_read_begin, i) == 1@(e_gs_read_begin, i));
+
+                                ltl synch(e_gs_read_end => e_task_read_end);
+
+                                ltl synch(e_gs_write_begin => e_task_write_begin:
+                                        _baseAddr@(e_task_write_begin, i) == 0@(e_gs_write_begin, i),
+                                        _offset@(e_task_write_begin, i) == offset@(e_gs_write_begin, i),
+                                        _numObj@(e_task_write_begin, i) == items@(e_gs_write_begin, i),
+                                        _sizeObj@(e_task_write_begin, i) == 1@(e_gs_write_begin, i));
+
+                                ltl synch(e_gs_write_end => e_task_write_end);
+                            }
+
+                    }
+                // duplicate the events
+                for (int j = gs_counter; j < max_num; j++)
+                    {
+                        read_begin_array[j] = read_begin_array[gs_counter - 1];
+                        read_end_array[j] = read_end_array[gs_counter - 1];
+                        write_begin_array[j] = write_begin_array[gs_counter - 1];
+                        write_end_array[j] = write_end_array[gs_counter - 1];
+                    }
+                constraint
+                    {
+                        ltl synch(e_task_read_begin =>
+                                read_begin_array[0]  || read_begin_array[1]  || read_begin_array[2]  ||
+                                read_begin_array[3]  || read_begin_array[4]  || read_begin_array[5]  ||
+                                read_begin_array[6]  || read_begin_array[7]  || read_begin_array[8]  ||
+                                read_begin_array[9]  || read_begin_array[10] || read_begin_array[11] ||
+                                read_begin_array[12] || read_begin_array[13] || read_begin_array[14] ||
+                                read_begin_array[15] || read_begin_array[16] || read_begin_array[17] ||
+                                read_begin_array[18] || read_begin_array[19] || read_begin_array[20] ||
+                                read_begin_array[21] || read_begin_array[22] || read_begin_array[23] ||
+                                read_begin_array[24] || read_begin_array[25] || read_begin_array[26] ||
+                                read_begin_array[27] || read_begin_array[28] || read_begin_array[29] );
+
+                        ltl synch(e_task_read_end =>
+                                read_end_array[0]  || read_end_array[1]  || read_end_array[2]  ||
+                                read_end_array[3]  || read_end_array[4]  || read_end_array[5]  ||
+                                read_end_array[6]  || read_end_array[7]  || read_end_array[8]  ||
+                                read_end_array[9]  || read_end_array[10] || read_end_array[11] ||
+                                read_end_array[12] || read_end_array[13] || read_end_array[14] ||
+                                read_end_array[15] || read_end_array[16] || read_end_array[17] ||
+                                read_end_array[18] || read_end_array[19] || read_end_array[20] ||
+                                read_end_array[21] || read_end_array[22] || read_end_array[23] ||
+                                read_end_array[24] || read_end_array[25] || read_end_array[26] ||
+                                read_end_array[27] || read_end_array[28] || read_end_array[29] );
+
+                        ltl synch(e_task_write_begin =>
+                                write_begin_array[0]  || write_begin_array[1]  || write_begin_array[2]  ||
+                                write_begin_array[3]  || write_begin_array[4]  || write_begin_array[5]  ||
+                                write_begin_array[6]  || write_begin_array[7]  || write_begin_array[8]  ||
+                                write_begin_array[9]  || write_begin_array[10] || write_begin_array[11] ||
+                                write_begin_array[12] || write_begin_array[13] || write_begin_array[14] ||
+                                write_begin_array[15] || write_begin_array[16] || write_begin_array[17] ||
+                                write_begin_array[18] || write_begin_array[19] || write_begin_array[20] ||
+                                write_begin_array[21] || write_begin_array[22] || write_begin_array[23] ||
+                                write_begin_array[24] || write_begin_array[25] || write_begin_array[26] ||
+                                write_begin_array[27] || write_begin_array[28] || write_begin_array[29] );
+
+                        ltl synch(e_task_write_end =>
+                                write_end_array[0]  || write_end_array[1]  || write_end_array[2]  ||
+                                write_end_array[3]  || write_end_array[4]  || write_end_array[5]  ||
+                                write_end_array[6]  || write_end_array[7]  || write_end_array[8]  ||
+                                write_end_array[9]  || write_end_array[10] || write_end_array[11] ||
+                                write_end_array[12] || write_end_array[13] || write_end_array[14] ||
+                                write_end_array[15] || write_end_array[16] || write_end_array[17] ||
+                                write_end_array[18] || write_end_array[19] || write_end_array[20] ||
+                                write_end_array[21] || write_end_array[22] || write_end_array[23] ||
+                                write_end_array[24] || write_end_array[25] || write_end_array[26] ||
+                                write_end_array[27] || write_end_array[28] || write_end_array[29] );
+                    }
+            }
+    }
+}

@@ -1,0 +1,1042 @@
+/* An implementation of a map based on Red-Black trees
+   (see java.util.TreeMap).
+
+   Metropolis: Design Environment for Heterogeneus Systems.
+
+   Copyright (c) 1998-2005 The Regents of the University of California.
+   All rights reserved.
+
+   Permission is hereby granted, without written agreement and without
+   license or royalty fees, to use, copy, modify, and distribute this
+   software and its documentation for any purpose, provided that the
+   above copyright notice and the following two paragraphs appear in all
+   copies of this software and that appropriate acknowledgments are made
+   to the research of the Metropolis group.
+
+   IN NO EVENT SHALL THE UNIVERSITY OF CALIFORNIA BE LIABLE TO ANY PARTY
+   FOR DIRECT, INDIRECT, SPECIAL, INCIDENTAL, OR CONSEQUENTIAL DAMAGES
+   ARISING OUT OF THE USE OF THIS SOFTWARE AND ITS DOCUMENTATION, EVEN IF
+   THE UNIVERSITY OF CALIFORNIA HAS BEEN ADVISED OF THE POSSIBILITY OF
+   SUCH DAMAGE.
+
+   THE UNIVERSITY OF CALIFORNIA SPECIFICALLY DISCLAIMS ANY WARRANTIES,
+   INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+   MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. THE SOFTWARE
+   PROVIDED HEREUNDER IS ON AN "AS IS" BASIS, AND THE UNIVERSITY OF
+   CALIFORNIA HAS NO OBLIGATION TO PROVIDE MAINTENANCE, SUPPORT, UPDATES,
+   ENHANCEMENTS, OR MODIFICATIONS.
+
+   METROPOLIS_COPYRIGHT_VERSION_1
+   COPYRIGHTENDKEY
+
+*/
+
+package metamodel.util;
+
+public class TreeMap extends AbstractMap implements SortedMap
+{
+    Comparator m_comparator;
+    int m_size;
+    TreeMap.Entry m_root;
+    TreeMap.Entry m_eNull;
+
+    public TreeMap()
+    {
+        this((Comparator)null);
+    }
+
+    TreeMap(TreeMap treeMap)
+    {
+        m_eNull = treeMap.m_eNull;
+        modCount = 1;
+
+        m_comparator = treeMap.m_comparator;
+        m_size = treeMap.size();
+        m_root = copyEntry(treeMap.m_root);
+        m_root.parent = m_eNull;
+
+    }
+
+    /**
+     */
+    public TreeMap(SortedMap map)
+    {
+        this(map.comparator());
+
+        Set entrySet = map.entrySet();
+        // copy the source map
+        Iterator iter = entrySet.iterator();
+        for (int i = 0; i < map.size(); i ++)
+            {
+                Map.Entry srcEntry = (Map.Entry)iter.next();
+                put(srcEntry.getKey(), srcEntry.getValue());
+            }
+    }
+
+    /**
+     */
+    public TreeMap(Map map)
+    {
+        this((Comparator)null);
+
+        Set entrySet = map.entrySet();
+        // copy the source map
+        Iterator iter = entrySet.iterator();
+        for (int i = 0; i < map.size(); i ++)
+            {
+                Map.Entry srcEntry = (Map.Entry)iter.next();
+                put(srcEntry.getKey(), srcEntry.getValue());
+            }
+    }
+
+    /**
+     */
+    public TreeMap(Comparator comparator)
+    {
+        m_eNull = new TreeMap.Entry(null, null);
+        m_eNull.m_red = false;
+        m_eNull.parent = m_eNull;
+        m_eNull.left = m_eNull;
+        m_eNull.right = m_eNull;
+        m_comparator = comparator;
+        m_size = 0;
+        modCount = 1;
+        m_root = m_eNull;
+    }
+
+    /**
+     */
+    public int size()
+    {
+        return m_size;
+    }
+
+    /**
+     */
+    public boolean containsKey(Object key)
+    {
+        if (m_root == m_eNull)
+            return false;
+        TreeMap.Entry e = m_root;
+        while (true)
+            {
+                int res = compare(key, e);
+                if (res == 0)
+                    return true;
+                TreeMap.Entry eNext = (res < 0) ? e.left : e.right;
+                if (eNext == m_eNull)
+                    return false;
+                else
+                    e = eNext;
+            }
+    }
+
+    TreeMap.Entry findValueNull(TreeMap.Entry e)
+    {
+        if (e.getValue() == null)
+            return e;
+        else
+            {
+                if (e.left != m_eNull)
+                    if (findValueNull(e.left) != null)
+                        return e;
+                if (e.right != m_eNull)
+                    return findValueNull(e.right);
+            }
+        return null;
+    }
+
+    TreeMap.Entry findValue(TreeMap.Entry e, Object value)
+    {
+        Object mapValue = e.getValue();
+        if (mapValue == null)
+            {
+                if (value == null)
+                    return e;
+            }
+        else if (mapValue.equals(value))
+            return e;
+        if (e.left != m_eNull)
+            if (findValue(e.left, value) != null)
+                return e;
+        if (e.right != m_eNull)
+            return findValue(e.right, value);
+        return null;
+    }
+
+    /**
+     * recoursive naive implementation
+     */
+    public boolean containsValue(Object value)
+    {
+        if (m_root == m_eNull)
+            return false;
+        if (value != null)
+            return findValue(m_root, value) != null;
+        else
+            return findValueNull(m_root) != null;
+    }
+
+    TreeMap.Entry getEntry(Object key)
+    {
+        if (m_root == m_eNull)
+            return m_eNull;
+        TreeMap.Entry e = m_root;
+        while (true)
+            {
+                int res = compare(key, e);
+                if (res == 0)
+                    return e;
+                TreeMap.Entry eNext = (res < 0) ? e.left : e.right;
+                if (eNext == m_eNull)
+                    return m_eNull;
+                else
+                    e = eNext;
+            }
+    }
+
+    /**
+     */
+    public Object get(Object key)
+    {
+        TreeMap.Entry e = getEntry(key);
+        if (e == m_eNull)
+            return null;
+        else
+            return e.getValue();
+    }
+
+    /**
+     */
+    public Comparator comparator()
+    {
+        return m_comparator;
+    }
+
+    public TreeMap.Entry firstEntry()
+    {
+        TreeMap.Entry e = m_root;
+        while (e.left != m_eNull)
+            e = e.left;
+        return e;
+    }
+
+    /**
+     */
+    public Object firstKey()
+    {
+        return firstEntry().getKey();
+    }
+
+    public TreeMap.Entry lastEntry()
+    {
+        TreeMap.Entry e = m_root;
+        while (e.right != m_eNull)
+            e = e.right;
+        return e;
+    }
+
+    /**
+     */
+    public Object lastKey()
+    {
+        return lastEntry().getKey();
+    }
+
+    /**
+     */
+    public void putAll(Map map)
+    {
+        Set entrySet = map.entrySet();
+        // copy the source map
+        Iterator iter = entrySet.iterator();
+        while (iter.hasNext())
+            {
+                Map.Entry entry = (Map.Entry)iter.next();
+                put(entry.getKey(), entry.getValue());
+            }
+    }
+
+    /**
+     * WARNING: if the comparator is not specified both objects must realize the interface metamodel.lang.Comparable the method must throw ClassCastException otherwise
+     */
+    int compare(Object ob0, Object ob1)
+    {
+        if (m_comparator == null)
+            return ((Comparable)ob0).compareTo(ob1);
+        return m_comparator.compare(ob0, ob1);
+    }
+
+    /**
+     * WARNING: if the comparator is not specified both objects (ob0 and e1.getKey()) must realize the interface metamodel.lang.Comparable the method must throw ClassCastException otherwise
+     */
+    int compare(Object ob0, TreeMap.Entry e1)
+    {
+        if (m_comparator == null)
+            return ((Comparable)ob0).compareTo(e1.getKey());
+        return m_comparator.compare(ob0, e1.getKey());
+    }
+
+    TreeMap.Entry treeInsert(TreeMap.Entry eNew)
+    {
+        if (m_root == m_eNull)
+            {
+                m_root = eNew;
+                m_root.m_red = false;
+                m_root.parent = m_eNull;
+                m_root.left = m_eNull;
+                m_root.right = m_eNull;
+                return m_eNull;
+            }
+        TreeMap.Entry e = m_root;
+        Object keyNew = eNew.getKey();
+        while (true)
+            {
+                int res = compare(keyNew, e);
+                if (res == 0)
+                    {
+                        TreeMap.Entry eTmp = new TreeMap.Entry(e.getKey(), e.getValue());
+                        e.setValue(eNew.getValue());
+                        return eTmp;
+                    }
+                eNew.parent = m_eNull;
+                eNew.left = m_eNull;
+                eNew.right = m_eNull;
+                if (res < 0)
+                    {
+                        if (e.left == m_eNull)
+                            {
+                                e.left = eNew;
+                                eNew.parent = e;
+                                return m_eNull;
+                            }
+                        else
+                            e = e.left;
+                    }
+                else
+                    {
+                        if (e.right == m_eNull)
+                            {
+                                e.right = eNew;
+                                eNew.parent = e;
+                                return m_eNull;
+                            }
+                        else
+                            e = e.right;
+                    }
+            }
+    }
+
+    void rotateLeft(TreeMap.Entry x)
+    {
+        TreeMap.Entry y;
+        y = x.right;
+        // Turn y's left sub-tree into x's right sub-tree
+        x.right = y.left;
+        if (y.left != m_eNull)
+            y.left.parent = x;
+        // y's new parent was x's parent
+        y.parent = x.parent;
+        // Set the parent to point to y instead of x
+        // First see whether we're at the root
+        if (x.parent == m_eNull)
+            m_root = y;
+        else
+            if (x == x.parent.left)
+                // x was on the left of its parent
+                x.parent.left = y;
+            else
+                // x must have been on the right
+                x.parent.right = y;
+        // Finally, put x on y's left
+        y.left = x;
+        x.parent = y;
+    }
+
+    void rotateRight(TreeMap.Entry x)
+    {
+        TreeMap.Entry y;
+        y = x.left;
+        // Turn y's right sub-tree into x's left sub-tree
+        x.left = y.right;
+        if (y.right != m_eNull)
+            y.right.parent = x;
+        // y's new parent was x's parent
+        y.parent = x.parent;
+        // Set the parent to point to y instead of x
+        // First see whether we're at the root
+        if (x.parent == m_eNull)
+            m_root = y;
+        else
+            if (x == x.parent.right)
+                // x was on the right of its parent
+                x.parent.right = y;
+            else
+                // x must have been on the left
+                x.parent.left = y;
+        // Finally, put x on y's right
+        y.right = x;
+        x.parent = y;
+    }
+
+    /**
+     */
+    public Object put(Object key, Object value)
+    {
+        TreeMap.Entry x = new TreeMap.Entry(key, value);
+        // Insert in the tree in the usual way
+        TreeMap.Entry previousValueEntry = treeInsert(x);
+        if (previousValueEntry != m_eNull)
+            return previousValueEntry.getValue();
+        modified();
+        m_size ++;
+        TreeMap.Entry y;
+        while ((x != m_root) && (x.parent.m_red))
+            {
+                if (x.parent == x.parent.parent.left)
+                    {
+                        // If x's parent is a left, y is x's right 'uncle'
+                        y = x.parent.parent.right;
+                        if (y.m_red)
+                            {
+                                // case 1 - change the colours
+                                x.parent.m_red = false;
+                                y.m_red = false;
+                                x.parent.parent.m_red = true;
+                                // Move x up the tree
+                                x = x.parent.parent;
+                            }
+                        else
+                            {
+                                // y is a black node
+                                if (x == x.parent.right)
+                                    {
+                                        // and x is to the right
+                                        // case 2 - move x up and rotate
+                                        x = x.parent;
+                                        rotateLeft(x);
+                                    }
+                                // case 3
+                                x.parent.m_red = false;
+                                x.parent.parent.m_red = true;
+                                rotateRight(x.parent.parent);
+                            }
+                    }
+                else
+                    {
+                        // If x's parent is a right, y is x's left 'uncle'
+                        y = x.parent.parent.left;
+                        if (y.m_red)
+                            {
+                                // case 1 - change the colours
+                                x.parent.m_red = false;
+                                y.m_red = false;
+                                x.parent.parent.m_red = true;
+                                // Move x up the tree
+                                x = x.parent.parent;
+                            }
+                        else
+                            {
+                                // y is a black node
+                                if (x == x.parent.left)
+                                    {
+                                        // and x is to the left
+                                        //case 2 - move x up and rotate
+                                        x = x.parent;
+                                        rotateRight(x);
+                                    }
+                                // case 3
+                                x.parent.m_red = false;
+                                x.parent.parent.m_red = true;
+                                rotateLeft(x.parent.parent);
+                            }
+                    }
+                // Colour the root black
+                m_root.m_red = false;
+            }
+        //__selftest();
+        return null;
+    }
+
+    void substitute(TreeMap.Entry e, TreeMap.Entry por)
+    {
+        if (e.parent != m_eNull)
+            {
+                if (e == e.parent.left)
+                    e.parent.left = por;
+                else
+                    e.parent.right = por;
+            }
+        else
+            m_root = por;
+
+        if (por != m_eNull)
+            {
+                por.m_red = e.m_red;
+                por.parent = e.parent;
+                por.left = e.left;
+                if (e.left != m_eNull)
+                    e.left.parent = por;
+                por.right = e.right;
+                if (e.right != m_eNull)
+                    e.right.parent = por;
+            }
+    }
+
+    // finds max y such that y < x
+    TreeMap.Entry predecessor(TreeMap.Entry x)
+    {
+        TreeMap.Entry y;
+        if (x == m_eNull)
+            {
+                return null; // must throw exception here - argument is illegal!
+            }
+
+        if (x.left != m_eNull)
+            {
+                y = x.left;
+                while (y.right != m_eNull)
+                    y = y.right;
+            }
+        else
+            {
+                y = x.parent;
+                while (y != m_eNull && x == y.left)
+                    {
+                        x = y;
+                        y = y.parent;
+                    }
+            }
+        return y;
+    }
+    // finds min y such that y > x
+    TreeMap.Entry successor(TreeMap.Entry x)
+    {
+        TreeMap.Entry y;
+        if (x == m_eNull)
+            {
+                return null; // must throw exception here - argument is illegal!
+            }
+
+        if (x.right != m_eNull)
+            {
+                y = x.right;
+                while (y.left != m_eNull)
+                    y = y.left;
+            }
+        else
+            {
+                y = x.parent;
+                while (y != m_eNull && x == y.right)
+                    {
+                        x = y;
+                        y = y.parent;
+                    }
+            }
+        return y;
+    }
+
+    public Object remove(Object key)
+    {
+        TreeMap.Entry e = getEntry(key);
+        if (e == null)
+            return null;
+        modified();
+        return removeEntry(e);
+    }
+
+    Object removeEntry(TreeMap.Entry eRemoved)
+    {
+        if (eRemoved == m_eNull)
+            return null;
+        TreeMap.Entry x, y;
+        // y is the node actually removed
+        if ((eRemoved.left == m_eNull) || (eRemoved.right == m_eNull))
+            y = eRemoved;
+        else
+            y = successor(eRemoved);
+        // s is the node to substitute the removed one
+        if (y.left != m_eNull)
+            x = y.left;
+        else
+            x = y.right;
+        x.parent = y.parent;
+
+        if (y.parent == m_eNull)
+            // root is removed - uipdate the m_root field
+            m_root = x;
+        else
+            {
+                if (y == y.parent.left)
+                    y.parent.left = x;
+                else
+                    y.parent.right = x;
+            }
+
+        // postremoval recoloring and balancing
+        if (!y.m_red)
+            postRemove(x);
+
+        m_size --;
+
+        if (y != eRemoved)
+            substitute(eRemoved, y);
+
+        //__selftest();
+        return eRemoved.getValue();
+    }
+
+    // restore the reb-black properties after removal
+    void postRemove(TreeMap.Entry x)
+    {
+        TreeMap.Entry w;
+
+        while (x != m_root && !x.m_red)
+            {
+                if (x == x.parent.left)
+                    {
+                        w = x.parent.right;
+                        if (w.m_red)
+                            {
+                                w.m_red = false;
+                                x.parent.m_red = true;
+                                rotateLeft(x.parent);
+                                w = x.parent.right;
+                            }
+
+                        if (!w.left.m_red && !w.right.m_red)
+                            {
+                                w.m_red = true;
+                                x = x.parent;
+                            }
+                        else
+                            {
+                                if (!w.right.m_red)
+                                    {
+                                        w.left.m_red = false;
+                                        w.m_red = true;
+                                        rotateRight(w);
+                                        w = x.parent.right;
+                                    }
+
+                                w.m_red = x.parent.m_red;
+                                x.parent.m_red = false;
+                                w.right.m_red = false;
+                                rotateLeft(x.parent);
+                                x = m_root;
+                            }
+                    }
+                else
+                    {
+                        w = x.parent.left;
+                        if (w.m_red)
+                            {
+                                w.m_red = false;
+                                x.parent.m_red = true;
+                                rotateRight(x.parent);
+                                w=x.parent.left;
+                            }
+
+                        if (!w.right.m_red && !w.left.m_red)
+                            {
+                                w.m_red = true;
+                                x = x.parent;
+                            }
+                        else
+                            {
+                                if (!w.left.m_red)
+                                    {
+                                        w.right.m_red = false;
+                                        w.m_red = true;
+                                        rotateLeft( w);
+                                        w = x.parent.left;
+                                    }
+
+                                w.m_red = x.parent.m_red;
+                                x.parent.m_red = false;
+                                w.left.m_red = false;
+                                rotateRight(x.parent);
+                                x = m_root;
+                            }
+                    }
+            }
+
+        x.m_red =  false;
+    }
+
+
+    /**
+     */
+    public void clear()
+    {
+        modified();
+        m_root = m_eNull;
+        m_size = 0;
+    }
+
+    /**
+     * recoursivly copies the tree part down from the entry passed in
+     * it is the caller's responsibility to set the e.parent!!!
+     */
+    TreeMap.Entry copyEntry(TreeMap.Entry e)
+    {
+        TreeMap.Entry eNew = new TreeMap.Entry(e.getKey(), e.getValue());
+        eNew.m_red = e.m_red;
+        if (e.left == m_eNull)
+            eNew.left = m_eNull;
+        else
+            {
+                eNew.left = copyEntry(e.left);
+                eNew.left.parent = eNew;
+            }
+        if (e.right == m_eNull)
+            eNew.right = m_eNull;
+        else
+            {
+                eNew.right = copyEntry(e.right);
+                eNew.right.parent = eNew;
+            }
+        return eNew;
+    }
+
+    /**
+     * recoursive naive implementation
+     */
+    public Object clone()
+    {
+        return new TreeMap(this);
+    }
+
+    /**
+     */
+    public Set keySet()
+    {
+        return new TreeSet(this, 2, false);
+    }
+
+    /**
+     */
+    public Collection values()
+    {
+        return new TreeSet(this, 3, false);
+    }
+
+    /**
+     */
+    public Set entrySet()
+    {
+        return new TreeSet(this, 1, false);
+    }
+
+    AbstractTreeMapIterator iterator(AbstractTreeSet abstractTreeSet, int m_type, TreeMap.Entry from)
+    {
+        return size() == 0
+            ? (AbstractTreeMapIterator)new TreeMap.EmptyTreeIterator(this, abstractTreeSet)
+            : (AbstractTreeMapIterator)new TreeMap.TreeIterator(this, abstractTreeSet, m_type, from);
+    }
+
+
+    ///////////////////////////////////////////////////////////
+    // selftest section - written to test the tree properties
+    //
+    // to debug call __selftest() sometimes
+    //
+
+    /*
+      public boolean __selftest()
+      {
+      if (m_root == m_eNull)
+      return true;
+      if (!checkEntryColoring(m_root))
+      return false;
+      int distance = getDistanceToRoot();
+      if (!checkEntryColoring(m_root, distance))
+      return false;
+      return true;
+      }
+
+      int getDistanceToRoot()
+      {
+      int distance = 0;
+      TreeMap.Entry e = m_root;
+      for (int i = 0; i < size(); i ++)
+      {
+      if (!e.m_red)
+      distance ++;
+      if (e.left != m_eNull)
+      e = e.left;
+      else
+      return distance;
+      }
+      // System.out.print("ERROR: minimal key cannot be reached.\n");
+      return -1;
+      }
+
+      int getDistanceToRoot(TreeMap.Entry e)
+      {
+      int distance = 0;
+      for (int i = 0; i < size(); i ++)
+      {
+      if (!e.m_red)
+      distance ++;
+      if (e.parent == m_eNull)
+      {
+      // if (e != m_root)
+      //    System.out.print("ERROR: The tree root field " +
+      //                     "is inconsistent.\n");
+      return distance;
+      }
+      e = e.parent;
+      }
+      // System.out.print("ERROR: There is no root in the tree.\n");
+      return -1;
+      }
+
+      boolean checkEntryColoring(TreeMap.Entry e, int distance)
+      {
+      if ((e.left == m_eNull) && (e.right == m_eNull))
+      {
+      if (distance != getDistanceToRoot(e))
+      {
+      // System.out.print("ERROR: Distance from: " + e.toString() +
+      //                  " to root is different.\n");
+      return false;
+      }
+      }
+      else
+      {
+      if (e.left != m_eNull)
+      if (!checkEntryColoring(e.left, distance))
+      return false;
+      if (e.right != m_eNull)
+      if (!checkEntryColoring(e.right, distance))
+      return false;
+      }
+      return true;
+      }
+
+      boolean checkEntryColoring(TreeMap.Entry e)
+      {
+      if (e.m_red)
+      {
+      if (e.left != m_eNull)
+      if (e.left.m_red)
+      {
+      // System.out.print("ERROR: Two red nodes in sequence - "
+      //          + "parent: " + e.toString() + " left: "
+      //          + e.left.toString() + ".\n");
+      return false;
+      }
+      else
+      if (!checkEntryColoring(e.left))
+      return false;
+      if (e.right != m_eNull)
+      if (e.right.m_red)
+      {
+      // System.out.print("ERROR: Two red nodes in sequence - "
+      //            + "parent: " + e.toString() + " right: "
+      //            + e.right.toString() + ".\n");
+      return false;
+      }
+      else
+      if (!checkEntryColoring(e.right))
+      return false;
+      }
+      return true;
+      }
+    */
+
+    // end of the selftest section
+    ///////////////////////////////////////////////////////////
+
+    class Entry implements Map.Entry
+    {
+        boolean m_red;
+        TreeMap.Entry left;
+        TreeMap.Entry right;
+        TreeMap.Entry parent;
+        Object m_key;
+        Object m_value;
+
+        Entry(Object key, Object value)
+        {
+            left = null;
+            right = null;
+            parent = null;
+            m_key = key;
+            m_value = value;
+            m_red = true;
+        }
+
+        /**
+         */
+        public Object getKey()
+        {
+            return m_key;
+        }
+
+        /**
+         */
+        public Object getValue()
+        {
+            return m_value;
+        }
+
+        /**
+         */
+        public Object setValue(Object ob)
+        {
+            Object obTmp = m_value;
+            m_value = ob;
+            return obTmp;
+        }
+
+        /**
+         */
+        public boolean equals(Object ob)
+        {
+            if (ob == this)
+                return true;
+            if (ob == null)
+                return false;
+            Map.Entry entry = (Map.Entry)ob;
+            return (entry.getKey() == null ? getKey() == null : entry.getKey().equals(getKey()))
+                && (entry.getValue() == null ? getValue() == null : entry.getValue().equals(getValue()));
+        }
+
+        /**
+         */
+        public int hashCode()
+        {
+            return (getKey()==null ? 0 : getKey().hashCode())
+                ^ (getValue()==null ? 0 : getValue().hashCode());
+        }
+
+        /**
+         */
+        public String toString()
+        {
+            return (getKey() == null ? "null" : getKey().toString())
+                + "="
+                + (getValue() == null ? "null" : getValue().toString());
+        }
+    }
+
+    abstract class AbstractTreeMapIterator implements Iterator
+    {
+        /* private */ int expectedModCount;
+        TreeMap m_treeMap;          /** used only to update the m_size field during remove */
+    }
+
+    class EmptyTreeIterator extends AbstractTreeMapIterator implements Iterator
+    {
+
+        EmptyTreeIterator(TreeMap tMap, AbstractTreeSet sSet)
+        {
+            m_treeMap = tMap;
+            expectedModCount = m_treeMap.modCount;
+        }
+
+        /**
+         * WARNING: must throw ConcurrentModificationException if the parent collection is structurally changed to ensure that the iterator is fail-fast
+         */
+        public boolean hasNext()
+        {
+            if (expectedModCount != m_treeMap.modCount)
+                return false; // must throw ConcurrentModificationException here
+            return false;
+        }
+
+        /**
+         * WARNING: must throw ConcurrentModificationException if the parent collection is structurally changed to ensure that the iterator is fail-fast
+         * WARNING: must throw NoSuchElementException - iteration has no more elements.
+         */
+        public Object next()
+        {
+            if (expectedModCount != m_treeMap.modCount)
+                return null; // must throw ConcurrentModificationException here
+            return null; // must throw NoSuchElementException here
+        }
+
+        /**
+         * WARNING: must throw IllegalStateException - if the next method has not yet been called, or the remove method has already been called after the last call to the next method.
+         * WARNING: must throw ConcurrentModificationException if the parent collection is structurally changed to ensure that the iterator is fail-fast
+         */
+        public void remove()
+        {
+            if (expectedModCount != m_treeMap.modCount)
+                return; // must throw ConcurrentModificationException here            // must throw IllegalStateException here
+
+        }
+    }
+
+    class TreeIterator extends AbstractTreeMapIterator implements Iterator
+    {
+        int m_type;                 /**the values are defined in TreeSet (m_type declaration) */
+        int m_index;
+        TreeMap.Entry m_previous;   /** used to keep the previous element - for remove only */
+        TreeMap.Entry m_entry;      /** used to keep the element returned */
+        AbstractTreeSet m_abstractTreeSet;/**
+                                           * sorted maps are based on the m_treeMap that provides
+                                           * the successor() method to retrieve the following element
+                                           * in the set, while the m_abstractTreeSet field is used
+                                           * to enable the use of this iterator by the sorted sets
+                                           * and subsets where the first element and the size can be
+                                           * different from that of the underlying tree (the case of views)
+                                           */
+
+        TreeIterator(TreeMap tMap, AbstractTreeSet sSet,  int type, TreeMap.Entry from)
+        {
+            m_type = type;
+            m_abstractTreeSet = sSet;
+            m_treeMap = tMap;
+            m_entry = from;
+            m_index = 0;
+            m_previous = null;
+            expectedModCount = m_treeMap.modCount;
+        }
+
+        /**
+         * WARNING: must throw ConcurrentModificationException if the parent collection is structurally changed to ensure that the iterator is fail-fast
+         */
+        public boolean hasNext()
+        {
+            if (expectedModCount != m_treeMap.modCount)
+                return false; // must throw ConcurrentModificationException here
+            return ((m_index >= 0) && (m_index < m_abstractTreeSet.size()));
+        }
+
+        /**
+         * WARNING: must throw ConcurrentModificationException if the parent collection is structurally changed to ensure that the iterator is fail-fast
+         * WARNING: must throw NoSuchElementException - iteration has no more elements.
+         */
+        public Object next()
+        {
+            if (expectedModCount != m_treeMap.modCount)
+                return null; // must throw ConcurrentModificationException here
+            if (hasNext() == false)
+                return null;      // throw exception here - no more elements available
+            // here m_entry != null as implied by the public boolean hasNext() and the set nature
+            m_previous = m_entry;
+            m_entry = m_treeMap.successor(m_entry);
+            m_index ++;
+            return m_type == 1 ? m_previous : m_type == 2 ? m_previous.getKey() : m_previous.getValue();
+        }
+
+        /**
+         * WARNING: must throw IllegalStateException - if the next method has not yet been called, or the remove method has already been called after the last call to the next method.
+         * WARNING: must throw ConcurrentModificationException if the parent collection is structurally changed to ensure that the iterator is fail-fast
+         */
+        public void remove()
+        {
+            if (expectedModCount != m_treeMap.modCount)
+                return; // must throw ConcurrentModificationException here
+            if (m_previous == null)
+                return; // throw exception if (m_entry == null) - next() has not been called
+            m_abstractTreeSet.removeEntry(m_previous);
+            expectedModCount = m_treeMap.modCount;
+            m_previous = null;
+            m_index --;
+        }
+    }
+}

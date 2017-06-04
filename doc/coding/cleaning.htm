@@ -1,0 +1,55 @@
+<!-- $Id: cleaning.htm,v 1.2 2004/05/19 21:47:22 cxh Exp $ -->
+<html>
+<head>
+<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=iso-8859-1">
+<title>Code Cleaning</title>
+</head>
+<body>
+<H1>Code Cleaning</H1>
+Code that is to be released should be tested, proofread and
+spell checked and documented. It is best if these steps occur
+while the code is under development.
+
+<h2>Testing</h2>
+Testing is <a href="testing.htm">covered separately</a>.
+<p>Non graphical code that is to be released should have 90% of the methods
+and roughly 90% of the basic blocks covered.
+
+
+<p>Developers with access to the metropolis workgroup on
+the Gigascale website can view the current coverage statistics at
+<a href="http://www.gigascale.org/metropolis/src/nightly/coverage.html"><code>http://www.gigascale.org/metropolis/src/nightly/coverage.html</code></a>.
+
+<h2>Proofreading</h2>
+Code that is to be publically released should be proofread.
+
+<p>Code should following 
+a <a href="http://ptolemy.eecs.berkeley.edu/publications/papers/03/codingstyle/">Coding Style</a>
+
+<p>See also
+"<a href="http://java.sun.com/j2se/javadoc/writingdoccomments/index.html#defaultconstructors">How to Write Doc Comments for the Javadoc Tool</a>," by Sun.
+
+<p><i>FIXME:<i> chkjava
+
+The <a href="../../util/testsuite/chkjava"><code>$METRO/util/testsuite/chkjava</code></a>
+will warn about potential style problems.
+
+
+<p><i>FIXME:<i> rmtabs
+<p><i>FIXME:<i> rmtrailingspace
+
+
+<h2>Spelling</h2>
+<p><i>FIXME:<i> metrospell
+<p>All code that is released should be spell checked and not have
+spelling errors.
+
+<h2>Documentation</h2>
+Sun makes available a Doccheck doclet that checks for common problems
+in javadoc code, see
+<a href="http://java.sun.com/developer/earlyAccess/doccheck/">http://java.sun.com/developer/earlyAccess/doccheck/</a>
+
+<p>FIXME: make this part of the nightly build
+
+</body>
+</html>

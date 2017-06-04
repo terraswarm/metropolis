@@ -1,0 +1,188 @@
+/* Scheduled netlist of a synchronous system
+
+Copyright (c) 2004-2005 The Regents of the University of California.
+All rights reserved.
+
+Permission is hereby granted, without written agreement and without
+license or royalty fees, to use, copy, modify, and distribute this
+software and its documentation for any purpose, provided that the
+above copyright notice and the following two paragraphs appear in all
+copies of this software and that appropriate acknowledgments are made
+to the research of the Metropolis group.
+
+IN NO EVENT SHALL THE UNIVERSITY OF CALIFORNIA BE LIABLE TO ANY PARTY
+FOR DIRECT, INDIRECT, SPECIAL, INCIDENTAL, OR CONSEQUENTIAL DAMAGES
+ARISING OUT OF THE USE OF THIS SOFTWARE AND ITS DOCUMENTATION, EVEN IF
+THE UNIVERSITY OF CALIFORNIA HAS BEEN ADVISED OF THE POSSIBILITY OF
+SUCH DAMAGE.
+
+THE UNIVERSITY OF CALIFORNIA SPECIFICALLY DISCLAIMS ANY WARRANTIES,
+INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. THE SOFTWARE
+PROVIDED HEREUNDER IS ON AN "AS IS" BASIS, AND THE UNIVERSITY OF
+CALIFORNIA HAS NO OBLIGATION TO PROVIDE MAINTENANCE, SUPPORT, UPDATES,
+ENHANCEMENTS, OR MODIFICATIONS.
+
+METROPOLIS_COPYRIGHT_VERSION_1
+COPYRIGHTENDKEY
+
+@ProposedRating yellow apinto@eecs.berkeley.edu
+
+*/
+
+
+package metamodel.plt.polychronyscaled;
+
+//////////////////////////////////////////////////////////////////////////
+//// SynchScheduledNetlist
+/**
+   SynchScheduledNetlist is a component that a user of the synchronous
+   platform extends to build his own model. This base class provides
+   elaboration methods to instantiate processes and media and to
+   connect them.
+   The netlsit mantains an internal data structure that can be
+   accessed at runtime. The data structure represents a list of
+   components in the netlist and their unique id's.
+
+   @author Alessandro Pinto
+   @version $Id: SynchScheduledNetlist.mmm,v 1.11 2006/10/12 14:23:54 cxh Exp $
+*/
+
+
+public netlist SynchScheduledNetlist {
+
+    ///////////////////////////////////////////////////////////////////
+    ////                      Constructors                         ////
+
+    /**Constructor of a scheduled netlist takes a name, the number
+     *of processes and the number of signals (communication channels between
+     *processes).
+     */
+    public SynchScheduledNetlist(String n,int nproc,int nssignal) {
+        super(n);
+        _processlist = new SynchProcess[nproc];
+        _clockassistantlist = new SynchClockAssistant[nproc];
+        _sslist = new SynchSignal[nssignal];
+        _numberofssignals = 0;
+        _nprocesses = 0;
+    }
+
+    ///////////////////////////////////////////////////////////////////
+    ////                  Elaboration Methods                      ////
+
+    /**This method is used during elaboration to add a process to the
+     *scheduled netlist. It is used in the constructor of the netlist
+     *that the user build as extension of the predefined
+     *scheduled netlist. This method adds the synchronous process
+     * (@see metamodel.plt.polychronyscaled.SynchProcess) to the current netlist,
+     *store the process in the internal process list, assigns a unique id to the
+     *process. Then it creates a clock assistant for this process
+     *(@see metamodel.plt.polychronyscaled.SynchClockAssistant) and assigns the same
+     *id to it. Finally it connects the process to the clock assistant.
+     */
+    public elaborate void addSynchProcess(SynchProcess p) {
+        addcomponent(p,this,p.getName() + "Inst");
+        _processlist[_nprocesses] = p;
+        p.setProcessNumber(_nprocesses);
+        _clockassistantlist[_nprocesses] = new SynchClockAssistant(
+                p.getName() + "ClockAssistant",
+                p.getNumberOfInput(),
+                p.getNumberOfOutput(),
+                false);
+
+        _clockassistantlist[_nprocesses].setClockAssistantNumber(_nprocesses);
+        addcomponent(_clockassistantlist[_nprocesses],this,p.getName() + "ClockAssistant"+ "Inst");
+        connect(p,roundmanager,_clockassistantlist[_nprocesses]);
+        _nprocesses++;
+    }
+
+    /**This method adds a synchronous signal to the netlist and stores it
+     *in an internal signal list.
+     */
+    public elaborate void addSynchSignal(SynchSignal s) {
+        addcomponent(s,this,s.getName() + "Inst");
+        _sslist[_numberofssignals] = s;
+        _numberofssignals++;
+    }
+
+    /**This method connect a port of a process to a synchronous signal.
+     *The user has to provide the process, its port number, a boolen specifying whether
+     *the port is an input or an output and the signal we want to connet the porcess to.
+     */
+    public elaborate void synchConnect(SynchProcess p,int pn,boolean isinput,SynchSignal m) {
+        if (isinput) {
+            connect(p,synchin[pn],m);
+            m.setInPortNumber(pn);
+            m.setDestNumber(p.getProcessNumber());
+        }
+        else {
+            connect(p,synchout[pn],m);
+            m.setOutPortNumber(pn);
+            m.setSourceNumber(p.getProcessNumber());
+        };
+    }
+
+    /**This method returns the array of process in the netlist*/
+    public elaborate SynchProcess[] getProcessList() {
+        return _processlist;
+    }
+
+    /**This method returns the array of clock assistants in the netlist*/
+    public elaborate SynchClockAssistant[] getClockList() {
+        return _clockassistantlist;
+    }
+
+    /**This method returns the number of process in the netlist*/
+    public elaborate int getNumberOfProcesses() {
+        return _nprocesses;
+    }
+
+    /**This method returns  the netlist name*/
+    public elaborate String getName() {
+        return _name;
+    }
+
+    ////////////////////////////////////////////////////////////////
+    // Code needed for Desynchronization
+    ///////////////////////////////////////////////////////////////
+
+
+    public elaborate void desynchNetlist() {
+        for (int i=0;i<_numberofssignals;i++) {
+            desynchChannel(_sslist[i]);
+        };
+
+        for (int i=0;i<_nprocesses;i++) {
+            _clockassistantlist[i].setInRefinement(true);
+        };
+    }
+
+
+    public elaborate void desynchChannel(SynchSignal s) {
+        AsynchConnection asynchnet = new AsynchConnection("AsynchNet" +s.getName(),
+                s,
+                _clockassistantlist[s.getSourceNumber()],
+                _clockassistantlist[s.getDestNumber()]
+                                                          );
+        addcomponent(asynchnet,this,"AsynchNet" +s.getName() + "Inst");
+    }
+
+
+    ///////////////////////////////////////////////////////////////////
+    ////                         private variables                 ////
+
+    /**Array of processes in the netlist*/
+    SynchProcess[]        _processlist;
+
+    /**Array of clock assistants in the netlist*/
+    SynchClockAssistant[] _clockassistantlist;
+
+    /**Array of signals in the netlist*/
+    SynchSignal[]         _sslist;
+
+    /**Number of processes*/
+    int                   _nprocesses;
+
+    /**Number of signals*/
+    int                   _numberofssignals;
+}

@@ -1,0 +1,69 @@
+#!/bin/sh
+# $Id: test_next_p,v 1.1 2005/02/14 17:47:16 allenh Exp $
+#
+# Run a test of the mgdb "next" command, constrained to one Producer process.
+# (It doesn't care which.)
+
+{
+    mgdb run.x | \
+    sed -n '
+        s/{//g
+        s/}//g
+        /^38/p
+        /^39/p
+        /^41/p
+        s/^.*\(monitor>.*\)/\1/
+        /^monitor>.*Consumer/p
+        s/^\(monitor> *\)Producer.\(.*\)/\1ProducerX\2/p
+    '
+    echo "-"
+} << END_CMDS 2>/dev/null
+break P.mmm:36
+run
+delete
+next
+display w
+mwhere
+next
+mwhere
+next
+mwhere
+next
+mwhere
+next
+mwhere
+next
+mwhere
+next
+mwhere
+next
+mwhere
+next
+mwhere
+next
+mwhere
+next
+mwhere
+next
+mwhere
+next
+mwhere
+next
+mwhere
+next
+mwhere
+next
+mwhere
+next
+mwhere
+next
+mwhere
+next
+mwhere
+next
+mwhere
+next
+mwhere
+printf "<<<<\n"
+quit
+END_CMDS

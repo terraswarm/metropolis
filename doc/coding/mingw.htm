@@ -1,0 +1,144 @@
+<!-- $Id: mingw.htm,v 1.3 2005/01/06 00:35:33 cxh Exp $ -->
+<html>
+<head>
+<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=iso-8859-1">
+<title>Compiling Metropolis with MinGW</title>
+</head>
+<body>
+<H1>Compiling Metropolis with MinGW</H1>
+MinGW is Minimalist GNU For Windows, see
+<a href="http://www.mingw.org" target="_top"><code>http://www.mingw.org</code></a>
+<p>The advantage of MinGW is that it is between Micrsoft Visual C
+and Cygwin in that MinGW can link to most MSVC .lib files.
+It is sometimes easier to port multithreaded programs to MinGW before
+porting to either MSVC or Cygwin.
+
+<p>In December 2004, Christoph Grimm posted to
+
+<a href="https://www.systemc.org/mailman/archives/systemc-forum/2004/001766.html" target="_top"><code>https://www.systemc.org/mailman/archives/systemc-forum/2004/001766.html</code>:
+<blockquote>
+Instead of cygwin, you could also use dev-cpp (mingw),
+which provides a nice, graphical development environment.
+We use this IDE especially for students, because it allows
+them to start SystemC without having to set paths, etc.
+
+However, you will have to use fiber threads, because there
+is no unix-runtime environment in mingw, which can be
+configured by some defines.
+I attached some notes that document some changes I made
+for compiling SystemC under DevCPP/mingw, and the project
+file.
+
+We compiled quite complex systems without problems
+with this configuration.
+</blockquote>
+
+<p>In December, 2003, we used MinGW 3.1.0
+to compile the producers_consumer example.
+
+<p>Below is how we did it
+
+<h3>Installing MinGW</h3>
+<ol>
+<li>Download MinGW-<i>xxx</i>.exe from the current section of
+<a href="http://www.mingw.org/download.shtml"> target="_top"><code>http://www.mingw.org/download.shtml</code></a>.  We downloaded
+<code>MinGW-3.1.0-1.exe</code>
+<li>Click on the .exe file and install MinGW in <code>c:\mingw</code>
+</ol>
+
+<h3>Compiling SystemC with MinGW</h3>
+<ol>
+<li>Install the <b>cygwin</b> <code>patch</code> binary by rerunning Cygwin
+setup.
+
+<li>Untar systemc-2.0.1
+<li>Download SystemC MinGW patches from
+<a href="http://www.systemc.org/tracker/index.php?func=detail&aid=83&group_id=5&atid=107" target="_top"><code>http://www.systemc.org/tracker/index.php?func=detail&aid=83&group_id=5&atid=107</code></a>
+<br>I had to strip out the Control-M characters using emacs.
+<li>Patch
+<pre>
+patch -p 1 < c:/tmp/downloads/systemc-mingwin-patch-2 
+</pre>
+<li>Set you your path to include the mingw gcc
+<pre>
+bash-2.05b$ PATH=/cygdrive/c/mingw/bin:${PATH}
+bash-2.05b$ export PATH
+bash-2.05b$ which gcc
+/cygdrive/c/mingw/bin/gcc
+bash-2.05b$ gcc -v
+Reading specs from c:/mingw/bin/../lib/gcc-lib/mingw32/3.2.3/specs
+Configured with: ../gcc/configure --with-gcc --with-gnu-ld --with-gnu-as --host=mingw32 --target=mingw32 --prefix=/mingw --enable-threads --disable-nls --enable-languages=c++,f77,objc --disable-win32-registry --disable-shared --enable-sjlj-exceptions
+Thread model: win32
+gcc version 3.2.3 (mingw special 20030504-1)
+bash-2.05b$ 
+</pre>
+<li> Run <code>make -f Makefile.MinGW</code>
+<li> I got an error:
+<pre>
+Makefile.MinGW:143: *** missing separator (did you mean TAB instead of 8 spaces?).  Stop.
+</pre>
+I had to edit the Makefile.MinGW path add trailing \ to a bunch of lines
+<li> Run <code>make -f Makefile.MinGW</code> again
+<li>I got another error:
+<pre>
+g++ src/systemc/kernel/sc_cor_fiber.cpp
+src/systemc/kernel/sc_cor_fiber.cpp: In destructor `virtual 
+   sc_cor_fiber::~sc_cor_fiber()':
+src/systemc/kernel/sc_cor_fiber.cpp:63: `GetCurrentFiber' undeclared (first use  this function)
+</pre>
+The problem is that
+<code>c:/mingw/include/winnt.h</code> includes decls for GetCurrentFibre
+<br>Solution: edit <code>src/systemc/kernel/sc_cor_fiber.cpp</code> and add
+<pre>
+#ifdef __MINGW32__
+#include <Windows.h>
+#endif 
+</pre>
+<li>Rerun <code>make -f Makefile.MinGW</code>,
+and <code>libsystemc.a</code> should be created.
+<li>Create a lib-mingw directory and move the libraries:
+<pre>
+mkdir lib-mingw
+mv *.a lib-mingw
+</pre>
+</ol>
+
+<h3>Build Metropolis</h3>
+<ol>
+<li><code>$METRO/src/metropolis/metamodel/backends/systemc</code>
+requires <code>getrusage()</code> which is not usually part of Windows.
+To compile <code>port_rusage.cpp</code> under MSVC, you must download
+<code>psapi.h</code> and <code>psapi.lib</code>.  To run, you probably
+need <code>psapi.dll</code>.
+The easiest way to obtain these files is to look for them on the web
+using Google.
+<br><code>psapi.h</code> and <code>psapi.lib</code> should be placed in
+<code>$METRO/src/metropolis/metamodel/backends/systemc</code>.
+<br><code>psapi.dll</code> should be placed in your <code>C:\Windows</code>
+directory.
+
+<li>Configure Metropolis, use <code>--with-systemc</code>
+to include the MinGW version of SystemC.  I used:
+<pre>
+PATH=/cygdrive/c/mingw/bin:${PATH}
+export PATH
+cd $METRO
+rm config.*; ./configure --with-systemc=c:/cxh/src/systemc-2.0.1-mingw --with-systemc-lib=lib-mingw
+</pre>
+<li>Run make with the same flags that were used to compile SystemC
+under MinGW
+<pre>
+  make LIBS=-lpsapi CXX_USERFLAGS="-mthreads -mms-bitfields -MMD"
+</pre>
+
+If you do not use the proper flags, then when you try to link
+the producers_consumer example, you might see:
+<pre>
+c:/cxh/src/metro/src/metropolis/metamodel/backends/systemc/liblibrary.a(global.o)(.rdata$_ZTI15sc_signal_in_ifIN5sc_dt8sc_logicEE+0x0): In function `ZThn4_NK9sc_signalIN5sc_dt8sc_logicEE4dumpERSo':
+c:/cxh/src/systemc-2.0.1-mingw/include/systemc/datatypes/bit/sc_logic.h: multiple definition of `typeinfo for sc_signal_in_if<sc_dt::sc_logic>'
+</pre>
+
+</ol>
+
+</body>
+</html>

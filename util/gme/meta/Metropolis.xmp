@@ -1,0 +1,128 @@
+<?xml version="1.0"?>
+<!DOCTYPE paradigm SYSTEM "edf.dtd">
+
+<paradigm name="Metropolis" guid="{DAA71A00-D2CB-4C88-9A4B-736D47C396E2}" cdate="Thu Apr 07 14:04:29 2005" mdate="Thu Apr 07 14:04:29 2005" >
+
+	<comment></comment>
+
+	<author></author>
+
+	<folder name = "RootFolder" metaref = "1000"  subfolders = "Repositories" rootobjects = "NetList" >
+		<attrdef name="Functions" metaref = "1047" valuetype = "string" defvalue = "">
+			<dispname>List of Functions (CR delimited)</dispname>
+			<regnode name="multiLine" value = "10"></regnode>
+		</attrdef>
+		<atom name = "Interface" metaref = "1001"  attributes = "Functions">
+				<regnode name = "namePosition" value ="4"></regnode>
+				<regnode name = "icon" value ="shaded_port.gif"></regnode>
+		</atom>
+		<connection name = "InterfaceInheritance" metaref = "1040" >
+				<regnode name = "color" value ="0x000000"></regnode>
+				<regnode name = "dstStyle" value ="empty apex"></regnode>
+				<regnode name = "srcStyle" value ="butt"></regnode>
+				<regnode name = "lineType" value ="solid"></regnode>
+			<connjoint>
+				<pointerspec name = "src">
+					<pointeritem desc = "Interface"></pointeritem>
+				</pointerspec>
+				<pointerspec name = "dst">
+					<pointeritem desc = "Interface"></pointeritem>
+				</pointerspec>
+			</connjoint>
+		</connection>
+		<connection name = "MediaInheritance" metaref = "1048" >
+				<regnode name = "color" value ="0x000000"></regnode>
+				<regnode name = "dstStyle" value ="empty apex"></regnode>
+				<regnode name = "srcStyle" value ="butt"></regnode>
+				<regnode name = "lineType" value ="solid"></regnode>
+			<connjoint>
+				<pointerspec name = "src">
+					<pointeritem desc = "Media"></pointeritem>
+				</pointerspec>
+				<pointerspec name = "dst">
+					<pointeritem desc = "Media"></pointeritem>
+				</pointerspec>
+			</connjoint>
+		</connection>
+		<connection name = "Port2InterfaceConn" metaref = "1003" >
+				<regnode name = "color" value ="0x000000"></regnode>
+				<regnode name = "dstStyle" value ="butt"></regnode>
+				<regnode name = "srcStyle" value ="butt"></regnode>
+				<regnode name = "lineType" value ="solid"></regnode>
+			<connjoint>
+				<pointerspec name = "src">
+					<pointeritem desc = "Media PortRef"></pointeritem>
+					<pointeritem desc = "Process PortRef"></pointeritem>
+				</pointerspec>
+				<pointerspec name = "dst">
+					<pointeritem desc = "Media InterfaceRef"></pointeritem>
+				</pointerspec>
+			</connjoint>
+		</connection>
+		<reference name = "InterfaceRef" metaref = "1024">
+				<regnode name = "namePosition" value ="4"></regnode>
+			<regnode name = "icon" value ="shaded_port.gif"></regnode>
+			<pointerspec name = "ref">
+				<pointeritem desc = "Interface"></pointeritem>
+			</pointerspec>
+		</reference>
+		<reference name = "PortRef" metaref = "1033">
+				<regnode name = "namePosition" value ="4"></regnode>
+			<regnode name = "icon" value ="port.gif"></regnode>
+			<pointerspec name = "ref">
+				<pointeritem desc = "Interface"></pointeritem>
+			</pointerspec>
+		</reference>
+		<model name = "InterfaceRepository" metaref = "1041" >
+				<regnode name = "namePosition" value ="4"></regnode>
+			<role name = "Interface" metaref = "1042" kind = "Interface"></role>
+			<role name = "InterfaceInheritance" metaref = "1043" kind = "InterfaceInheritance"></role>
+			<aspect name = "InterfaceAspect" metaref = "1044" >
+				<part metaref = "1045" role = "Interface" primary = "yes" linked = "no"></part>
+				<part metaref = "1046" role = "InterfaceInheritance" primary = "yes" linked = "no"></part>
+			</aspect>
+		</model>
+		<model name = "Media" metaref = "1004" >
+				<regnode name = "namePosition" value ="4"></regnode>
+				<regnode name = "icon" value ="medium.bmp"></regnode>
+			<role name = "InterfaceRef" metaref = "1029" kind = "InterfaceRef"></role>
+			<role name = "PortRef" metaref = "1035" kind = "PortRef"></role>
+			<aspect name = "NetList" metaref = "1007" >
+				<part metaref = "1032" role = "InterfaceRef" primary = "yes" linked = "yes"></part>
+				<part metaref = "1038" role = "PortRef" primary = "yes" linked = "yes"></part>
+			</aspect>
+			<aspect name = "MediaAspect" metaref = "1049" >
+			</aspect>
+		</model>
+		<model name = "MediaRepository" metaref = "1050" >
+				<regnode name = "namePosition" value ="4"></regnode>
+			<role name = "Media" metaref = "1051" kind = "Media"></role>
+			<role name = "MediaInheritance" metaref = "1052" kind = "MediaInheritance"></role>
+			<aspect name = "MediaAspect" metaref = "1053" >
+				<part metaref = "1054" role = "Media" primary = "yes" linked = "no"></part>
+				<part metaref = "1055" role = "MediaInheritance" primary = "yes" linked = "no"></part>
+			</aspect>
+		</model>
+		<model name = "NetList" metaref = "1010" >
+				<regnode name = "namePosition" value ="4"></regnode>
+			<role name = "Media" metaref = "1011" kind = "Media"></role>
+			<role name = "Port2InterfaceConn" metaref = "1012" kind = "Port2InterfaceConn"></role>
+			<role name = "Process" metaref = "1013" kind = "Process"></role>
+			<aspect name = "NetList" metaref = "1014" >
+				<part metaref = "1015" role = "Media" primary = "yes" linked = "no"></part>
+				<part metaref = "1016" role = "Port2InterfaceConn" primary = "yes" linked = "no"></part>
+				<part metaref = "1017" role = "Process" primary = "yes" linked = "no"></part>
+			</aspect>
+		</model>
+		<model name = "Process" metaref = "1018" >
+				<regnode name = "namePosition" value ="4"></regnode>
+				<regnode name = "icon" value ="process.gif"></regnode>
+			<role name = "PortRef" metaref = "1036" kind = "PortRef"></role>
+			<aspect name = "NetList" metaref = "1021" >
+				<part metaref = "1039" role = "PortRef" primary = "yes" linked = "yes"></part>
+			</aspect>
+		</model>
+		<folder name = "Repositories" metaref = "1030"  rootobjects = "InterfaceRepository MediaRepository" >
+		</folder>
+	</folder>
+</paradigm>

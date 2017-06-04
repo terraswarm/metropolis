@@ -1,0 +1,76 @@
+<!-- $Id: testing.htm,v 1.4 2005/03/14 22:17:06 cxh Exp $-->
+<html>
+<head>
+<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=iso-8859-1">
+<title>Testing Metropolis</title>
+</head>
+<body>
+<h1><A NAME="Testing Metropolis">Testing Metropolis</A></h1>
+
+This page is primarily for Metropolis developers
+mentioned below are not included in the Metropolis distribution.
+
+
+<H2><A NAME="test suite">Test Suite</A></H2>
+Metropolis uses the Ptolemy II test infrastructure,  
+see the
+<a href="http://ptolemy.eecs.berkeley.edu/ptolemyII/ptIIlatest/ptII/doc/coding/testing.htm">Ptolemy II Testing Page</a>
+for details.
+
+<p><i>FIXME: this does not work</i> To run all the tests, try:
+<pre>
+cd metro
+make tests
+</pre>
+
+
+<H2>Nightly Build</H2>
+Currently, the nightly build is run on gigasource.eecs.berkeley.edu
+as part of the
+<a href="http://www.gigascale.org/buildmaster">Gigascale Systems
+Research Center (GSRC) Buildmaster workgroup</a>.
+
+<p>Basically, a cronjob on gigasource runs a makefile that does
+a cvs update and then runs <code>make bldmastrcoverage</code>
+in
+<code>$METRO/adm/gen-<i>latest</i></code>.
+<p>A summary of the output gets emailed to members of the metropolis-cvs list
+and the complete output gets copied
+to <a href="http://www.gigascale.org/metropolis/src/metronightly.txt"><code>http://www.gigascale.org/metropolis/src/metronightly.txt</code>
+
+<h3>Adding a test directory to the nightly build</h3>
+See the
+<a href="http://ptolemy.eecs.berkeley.edu/ptolemyII/ptIIlatest/ptII/doc/coding/testing.htm">Ptolemy II Testing Page</a>
+for information on how to set up the test directory.
+
+<p>Once the test directory has been committed to CVS, it needs
+to be added to the nightly build.
+
+<p>The nightly build runs the tests listed in the
+<code>JSALLDIRS</code> makefile variable in 
+<code>$METRO/adm/gen-<i>latest</i>.
+
+<p>The tests are run in the order listed, which can result in
+dependency problems if a package requires code at test-time
+that is not yet compiled.
+
+<p>Usually, it is safest to add a new test directory to the end
+of the list.  
+
+<p>Check in your changes to the makefile and the nightly build
+will update its copy and run the tests.
+
+<h3>Running the nightly build</h3>
+<p>Unfortunately, that makefiles is rather complex.  You are
+better off avoiding running it by hand, and instead run
+<code>make tests</code> to try out tests.
+<br>However, if you really want to run the nightly build, try:
+ 
+<pre>
+cd ~/ptII/metropolis/adm/gen-1.0/
+make USER=$USER METROHOME=$METRO clean all test>& make.out &
+</pre>
+
+See also <a href="releasemgt.htm">Release Management</a>
+</body>
+</html>

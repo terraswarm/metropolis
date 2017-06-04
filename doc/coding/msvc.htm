@@ -1,0 +1,122 @@
+<!-- $Id: msvc.htm,v 1.7 2004/09/13 16:58:47 cxh Exp $ -->
+<html>
+<head>
+<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=iso-8859-1">
+<title>Compiling Metropolis with Microsoft Visual C++</title>
+</head>
+<body>
+<H1>Compiling Metropolis with Microsoft Visual C++</H1>
+In December, 2003, we used Microsoft Visual Studio 6.0 sp4
+to compile the producers_consumer example.
+
+<p>Below is how we did it
+<ol>
+<li>Download SystemC-2.0.1 from <a href="http://www.systemc.org" target="_top"><code>http://www.systemc.org</code></a>
+and untar it so that it is adjacent to the Metropolis directory.
+It should be adjacent because the MSVC project files look for SystemC
+using a relative path.
+If SystemC is not adjacent to Metropolis, then you will need to adjust
+the path to the include files and libraries.
+
+<li>Compile SystemC as per the instructions in the systemc-<i>x.x</i>/INSTALL
+file
+
+<li>Currently, MSVC does not compile the Metropolis java files, so it is best
+if you follow the standard g++ installation as per $METRO/README.txt
+and then come back here to the MSVC installation.
+
+<li><code>$METRO/src/metropolis/metamodel/backends/systemc</code>
+requires <code>getrusage()</code> which is not usually part of Windows.
+To compile <code>port_rusage.cpp</code> under MSVC, you must download
+<code>psapi.h</code> and <code>psapi.lib</code>.  To run, you probably
+need <code>psapi.dll</code>.
+The easiest way to obtain these files is to look for them on the web
+using Google.
+<br><code>psapi.h</code> and <code>psapi.lib</code> should be placed in
+<code>$METRO/src/metropolis/metamodel/backends/systemc</code>.
+<br><code>psapi.dll</code> should be placed in your <code>C:\Windows</code>
+directory.
+
+<li>Start up Microsoft Visual Studio 6.0 and 
+load the Metropolis System C Backend Workspace at
+<code>$METRO/src/metropolis/metamodel/backends/systemc/systemc.dsw</code>
+<li>Build the project
+
+<li>To test the installation, under Cygwin bash create the .cpp
+files for the producers_consumers example:
+<pre>
+cd $METRO/examples/producers_consumer
+make
+</pre>
+
+<li>In Visual Studio, load the
+<code>$METRO/examples/producers_consumer/producers_consumer.dsp</code>
+file and build the producers_consumer executable.
+
+Under Microsoft Visual C, you might see:
+<pre>
+metro\examples\producers_consumer\sc_main.cpp(114) : error C2143: syntax error : missing ';' before '['
+metro\examples\producers_consumer\sc_main.cpp(117) : error C2143: syntax error : missing ';' before '['
+</pre>
+The solution is to change:
+<pre>
+  _sb.enabledSynchEventPC = new (ProgramCounter**)[0];
+</pre>
+to
+<pre>
+  _sb.enabledSynchEventPC = new (ProgramCounter**[0]);
+</pre>
+and
+<pre>
+  _sb.enabledSynchEventPC[i] = new (ProgramCounter*)[_sb.numSynchEventEachGroup[i]];
+</pre>
+to
+<pre>
+  _sb.enabledSynchEventPC[i] = new (ProgramCounter*[_sb.numSynchEventEachGroup[i]]); 
+<pre>
+
+</ol>
+
+<h2>SystemC Regression tests Under Cygwin </h2>
+<ol>
+<li> Download <CODE>regtests-2.0.1.tar.gz</CODE> from
+<a href="http://www.systemc.org">http://www.systemc.org</a>
+and untar it
+<li> Edit <CODE>regtests-2.0.1/scripts/verify.pl</CODE> 
+and change the first line to
+<pre>
+#!/usr/bin/perl
+</pre>
+and the Cygwin version check line to
+<pre>
+    } elsif ($uname_s eq "CYGWIN_NT-5.1" ) {
+</pre>
+
+<li> Set <CODE>SYSTEMC_HOME</CODE> to point to your 
+<CODE>systemc-2.0.1</CODE> directory.  I did:
+<pre>
+SYSTEMC_HOME=c:/cxh/src/systemc-2.0.1
+export SYSTEMC_HOME
+</pre>
+
+
+<li> Set <CODE>CXX</CODE> to cl so that the testsuite knows to use
+Microsoft Visual C++
+<pre>
+CXX=cl
+export CXX
+</pre>
+
+
+<li> Run all the tests
+
+<pre>
+cd regtests-2.0.l
+c:/cxh/src/regtests-2.0.1/scripts/verify.pl -no-cleanup -v systemc
+</pre>
+
+
+</ol>
+
+</body>
+</html>

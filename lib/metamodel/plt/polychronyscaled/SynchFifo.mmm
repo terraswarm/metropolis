@@ -1,0 +1,147 @@
+/* FIFO channel
+
+Copyright (c) 2004-2005 The Regents of the University of California.
+All rights reserved.
+
+Permission is hereby granted, without written agreement and without
+license or royalty fees, to use, copy, modify, and distribute this
+software and its documentation for any purpose, provided that the
+above copyright notice and the following two paragraphs appear in all
+copies of this software and that appropriate acknowledgments are made
+to the research of the Metropolis group.
+
+IN NO EVENT SHALL THE UNIVERSITY OF CALIFORNIA BE LIABLE TO ANY PARTY
+FOR DIRECT, INDIRECT, SPECIAL, INCIDENTAL, OR CONSEQUENTIAL DAMAGES
+ARISING OUT OF THE USE OF THIS SOFTWARE AND ITS DOCUMENTATION, EVEN IF
+THE UNIVERSITY OF CALIFORNIA HAS BEEN ADVISED OF THE POSSIBILITY OF
+SUCH DAMAGE.
+
+THE UNIVERSITY OF CALIFORNIA SPECIFICALLY DISCLAIMS ANY WARRANTIES,
+INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. THE SOFTWARE
+PROVIDED HEREUNDER IS ON AN "AS IS" BASIS, AND THE UNIVERSITY OF
+CALIFORNIA HAS NO OBLIGATION TO PROVIDE MAINTENANCE, SUPPORT, UPDATES,
+ENHANCEMENTS, OR MODIFICATIONS.
+
+METROPOLIS_COPYRIGHT_VERSION_1
+COPYRIGHTENDKEY
+
+@ProposedRating yellow apinto@eecs.berkeley.edu
+
+*/
+
+package metamodel.plt.polychronyscaled;
+
+
+//////////////////////////////////////////////////////////////////////////
+//// SynchFifo
+/**
+   SynchFifo is a medium that is used to connect synchronous processes
+   ( @see metamodel.plt.polychronyscaled.SynchProcess ). It implements
+   interfaces for reading and writing.
+
+   @author Alessandro Pinto
+   @version $Id: SynchFifo.mmm,v 1.11 2006/10/12 14:23:47 cxh Exp $
+*/
+
+
+
+public medium SynchFifo implements SynchWritable, SynchReadable {
+
+    /**Contructs an internal storage of size sp, and intializes
+     *total space, read and write pointers.
+     */
+    public SynchFifo(String n,int sp) {
+        super(n);
+        _presenttokens = new Object[sp];
+        _spaces = sp;
+        _wr = 0;
+        _rd = 0;
+        _empty = true;
+        _full = false;
+    }
+
+
+
+    ///////////////////////////////////////////////////////////////////
+    ////                         public methods                    ////
+
+
+    /**SynchWrite checks is there is space for writing a data. If the
+     *FIFO is full the simulation is stopped (or if a backend different
+     *form SystemC is used it does not write the data, this should be done
+     *better, it shouldn't be backend-dependent) otherwise it writes the data
+     *in the FIFO and updates the write and read pointers.
+     */
+    public update void synchWrite(Object data) {
+        if (_full) {
+            blackbox(SystemCSim)%%
+                cout << "A Process is writing in " <<caller->name()<< " but this fifo is full!!"<<endl;
+            sc_stop();
+            %%;
+        }else {
+            await{
+                (true;this.SynchReadable;this.SynchWritable) {
+                    if (data == null)
+                        _presenttokens[_wr] = null;
+                    else
+                        _presenttokens[_wr] = data.clone();
+                    _wr = (_wr+1)%_spaces;
+                    if (_empty)
+                        _empty = false;
+                    if (_wr == _rd)
+                        _full = true;
+                }//end critical section
+            }//end await
+        }//endif
+    }//end synchWrite
+
+
+    /**If the FIFO is empty, SynchRead retuns absence of signal. If there is space
+     *then data is written in the fifo and pointer are updated.
+     */
+    public eval Object synchRead() {
+        if (_empty) {
+            blackbox(SystemCSim)%%
+                cout << "A process is reading in " <<
+                caller->name() << " which is empty, a bottom will be returned" << endl;
+            %%;
+            return null;
+        }
+        else {
+            await{
+                (true;this.SynchWritable;this.SynchReadable) {
+                    Object res = _presenttokens[_rd].clone();
+                    _rd = (_rd + 1)%_spaces;
+                    if (_rd == _wr)
+                        _empty = true;
+                    if (_full)
+                        _full = false;
+                    return res;
+                }//end critical section
+            }//end await
+        }//end if
+    }//end synchRead
+
+    ///////////////////////////////////////////////////////////////////
+    ////                         private variables                 ////
+
+    /**Internal storage array*/
+    Object _presenttokens[];
+
+    /**FIFO write pointer*/
+    int _wr;
+
+    /**FIFO read pointer*/
+    int _rd;
+
+    /**Number of available spaces in the FIFO*/
+    int _spaces;
+
+    /**FIFO empty flag*/
+    boolean _empty;
+
+    /**FIFO full flag*/
+    boolean _full;
+
+}

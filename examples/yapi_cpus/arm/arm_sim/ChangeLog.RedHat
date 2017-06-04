@@ -1,0 +1,259 @@
+2002-05-29  Nick Clifton  <nickc@cambridge.redhat.com>
+
+        * armcopro.c (XScale_check_memacc): So the FSR and FAR if a
+        Data Abort is detected.
+
+2002-01-22  Nick Clifton  <nickc@cambridge.redhat.com>
+
+	* armcopro.c: Fix compile time warnings.
+
+2002-01-22  Nick Clifton  <nickc@cambridge.redhat.com>
+
+	* armcopro.c (ARMul_CoProInit): Suppress MMU functions when
+	XScale branch is made.
+
+2001-12-03  Nick Clifton  <nickc@cambridge.redhat.com>
+
+	* wrapper.c (sim_create_inferior): Default to XScale for Intel
+	compatability.
+
+2001-02-13  Nick Clifton  <nickc@redhat.com>
+
+	* armdefs.h (ARMul_CP15_R5_MMU_EXCPT): Fix value (bit 9, not bit
+	10).
+
+2000-11-16  Nick Clifton  <nickc@redhat.com>
+
+	* armemu.c (BKPT): Always treat this instruction as a breakpoint,
+	if there is no SWI vector installed - necessary for correct
+	operation of GDB.
+
+2000-11-14  Nick Clifton  <nickc@redhat.com>
+
+	* arminit.c (ARMul_Abort): Set correct value into register 14 for
+	Prefetch Abort, DataAbort, IRQ and FIQ.
+
+	* wrapper.c (sim_create_inferior): Add detection of XScale
+	architecture.
+	* arminit.c (ARMul_SelectProcessor): Add initialisation of
+	is_Xscale flag.
+	* armdefs.h (ARM_XScale_Prop): New property.
+	(struct ARMul_State): Add new field 'is_XScale'.
+	* armemu.c (BKPT): For XScale set FSR and FAR bits in coprocessor
+	if breakpoint is being taken.
+	(BLX (2)): Compute new PC before writing R15.
+	
+2000-11-09  Nick Clifton  <nickc@redhat.com>
+
+	* armos.c (ARMul_OSHandleSWI): When following the SWI vector
+	compute instruction size before changing the state to allow for
+	the loss of the T bit.
+
+	* thumbemu.c (ARMul_ThumbDecode): Treat a BLX instruction, format
+	2, with the bottom bit set as undefined.
+
+2000-11-08  Nick Clifton  <nickc@redhat.com>
+
+	* armcopro.c (write_cp15_reg): Insert missing break.
+
+	* thumbemu.c (ARMul_ThumbDecode): Swap ARM equivalent instructions
+	for PUSH and POP instructions.
+
+2000-09-15  Aldy Hernandez  <aldyh@redhat.com>
+
+	* armemu.c: only choose 0xe2 opcode when in v5 mode.
+
+2000-09-12  Nick Clifton  <nickc@redhat.com>
+
+	* armos.c (ARMul_OSHandleSWI): Do not warn about FPE SWIs.
+
+	* armemu.c (ARMul_Emulate26): Fix detection of PLD instruction.
+
+2000-08-24  Nick Clifton  <nickc@redhat.com>
+
+	* armcopro.c: Implement emulation of StrongARM-2's coprocessor 13.
+	Add checks of the CRm, opcode_1 and opcode_2 fields for
+	coprocessor 13 and 14. 
+	Add implementation of registers in coprocessor 15.
+
+2000-08-23  Nick Clifton  <nickc@redhat.com>
+
+	* armemu.c (ARMul_Emulate26): Accept and ignore the PLD
+	instruction - do not generate an undefined instruction trap for
+	it.
+	If bit 31 of register 10 of coprocessor 14 is clear then treat the
+	BKPT instruction as a no-op.
+
+	* armcopro.c (XScale_cp14_Regs): New array: Registers in coprocessor
+	14.
+	(XScale_cp14_init): New function: Initialise coprocessor 14's
+	registers.
+	(XScale_cp14_access): New function: Determine if a coprocessor 14
+	register can be accessed.
+	(write_cp14_reg): New function: Write to a copro 14 register. 
+	(read_cp14_reg): New function: Read from a copro 14 register.
+	(XScale_cp14_LDC): New function: Emulate LDC instruction to coproc 14.
+	(XScale_cp14_STC): New function: Emulate STC instruction from coproc 14.
+	(XScale_cp14_MRC): New function: Emulate MRC instruction from coproc 14.
+	(XScale_cp14_MCR): New function: Emulate MCR instruction to coproc 14.
+	(XScale_cp14_read_reg): New function: Read from a copro 14 register.
+	(XScale_cp14_write_reg): New function: Write to a copro 14 register.
+	(ARMul_CoProInit): Disable old coprocessor emulation.  Enable XScale
+	coprocessor 14 emulation.
+
+2000-08-22  Nick Clifton  <nickc@redhat.com>
+
+	* armemu.c (ARMul_Emulate26): Treat all instructions with a
+	condition code field of NV as UNDEFINED, except for the BLX
+	instruction.
+
+	* thumbemu.c (ARMul_ThumbDecode): Translate thumb BKPT instruction
+	into an arm BKPT instruction.  Catch other undefiend thumb
+	instructions and treat them as such.
+
+	* armemu.c (ARMul_Emulate26): Handle BKPT instruction.
+
+2000-08-17  Aldy Hernandez  <aldyh@redhat.com>
+
+	* armemu.c (ARMul_Emulate26): fix coprocessor and strongarm opcode
+	conflict.
+
+2000-08-15  Nick Clifton  <nickc@redhat.com>
+
+	* armemu.c (ARMul_Emulate26): Do not allow T bit to be set by MSR
+	instruction.
+
+2000-08-14  Nick Clifton  <nickc@redhat.com>
+
+	* armos.c (ARMul_OSHandleSWI): Only change mode once, not twice,
+	when invoking SWi handler.
+
+	* armemu.c (ARMul_Emulate26): BLX(2): Set LR after updating the
+	PC, not before.  Also if in Thumb mode , only store PC + 2 into
+	the LR and set the bottom bit of the address.
+
+2000-08-03  Nick Clifton  <nickc@cygnus.com>
+
+	* armemu.c (ARMul_Emulate26): Handle backwards branching BLX
+	instructions.
+
+2000-07-07  Nick Clifton  <nickc@cygnus.com>
+
+	* armos.c (ARMul_OSHandleSWI): Do not disable SWI_Breakpoint
+	handling.
+
+2000-07-06  Dave Brolley  <brolley@topaz>
+
+	* configure: Regenerated to track ../common/aclocal.m4 changes.
+
+2000-07-05  Ben Elliston  <bje@redhat.com>
+
+	* configure: Regenerated to track ../common/aclocal.m4 changes.
+
+2000-07-05  Michael Hayes  <mhaye@cygnus.com>
+
+	* armemu.c (ARMul_Emulate26): Add breaks to prevent MRRC and MCRR
+	cases falling through.
+
+2000-07-05  Michael Hayes  <mhayes@cygnus.com)
+
+	* armemu.c (ARMul_Emulate26): Implement MRRC and MCRR instructions.  
+	Fix MAR and MRA instructions to generate Undefined Interrupt exceptions
+	for invalid opcodes.
+
+2000-07-05  Nick Clifton  <nickc@cygnus.com>
+
+	* armos.c (ARMul_OSHandleSWI): Disable DEMON SWI emulation at the
+	direct request of Intel.
+
+2000-07-04  Alexandre Oliva  <aoliva@redhat.com>
+
+	* armemu.c (ARMul_Emulate, blx): Implement.
+	* thumbemu.c (ARMul_ThumbDecode, blx): Likewise.
+
+	* armos.c (ARMul_OSHandleSWI): Save SPSR and use INSN_SIZE to
+	adjust LR.
+
+	* armemu.c (ARMul_Emulate, miaph): Sign-extend the products
+	separately.
+
+	* armemu.c (ARMul_Emulate, MIAxy): Initialize t2 instead of
+	re-initializing t1.
+
+2000-06-02  Nick Clifton  <nickc@cygnus.com>
+
+	* wrapper.c (SWI_vector_installed): New global variable.
+	(sim_write): Set SWI_vector_installed if the SWI vector is written
+	to.
+
+	* armos.c (ARMul_OSHandleSWI): If SWI_vector_installed is set,
+	then invoke the SWI handler provided by the program being
+	simulated.
+
+2000-06-01  Nick Clifton  <nickc@cygnus.com>
+
+	* arminit.c (ARMul_NewState): Start in 32bit mode not 26bit. 
+
+2000-05-25  Nick Clifton  <nickc@cygnus.com>
+
+	* wrapper.c (sim_create_inferior): Do not switch to USER32 mode
+	upon startup.
+
+2000-05-23  Nick Clifton  <nickc@cygnus.com>
+
+	* armemu.h (CCBITS): Fix definition so that Q bit is picked up
+	when compiling armsupp.c.
+
+2000-04-26  Nick Clifton  <nickc@cygnus.com>
+
+	* armemu.c (ARMul_Emulate26): Fix MRA instruction.
+	Fix decoding of writeback bit in LDRD/STRD instructions.
+
+2000-04-20  Nick Clifton  <nickc@cygnus.com>
+
+	* armemu.c (ARMul_Emulate26): Fix implementation of MAR
+	instruction.
+
+2000-01-25  Bernd Schmidt  <bernds@cygnus.co.uk>
+
+	* armdefs.h (struct ARMul_State): New member SFlag.
+	* armemu.c (ARMul_Emulate32): Add ElSegundo support.
+	* armemu.h (SBIT, SFLAG, SETS, CLEARS, ASSIGNS): New macros.
+	(CCBITS): If [MODE32], include S bit.
+	(ECC): Include S flag.
+	(AddOverflow, SubOverflow): Declare new functions.
+	* armsupp.c (ARMul_CPSRAltered): Assign S flag.
+	(AddOverflow, SubOverflow): New functions.
+	(ARMul_AddOverflow, ARMul_SubOverflow): Use them.
+
+1999-12-05  Bernd Schmidt  <bernds@cygnus.co.uk>
+
+	* armemu.c (ARMul_Emulate32): Preincrement addressing modes were
+	wrong for XScale LDRD/STRD.
+
+1999-12-03  Nick Clifton  <nickc@cygnus.com>
+
+	* armemu.c (ARMul_Emulate26): Fix typo in previous delta.
+
+1999-12-02  Nick Clifton  <nickc@cygnus.com>
+
+	* armemu.c: Add support for new XScale instruction patterns.
+
+1999-12-01  Nick Clifton  <nickc@cygnus.com>
+
+	* armemu.c (ARMul_Emulate26): Parse but ignore preload instructions.
+
+1999-07-12  Bernd Schmidt  <bernds@cygnus.com>
+
+	* armdefs.h (ARMdword): New typedef.
+	(struct ARMul_State): New field Accumulator.
+	* armemu.c (ARMul_Emulate32): Add support for StrongARM-2
+	instructions MIA, MIAPH, MRA, MAR, LDRL.
+
+Local Variables:
+mode: change-log
+left-margin: 8
+fill-column: 74
+version-control: never
+change-log-default-name: "ChangeLog.RedHat"
+End:

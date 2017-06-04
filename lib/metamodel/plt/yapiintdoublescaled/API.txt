@@ -1,0 +1,251 @@
+Package metamodel.plt.yapiintdoublescaled
+
+======================================================================
+
+Class Summary:
+	      
+yapiinterface    : generic interface for the communication channel between
+		   processes
+
+yapiininterface  : described the function that can be accessed by an
+		   input port	 
+
+uapioutinterface : described the function that can be accessed by an
+		   output port
+
+yapiprocess      : this is the template for each process in the
+		   system. In order to model a process the user of
+		   the package extends this process.  
+
+yapichannel      : two yapi process communicate by means of a yapichannel
+		   which implements an unbounded FIFO and gives the correct 
+		   communication semantics to the model
+
+yapinetlist      : process and media can be connected together to form a
+		   netlist. The package user can extends the yapinetlist
+		   and write his/her own netlist constructor. The
+		   yapinetlist also defines some additional contraints.   
+
+======================================================================
+
+Class yapiprocess 
+
+extends Node 
+
+
+Ports:  yapiininterface inport0
+	yapiininterface inport1
+	yapiininterface inport2
+	yapiininterface inport3
+	
+	yapioutinterface outport0
+	yapioutinterface outport1
+	yapioutinterface outport2
+	yapioutinterface outport3
+
+	These are predefined ports that the user can use. Whe
+	yapiprocess is exented, other ports can be defined. The select
+	function can only be called on the predefined ports.
+	
+----------------------------------------------------------------------
+
+Version: 1.1
+Author: Alessandro Pinto 
+	EECS Grad Student
+	211 Cory Hall #1772
+	Ph.: +1-510-642-6876
+	mailto:apinto@eecs.berkeley.edu
+
+----------------------------------------------------------------------
+
+Constructors:
+
+yapiprocess()
+
+The constructor is empty
+
+----------------------------------------------------------------------
+
+Methods:
+
+int selectint(int nin0,int nin1,int nin2,int nin3,
+	      int nout0, int nout1, int nout2,int nout3)
+
+
+    This method can be used to make a nondeterministic selection
+    between input and output ports. The select function has 8
+    integer arguments that correspond to the 8 (4 input and 4 outport)
+    predefined ports. 
+    The integer nin#/nout# indicates how many available tokens/spaces
+    are present in the corresponding fifo. It nin#/nout# is -1 it
+    means that the correspondent port is not considered for the
+    selection.
+    If for instance we want to select one port between inport0,
+    inport3 and outport2 and check for 2 tokens, 4 tokens and 5 spaces
+    respectively the the function call will look like:
+    
+    selection = selectint(2,-1,-1,4,-1,-1,5,-1);
+
+    The return value is an integer between 0 and 7. If the selection
+    is between 0 and 3 it indicates one of the input port. If the
+    selection is between 4 and 7 the is indicates the output port
+    (selection - 4).
+
+
+    int selectdouble(int nin0,int nin1,int nin2,int nin3,
+	             int nout0, int nout1, int nout2,int nout3)
+ 
+
+    The same as for the integer case. Two different functions are
+    required since for each medium we have two FIFOs: one for the
+    integer numbers and the other for double type.    
+
+
+void execute()
+
+    This method is called directly from the thead() method. The user
+    is supposed to override this method in his process.
+
+======================================================================
+
+Class yapichannel 
+
+implements yapiininterface,yapioutinterface
+
+----------------------------------------------------------------------
+
+Version: 1.1
+Author: Alessandro Pinto 
+	EECS Grad Student
+	211 Cory Hall #1772
+	Ph.: +1-510-642-6876
+	mailto:apinto@eecs.berkeley.edu
+
+----------------------------------------------------------------------
+
+Constructors:
+
+public yapichannel(){}
+
+The constructor is empty
+
+----------------------------------------------------------------------
+
+Methods:
+
+update void read(int data)
+
+    When this method is called, the first element of the internal FIFO
+    is copied in "data" and is erased for the FIFO. This method is
+    blocking meaning that if the FIFO is empty the calling
+    process/medium is blocked until at least one tokes is written in
+    the FIFO. All the read functions assume that "data" has been
+    allocated with "new" befor the function is called.
+       
+update void read(double data);
+       
+    The same as the previous method. The difference is the data type
+
+update void read(int[] data,int n);	   	 
+
+    In this case the calling process/medium is blocked until at least
+    n integers are written in the FIFO.
+
+update void read(double[] data,int n);
+  
+    The same as the previous method for double type of data.     
+
+update void read(int[][] data,int n,int m);	   	 
+
+    Read methods for matrices. An nxm matrix of integer is read from
+    the FIFO. The first n*m integers are read and removed from the
+    FIFO. The calling process is blocked until n*m integers are
+    present in the FIFO.
+
+update void read(double[][] data,int n,int m);
+
+    The same as the previous method for double type of data.     
+
+update void write(int data);
+        
+    The write method copies the "data" argument at the end of the
+    FIFO. The methos is non blocking since unbounded FIFO is assumed
+    at this level of abstraction.
+
+update void write(double data);
+   
+    The same as before fro double type of data.
+
+update void write(int[] data,int n);
+
+    Write function for integer vectors. The method appends the n
+    integers at the end of the FIFO. 
+
+update void write(double[] data,int n);
+ 
+    The same as before for double type of data.
+       
+update void write(int[][] data,int n,int m);
+       
+    Write function for integer matrices. The method appends the n*m
+    integers at the end of the FIFO
+
+update void write(double[][] data,int n,int m);
+
+    The same as before for double type of data.   
+
+eval boolean checkfifoint(int n,int dir); 
+
+    This method is used by the select function defined in
+    yapiprocess. It checks for available tokens/spaces in the integer
+    FIFO of the medium in which it is defined. The arguments are:
+    -dir : the direction of the port; 0 for input port, other values
+           for output ports
+    -n   : the number of tokens/spaces in the FIFO. If the value is -1
+           the function returns false
+    This function will first check if n is equal to -1. If this is the
+    case then returns false otherwise il de direction indicates an
+    input then it will check if there are al least n tokens in the
+    FIFO and if this condition is satisfied it will return true
+    otherwise false. If the port is on output then since the FIFO is
+    unbounded it will return true.
+
+eval boolean checkfifodouble(int n,int dir); 
+
+    The same as before for the doubel type FIFO.
+ 
+======================================================================
+
+Class yapinetlist 
+
+----------------------------------------------------------------------
+
+Version: 1.1
+Author: Alessandro Pinto 
+	EECS Grad Student
+	211 Cory Hall #1772
+	Ph.: +1-510-642-6876
+	mailto:apinto@eecs.berkeley.edu
+
+----------------------------------------------------------------------
+
+Constructors:
+
+public yapinetlist(){}
+
+The constructor is empty. The user is supposed to override this
+constructor and build its own netlist composed of yapiprocesses
+connected through yapichannels.
+
+----------------------------------------------------------------------
+
+Constraints: ??????
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,549 @@
+/*
+  @Copyright (c) 2004-2005 The Regents of the University of California.
+  All rights reserved.
+
+  Permission is hereby granted, without written agreement and without
+  license or royalty fees, to use, copy, modify, and distribute this
+  software and its documentation for any purpose, provided that the
+  above copyright notice and the following two paragraphs appear in all
+  copies of this software and that appropriate acknowledgments are made
+  to the research of the Metropolis group.
+
+  IN NO EVENT SHALL THE UNIVERSITY OF CALIFORNIA BE LIABLE TO ANY PARTY
+  FOR DIRECT, INDIRECT, SPECIAL, INCIDENTAL, OR CONSEQUENTIAL DAMAGES
+  ARISING OUT OF THE USE OF THIS SOFTWARE AND ITS DOCUMENTATION, EVEN IF
+  THE UNIVERSITY OF CALIFORNIA HAS BEEN ADVISED OF THE POSSIBILITY OF
+  SUCH DAMAGE.
+
+  THE UNIVERSITY OF CALIFORNIA SPECIFICALLY DISCLAIMS ANY WARRANTIES,
+  INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+  MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. THE SOFTWARE
+  PROVIDED HEREUNDER IS ON AN "AS IS" BASIS, AND THE UNIVERSITY OF
+  CALIFORNIA HAS NO OBLIGATION TO PROVIDE MAINTENANCE, SUPPORT, UPDATES,
+  ENHANCEMENTS, OR MODIFICATIONS.
+
+  METROPOLIS_COPYRIGHT_VERSION_1
+  COPYRIGHTENDKEY
+*/
+/*
+  Original Author: Trevor Meyerowitz
+
+  Integrated into Vertical Model: Doug Densmore
+
+  Vertical model uses Associative Cache
+*/
+
+package pip.architecture.vertical;
+
+//package base_cpu_yapi;
+//package xscale_mem;
+
+/* The General Cache Construct */
+/* NOTES: Read has the same behavior as write */
+
+
+blackbox(SystemCSim)%%
+// uncomment if you want to debug the cache
+//#define CACHE_DEBUG
+#include <stdio.h>
+%%;
+
+/* The basic cache entry, not currently used */
+public class CacheEntry extends Object {
+    public int address;
+    //public boolean dirty;
+    public boolean valid;
+
+    public CacheEntry() {
+        super();
+        address = -1;
+        //dirty = false;
+        valid = false;
+    }
+}
+
+/* A block of cache entries (defined by the block_size) */
+public class CacheBlock extends Object {
+    public int size;
+    public int Entries[];
+    public boolean valid;
+
+    public CacheBlock(int _size) {
+        super();
+        size = _size;
+        valid = false;
+        //Entries = new CacheEntry[size];
+        Entries = new int[size];
+        for (int i=0; i<size; i++) {
+            //Entries[i] = new CacheEntry();
+            Entries[i]=0;
+        }
+    }
+
+    // FIXME: Can't have trailing semicolon after %% here, or we get:
+    // 92: syntax error
+    blackbox(SystemCSim)%%
+    CacheBlock::~CacheBlock() {
+        /*
+          for (int i=0; i<size; i++) {
+          delete Entries[i];
+          }
+        */
+        delete [] Entries;
+    }
+    %%//;
+
+    public boolean checkHit(int addr) {
+        if (valid) {
+            for (int i=0; i<size; i++) {
+                if ( Entries[i] == addr )
+                    return true;
+            }
+        }
+        return false;
+    }
+
+    public void addAddr(int addr) {
+        int start_addr = (addr/(size*4));
+        start_addr = start_addr*4*size;
+
+        blackbox(SystemCSim)%%
+#ifdef CACHE_DEBUG
+            fprintf(stdout, "Address: 0x%08x  StartAddress: 0x%08x\n", addr,
+                    start_addr);
+#endif
+        %%;
+
+        for (int i=0; i<size; i++) {
+            Entries[i] = start_addr+i*4;
+            valid = true;
+        }
+    }
+}
+
+
+/* A group of cache blocks (defined by the associativity) */
+public class CacheGroup extends Object {
+    public int size;
+    public int block_size;
+    public int replace_rr;
+    public int id;
+    public CacheBlock Blocks[];
+
+    public CacheGroup(int _size, int _block_size, int _id) {
+        super();
+        replace_rr = 0;
+        size = _size;
+        block_size = _block_size;
+        id = _id;
+        Blocks = new CacheBlock[size];
+        for (int i=0; i<size; i++) {
+            Blocks[i] = new CacheBlock(block_size);
+        }
+    }
+
+    // FIXME: Can't have trailing semicolon after %% here, or we get:
+    // 150: syntax error
+    blackbox(SystemCSim)%%
+    CacheGroup::~CacheGroup() {
+        for (int i=0; i<size; i++) {
+            delete Blocks[i];
+        }
+        delete [] Blocks;
+    }
+    %%//;
+
+    public boolean checkHit(int addr) {
+        for (int i=0; i<size; i++) {
+            if (Blocks[i].checkHit(addr)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    // adds the given address to the cache
+    // NOTE: not implemented correctly, just trying to get it to work.
+    public void addAddr(int addr) {
+        int added_group=-1;
+        int selected_group;
+
+
+        // check each block to see if it is valid
+        for (int i=0; (i<size && added_group != -1); i++) {
+            selected_group = (replace_rr + i) % size;
+            if (Blocks[selected_group].valid != true) {
+                added_group = selected_group;
+                break;
+            }
+        }
+
+        // all of the groups were full, so we must replace
+        if (added_group == -1) {
+            selected_group = replace_rr;
+            replace_rr = (replace_rr+1) % size;
+        } else {
+            selected_group = added_group;
+        }
+
+        // do the actual addition of data
+        blackbox(SystemCSim)%%
+#ifdef CACHE_DEBUG
+            cout <<  "(id=" << id << ") (sg=" << selected_group << ")\n";
+#endif
+        %%;
+        Blocks[selected_group].addAddr(addr);
+    }
+
+    // returns true on a cache hit
+    public boolean read(int addr) {
+        if ( checkHit(addr) ) {
+            // cache hit, do nothing
+            blackbox(SystemCSim)%%
+#ifdef CACHE_DEBUG
+                fprintf(stdout, "CacheGroup hit: 0x%08x\n", addr);
+#endif
+            %%;
+            return true;
+        }
+        else {
+            // cache miss, return false + update
+            blackbox(SystemCSim)%%
+#ifdef CACHE_DEBUG
+                fprintf(stdout, "CacheGroup miss/reload: 0x%08x ", addr);
+#endif
+            %%;
+            addAddr(addr);
+            return false;
+        }
+    }
+
+    // returns true on a cache hit, updates otherwise
+    public boolean write(int addr) {
+        return read(addr);
+    }
+}
+
+
+/* The base interface that ALL caches implement */
+/*public interface cacheInterface extends Port {
+//elaborate void init();
+eval boolean checkHit(int addr);
+update int read(int addr);
+update int write(int addr);
+eval int getNumHits();
+eval int getNumMisses();
+update void finish();
+}*/
+
+
+/* A perfect Cache always hits */
+public medium PerfectCache implements cacheInterface {
+
+    private int num_hits;
+    private int num_misses;
+
+    public PerfectCache(String n) {
+        super(n);
+        num_hits = 0;
+        num_misses = 0;
+    }
+
+    //public update void init() {
+    public elaborate void init() {
+    }
+
+    public eval boolean checkHit(int addr) {
+        return true;
+    }
+    public update int read(int addr) {
+        num_hits++;
+        return 0;
+    }
+    public update int write(int addr) {
+        num_hits++;
+        return 0;
+    }
+
+    public eval int getNumHits() {
+        return num_hits;
+    }
+
+    public eval int getNumMisses() {
+        return num_misses;
+    }
+
+    public update void finish() {
+    }
+}
+
+
+/* A statistical Cache hits with a given percentage*/
+/* DOES NOI LOOK RIGHT, MUST CHECK */
+public medium StatCache implements cacheInterface {
+    parameter double hit_rate;
+    parameter int mispredict_penalty;
+
+    private int num_hits;
+    private int num_misses;
+
+    public StatCache(String n, double _hrate, int _mispredict_penalty) {
+        super(n);
+        hit_rate = _hrate;
+        mispredict_penalty = _mispredict_penalty;
+        num_hits = num_misses = 0;
+    }
+
+    //public update void init() {
+    public elaborate void init() {
+    }
+
+    public eval boolean checkHit(int addr) {
+        double temp_rand=0.0;
+        blackbox(SystemCSim)%%
+            temp_rand = drand48();
+        %%;
+        return (temp_rand <= hit_rate);
+    }
+    public update int read(int addr) {
+        if (checkHit(0)) {
+            num_hits++;
+            return 0;
+        } else {
+            num_misses++;
+            return mispredict_penalty;
+        }
+    }
+
+    public update int write(int addr) {
+        if (checkHit(0)) {
+            num_hits++;
+            return 0;
+        } else {
+            num_misses++;
+            return mispredict_penalty;
+        }
+    }
+
+    public eval int getNumHits() {
+        return num_hits;
+    }
+
+    public eval int getNumMisses() {
+        return num_misses;
+    }
+
+    public update void finish() {
+    }
+}
+
+/* An associative Cache */
+public medium AssocCache implements cacheInterface {
+
+    final static int SERVICE_ID_REQUEST = 0;
+    final static int SERVICE_ID_READ_INIT = 1;
+    final static int SERVICE_ID_READ = 2;
+    final static int SERVICE_ID_READ_PROTECTED_INIT = 3;
+    final static int SERVICE_ID_READ_PROTECTED = 4;
+    final static int SERVICE_ID_WRITE_INIT = 5;
+    final static int SERVICE_ID_WRITE = 6;
+    final static int SERVICE_ID_WRITE_PROTECTED_INIT = 7;
+    final static int SERVICE_ID_WRITE_PROTECTED = 8;
+    final static int SERVICE_ID_RELEASE = 9;
+    final static int SERVICE_ID_CONTEXT_SWITCH = 10;
+    final static int NUMBER_OF_SERVICES = 11;
+
+
+    parameter int cache_size;
+    parameter int miss_penalty;
+    parameter int block_size;
+    parameter int associativity;
+
+
+    port SchedReq         _portSM;
+
+    private CacheGroup cache_lines[];
+    private int num_groups;
+    private int shift_size;
+
+    private int _cacheID;
+
+    private int num_hits;
+    private int num_misses;
+    private boolean initialized;
+    private SchedReqClass _src;
+    private event r, e;
+
+    public AssocCache(String n, int id, int _cache_size, int _block_size,
+            int _associativity, int _miss_penalty) {
+        super(n);
+        _cacheID = id;
+        num_hits = num_misses = 0;
+        cache_size = _cache_size;
+        miss_penalty = _miss_penalty;
+        associativity = _associativity;
+        block_size = _block_size;
+        initialized = false;
+
+        _src = new SchedReqClass();
+
+        num_groups = cache_size/(associativity*block_size);
+
+        if ( (cache_size%(associativity*block_size)) > 0 ) {
+            num_groups++;
+        }
+
+        /*
+          cache_lines = new CacheGroup[num_groups];
+          for (int i=0; i<num_groups; i++) {
+          cache_lines[i] = new CacheGroup(associativity, block_size, i);
+          }
+        */
+
+        // determine the shift size
+        //int temp = block_size*associativity;
+        int temp = block_size;
+        for (shift_size = 2; temp > 1; shift_size++) {
+            temp = temp >> 1;
+        }
+
+        blackbox(SystemCSim)%%
+#ifdef CACHE_DEBUG
+            cout << "Cache initialize: num_groups:" << num_groups
+                 << " shift_size:" << shift_size << endl;
+#endif
+        %%;
+
+    }
+
+    // FIXME: Can't have trailing semicolon after %% here, or we get:
+    // 426: syntax error
+    blackbox(SystemCSim)%%
+        AssocCache::~AssocCache() {
+        for (int i=0; i<num_groups; i++) {
+            delete cache_lines[i];
+        }
+        delete [] cache_lines;
+    }
+    %%//;
+
+        //public update void init() {
+        public elaborate void init() {
+            if (!initialized) {
+                initialized = true;
+
+                cache_lines = new CacheGroup[num_groups];
+                for (int i=0; i<num_groups; i++) {
+                    cache_lines[i] = new CacheGroup(associativity, block_size, i);
+                }
+            }
+        }
+
+        public int getSelectedGroup(int addr) {
+            return (addr>>shift_size)%num_groups;
+        }
+
+        public eval boolean checkHit(int addr) {
+            int selected_group;
+            addr = preprocessAddress(addr);
+
+            selected_group = getSelectedGroup(addr);
+            blackbox(SystemCSim)%%
+#ifdef CACHE_DEBUG
+                fprintf(stdout, "%s Cache check_hit: 0x%08x sg:%d ss:%d 0x%08x\n",
+                        name(), addr, selected_group, shift_size, cache_size);
+#endif
+            %%;
+            return cache_lines[selected_group].checkHit(addr);
+        }
+
+        // returns the amount of extra cycles taken for a read
+        public update int read(int addr) {
+            addr = preprocessAddress(addr);
+            /*
+              int base_addr = 0;
+              int i=0;
+              int index;
+              int temp_addr;
+            */
+
+            int selected_group = getSelectedGroup(addr);
+
+            cari{@;{$
+
+                        beg{
+                e = beg(getthread(), this.cari);
+                _src.setSchedReqClass(e, SERVICE_ID_CONTEXT_SWITCH, 1, -1, -1);
+                _portSM.request(e, _src);
+
+            }
+
+            end{
+
+                r = end(getthread(), this.cari);
+                _src.setSchedReqClass(r, e, SERVICE_ID_READ_INIT, 1, -1, 1);
+                _portSM.request(r, _src);
+            }
+
+            $}@};
+
+            car{@;{$
+                       beg{
+                e = beg(getthread(), this.car);
+                _src.setSchedReqClass(e, SERVICE_ID_READ, 1, -1, -1);
+                _portSM.request(e, _src);
+
+                blackbox(SystemCSim)%%
+                    cout << caller->name() << " running Cache read/write car beg" << endl;
+                %%;
+            }
+
+            end{
+                r = end(getthread(), this.car);
+                _src.setSchedReqClass(r, e, SERVICE_ID_RELEASE, 1, -1, 1);
+                _portSM.request(r, _src);
+
+            }
+
+            $}@};
+
+
+            blackbox(SystemCSim)%%
+#ifdef CACHE_DEBUG
+                cout << name() << ":" << selected_group << ":";
+#endif
+            %%;
+            if (cache_lines[selected_group].read(addr)) {
+                num_hits++;
+                return 0;
+            }
+            else {
+                num_misses++;
+                return miss_penalty;
+            }
+        }
+
+        // returns the amount of extra cycles taken for a write
+        // currently read and write are identical, this will change
+        public update int write(int addr) {
+            return read(addr);
+        }
+
+        public eval int getNumHits() {
+            return num_hits;
+        }
+
+        public eval int getNumMisses() {
+            return num_misses;
+        }
+
+        public update void finish() {
+        }
+
+        // Converts a negative address value into a positive integer by
+        // removing setting the first (sign) bit to 0.
+        // Also zeroes the last 2 bits (used for byte addressing)
+        int preprocessAddress(int addr) {
+            return addr & 0x7FFFFFFC;
+        }
+}

@@ -1,0 +1,629 @@
+/*
+
+Copyright (c) 2004-2005 The Regents of the University of California.
+All rights reserved.
+
+Permission is hereby granted, without written agreement and without
+license or royalty fees, to use, copy, modify, and distribute this
+software and its documentation for any purpose, provided that the
+above copyright notice and the following two paragraphs appear in all
+copies of this software and that appropriate acknowledgments are made
+to the research of the Metropolis group.
+
+IN NO EVENT SHALL THE UNIVERSITY OF CALIFORNIA BE LIABLE TO ANY PARTY
+FOR DIRECT, INDIRECT, SPECIAL, INCIDENTAL, OR CONSEQUENTIAL DAMAGES
+ARISING OUT OF THE USE OF THIS SOFTWARE AND ITS DOCUMENTATION, EVEN IF
+THE UNIVERSITY OF CALIFORNIA HAS BEEN ADVISED OF THE POSSIBILITY OF
+SUCH DAMAGE.
+
+THE UNIVERSITY OF CALIFORNIA SPECIFICALLY DISCLAIMS ANY WARRANTIES,
+INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. THE SOFTWARE
+PROVIDED HEREUNDER IS ON AN "AS IS" BASIS, AND THE UNIVERSITY OF
+CALIFORNIA HAS NO OBLIGATION TO PROVIDE MAINTENANCE, SUPPORT, UPDATES,
+ENHANCEMENTS, OR MODIFICATIONS.
+
+METROPOLIS_COPYRIGHT_VERSION_1
+COPYRIGHTENDKEY
+
+*/
+
+package pip.architecture.simple;
+
+/////////////////////////////////////////////////////////////////////
+//        Design Example of Metropolis
+//        PiP Architecture
+//
+//        Author: Alessandro Pinto
+//                                        Yoshi Watanabe
+//                                        Haibo Zeng
+/////////////////////////////////////////////////////////////////////
+
+// This medium defines a memory component. It is supposed to be
+// connected to a bus as a slave peripheral. The memory medium
+// implements the bus slave interface. There are two main methods:
+// slaveRead and slaveWrite. Two different implementation are
+// offered to just model performances or to store date in the memory.
+
+public medium Mem implements BusSlave {
+
+    ///////////////////////////////////////////////////////////////////
+    ////                         public variables                  ////
+
+    ///////////////////////////////////////////////////////////////////
+    ////                         protected variables               ////
+
+    port SchedReq _portSM;
+
+    ///////////////////////////////////////////////////////////////////
+    ////                         private variables                 ////
+
+    final static int SERVICE_ID_REQUEST                                                                         = 0;
+    final static int SERVICE_ID_READ_INIT                                                                        = 1;
+    final static int SERVICE_ID_READ                                                                                         = 2;
+    final static int SERVICE_ID_READ_PROTECTED_INIT                                = 3;
+    final static int SERVICE_ID_READ_PROTECTED                                                 = 4;
+    final static int SERVICE_ID_WRITE_INIT                                                                = 5;
+    final static int SERVICE_ID_WRITE                                                                                 = 6;
+    final static int SERVICE_ID_WRITE_PROTECTED_INIT                        = 7;
+    final static int SERVICE_ID_WRITE_PROTECTED                                                = 8;
+    final static int SERVICE_ID_RELEASE                                                                         = 9;
+    final static int SERVICE_ID_CONTEXT_SWITCH                                                = 10;
+    final static int NUMBER_OF_SERVICES                                                                         = 11;
+
+    private int _memID;
+    private int _space;
+    private int[] _memory;
+    private SchedReqClass _src;
+
+    ///////////////////////////////////////////////////////////////////
+    ////                         public methods                    ////
+
+    // Constructor
+    public Mem(String n, int id, int space) {
+        super(n);
+
+        _memID = id;
+        _space = space;
+        _memory = new int[_space];
+        _src = new SchedReqClass();
+    }
+
+    public int id() { return _memID; }
+
+    public eval         void busSlaveRead (int target, int addr, int n) {
+        event e, r;
+
+        if (target != _memID) {
+            blackbox(SystemCSim)%%
+                cout<<"Out of memory: target "<<target<<" does not match to id"<<_memID<<endl;
+            exit(-1);
+            %%;
+        }
+
+        if ((addr<0) || (addr+n) >= _space) {
+            blackbox(SystemCSim)%%
+                cout<<"Out of memory: ["<<addr<<", "<<addr+n<<") is out of range [0, "<<_space<<")"<<endl;
+            exit(-1);
+            %%;
+        }
+
+        mri{@;{$
+                   beg{
+            e =  beg(getthread(), this.mri);
+            _src.setSchedReqClass(e, SERVICE_ID_CONTEXT_SWITCH, 1, -1, -1);
+            _portSM.request(e, _src);
+
+            blackbox(SystemCSim)%%
+                //cout<<caller->name()<<" running Mem read mri beg"<<endl;
+                %%;
+        }
+
+        end{
+            r =  end(getthread(), this.mri);
+            _src.setSchedReqClass(r, e, SERVICE_ID_READ_INIT, 1, -1, -1);
+            _portSM.request(r, _src);
+
+            blackbox(SystemCSim)%%
+                //cout<<caller->name()<<" running Mem read mri end"<<endl;
+                %%;
+        }
+        $}@};
+
+        mr{@;{$
+                  beg{
+            e =  beg(getthread(), this.mr);
+            _src.setSchedReqClass(e, SERVICE_ID_READ, n, -1, -1);
+            _portSM.request(e, _src);
+
+            blackbox(SystemCSim)%%
+                cout<<caller->name()<<" running Mem read mr beg, totally "<<n<<" times"<<endl;
+            %%;
+        }
+
+        end{
+            r =  end(getthread(), this.mr);
+            _src.setSchedReqClass(r, e, SERVICE_ID_RELEASE, 1, -1, -1);
+            _portSM.request(r, _src);
+
+            blackbox(SystemCSim)%%
+                //cout<<caller->name()<<" running Mem read mr end"<<endl;
+                %%;
+        }
+        $}@};
+    }
+
+    public eval         void busSlaveReadProtect (int target, int addr, int n) {
+        event e, r;
+
+        if (target != _memID) {
+            blackbox(SystemCSim)%%
+                cout<<"Out of memory: target "<<target<<" does not match to id"<<_memID<<endl;
+            exit(-1);
+            %%;
+        }
+
+        if ((addr<0) || (addr+n) >= _space) {
+            blackbox(SystemCSim)%%
+                cout<<"Out of memory: ["<<addr<<", "<<addr+n<<") is out of range [0, "<<_space<<")"<<endl;
+            exit(-1);
+            %%;
+        }
+
+        mrpi{@;{$
+                    beg{
+            e =  beg(getthread(), this.mrpi);
+            _src.setSchedReqClass(e, SERVICE_ID_CONTEXT_SWITCH, 1, -1, -1);
+            _portSM.request(e, _src);
+
+            blackbox(SystemCSim)%%
+                //cout<<caller->name()<<" running Mem read mrpi beg"<<endl;
+                %%;
+        }
+
+        end{
+            r =  end(getthread(), this.mrpi);
+            _src.setSchedReqClass(r, e, SERVICE_ID_READ_INIT, 1, -1, -1);
+            _portSM.request(r, _src);
+
+            blackbox(SystemCSim)%%
+                //cout<<caller->name()<<" running Mem read mrpi end"<<endl;
+                %%;
+        }
+        $}@};
+
+        mrp{@;{$
+                   beg{
+            e =  beg(getthread(), this.mrp);
+            _src.setSchedReqClass(e, SERVICE_ID_READ_PROTECTED, n, -1, -1);
+            _portSM.request(e, _src);
+
+            blackbox(SystemCSim)%%
+                cout<<caller->name()<<" running Mem read mrp beg, totally "<<n<<" times"<<endl;
+            %%;
+        }
+
+        end{
+            r =  end(getthread(), this.mrp);
+            _src.setSchedReqClass(r, e, SERVICE_ID_RELEASE, 1, -1, -1);
+            _portSM.request(r, _src);
+
+            blackbox(SystemCSim)%%
+                //cout<<caller->name()<<" running Mem read mrp end"<<endl;
+                %%;
+        }
+        $}@};
+    }
+
+    public update void busSlaveWrite(int target, int addr, int n) {
+        event e, r;
+
+        if (target != _memID) {
+            blackbox(SystemCSim)%%
+                cout<<"Out of memory: target"<<target<<" does not match to id"<<_memID<<endl;
+            exit(-1);
+            %%;
+        }
+
+        if ((addr<0) || (addr+n) >= _space) {
+            blackbox(SystemCSim)%%
+                cout<<"Out of memory: ["<<addr<<", "<<addr+n<<") is out of range [0, "<<_space<<")"<<endl;
+            exit(-1);
+            %%;
+        }
+
+        mwi{@;{$
+                   beg{
+            e =  beg(getthread(), this.mwi);
+            _src.setSchedReqClass(e, SERVICE_ID_CONTEXT_SWITCH, 1, -1, -1);
+            _portSM.request(e, _src);
+
+            blackbox(SystemCSim)%%
+                //cout<<caller->name()<<" running Mem write mwi beg"<<endl;
+                %%;
+        }
+
+        end{
+            r =  end(getthread(), this.mwi);
+            _src.setSchedReqClass(r, e, SERVICE_ID_WRITE_INIT, 1, -1, -1);
+            _portSM.request(r, _src);
+
+            blackbox(SystemCSim)%%
+                //cout<<caller->name()<<" running Mem write mwi end"<<endl;
+                %%;
+        }
+        $}@};
+
+        mw{@;{$
+                  beg{
+            e =  beg(getthread(), this.mw);
+            _src.setSchedReqClass(e, SERVICE_ID_WRITE, n, -1, -1);
+            _portSM.request(e, _src);
+
+            blackbox(SystemCSim)%%
+                cout<<caller->name()<<" running Mem write mw beg, totally "<<n<<" times"<<endl;
+            %%;
+        }
+
+        end{
+            r =  end(getthread(), this.mw);
+            _src.setSchedReqClass(r, e, SERVICE_ID_RELEASE, 1, -1, -1);
+            _portSM.request(r, _src);
+
+            blackbox(SystemCSim)%%
+                //cout<<caller->name()<<" running Mem write mw end"<<endl;
+                %%;
+        }
+        $}@};
+    }
+
+    public update void busSlaveWriteProtect(int target, int addr, int n) {
+        event e, r;
+
+        if (target != _memID) {
+            blackbox(SystemCSim)%%
+                cout<<"Out of memory: target"<<target<<" does not match to id"<<_memID<<endl;
+            exit(-1);
+            %%;
+        }
+
+        if ((addr<0) || (addr+n) >= _space) {
+            blackbox(SystemCSim)%%
+                cout<<"Out of memory: ["<<addr<<", "<<addr+n<<") is out of range [0, "<<_space<<")"<<endl;
+            exit(-1);
+            %%;
+        }
+
+        mwpi{@;{$
+                    beg{
+            e =  beg(getthread(), this.mwpi);
+            _src.setSchedReqClass(e, SERVICE_ID_CONTEXT_SWITCH, 1, -1, -1);
+            _portSM.request(e, _src);
+
+            blackbox(SystemCSim)%%
+                //cout<<caller->name()<<" running Mem write mwpi beg"<<endl;
+                %%;
+        }
+
+        end{
+            r =  end(getthread(), this.mwpi);
+            _src.setSchedReqClass(r, e, SERVICE_ID_WRITE_INIT, 1, -1, -1);
+            _portSM.request(r, _src);
+
+            blackbox(SystemCSim)%%
+                //cout<<caller->name()<<" running Mem write mwpi end"<<endl;
+                %%;
+        }
+        $}@};
+
+        mwp{@;{$
+                   beg{
+            e =  beg(getthread(), this.mwp);
+            _src.setSchedReqClass(e, SERVICE_ID_WRITE_PROTECTED, n, -1, -1);
+            _portSM.request(e, _src);
+
+            blackbox(SystemCSim)%%
+                cout<<caller->name()<<" running Mem write mwp beg, totally "<<n<<" times"<<endl;
+            %%;
+        }
+
+        end{
+            r =  end(getthread(), this.mwp);
+            _src.setSchedReqClass(r, e, SERVICE_ID_RELEASE, 1, -1, -1);
+            _portSM.request(r, _src);
+
+            blackbox(SystemCSim)%%
+                //cout<<caller->name()<<" running Mem write mwp end"<<endl;
+                %%;
+        }
+        $}@};
+    }
+
+    public eval          void busSlaveReadLong (int target, int addr, int n, int[] data) {
+        event e, r;
+
+        if (target != _memID) {
+            blackbox(SystemCSim)%%
+                cout<<"Out of memory: target"<<target<<" does not match to id"<<_memID<<endl;
+            exit(-1);
+            %%;
+        }
+
+        if ((addr<0) || (addr+n) >= _space) {
+            blackbox(SystemCSim)%%
+                cout<<"Out of memory: ["<<addr<<", "<<addr+n<<") is out of range [0, "<<_space<<")"<<endl;
+            exit(-1);
+            %%;
+        }
+
+        mrli{@;
+ {$
+      beg{
+     e =  beg(getthread(), this.mrli);
+     _src.setSchedReqClass(e, SERVICE_ID_CONTEXT_SWITCH, 1, -1, -1);
+     _portSM.request(e, _src);
+
+     blackbox(SystemCSim)%%
+         //cout<<caller->name()<<" running Mem read mrli beg"<<endl;
+         %%;
+ }
+
+ end{
+     r =  end(getthread(), this.mrli);
+     _src.setSchedReqClass(r, e, SERVICE_ID_READ_INIT, 1, -1, -1);
+     _portSM.request(r, _src);
+
+     blackbox(SystemCSim)%%
+         //cout<<caller->name()<<" running Mem read mrli end"<<endl;
+         %%;
+ }
+ $}@};
+
+        mrl{@
+ {
+     for (int i=0; i<n; i++) {
+         data[i] = _memory[i+addr];
+     }
+ }
+
+ {$
+      beg{
+     e =  beg(getthread(), this.mrl);
+     _src.setSchedReqClass(e, SERVICE_ID_READ, n, -1, -1);
+     _portSM.request(e, _src);
+
+     blackbox(SystemCSim)%%
+         cout<<caller->name()<<" running Mem read mrl beg, totally "<<n<<" times"<<endl;
+     %%;
+ }
+
+ end{
+     r =  end(getthread(), this.mrl);
+     _src.setSchedReqClass(r, e, SERVICE_ID_RELEASE, 1, -1, -1);
+     _portSM.request(r, _src);
+
+     blackbox(SystemCSim)%%
+         //cout<<caller->name()<<" running Mem read mrl end"<<endl;
+         %%;
+ }
+ $}@};
+    }
+
+    public eval          void busSlaveReadLongProtect (int target, int addr, int n, int[] data) {
+        event e, r;
+
+        if (target != _memID) {
+            blackbox(SystemCSim)%%
+                cout<<"Out of memory: target"<<target<<" does not match to id"<<_memID<<endl;
+            exit(-1);
+            %%;
+        }
+
+        if ((addr<0) || (addr+n) >= _space) {
+            blackbox(SystemCSim)%%
+                cout<<"Out of memory: ["<<addr<<", "<<addr+n<<") is out of range [0, "<<_space<<")"<<endl;
+            exit(-1);
+            %%;
+        }
+
+        mrlpi{@;
+ {$
+      beg{
+     e =  beg(getthread(), this.mrlpi);
+     _src.setSchedReqClass(e, SERVICE_ID_CONTEXT_SWITCH, 1, -1, -1);
+     _portSM.request(e, _src);
+
+     blackbox(SystemCSim)%%
+         //cout<<caller->name()<<" running Mem read mrlpi beg"<<endl;
+         %%;
+ }
+
+ end{
+     r =  end(getthread(), this.mrlpi);
+     _src.setSchedReqClass(r, e, SERVICE_ID_READ_INIT, 1, -1, -1);
+     _portSM.request(r, _src);
+
+     blackbox(SystemCSim)%%
+         //cout<<caller->name()<<" running Mem read mrlpi end"<<endl;
+         %%;
+ }
+ $}@};
+
+        mrlp{@
+ {
+     for (int i=0; i<n; i++) {
+         data[i] = _memory[i+addr];
+     }
+ }
+
+ {$
+      beg{
+     e =  beg(getthread(), this.mrlp);
+     _src.setSchedReqClass(e, SERVICE_ID_READ_PROTECTED, n, -1, -1);
+     _portSM.request(e, _src);
+
+     blackbox(SystemCSim)%%
+         cout<<caller->name()<<" running Mem read mrlp beg, totally "<<n<<" times"<<endl;
+     %%;
+ }
+
+ end{
+     r =  end(getthread(), this.mrlp);
+     _src.setSchedReqClass(r, e, SERVICE_ID_RELEASE, 1, -1, -1);
+     _portSM.request(r, _src);
+
+     blackbox(SystemCSim)%%
+         //cout<<caller->name()<<" running Mem read mrlp end"<<endl;
+         %%;
+ }
+ $}@};
+    }
+
+    public update void busSlaveWriteLong(int target, int addr, int n, int[] data) {
+        event e, r;
+
+        if (target != _memID) {
+            blackbox(SystemCSim)%%
+                cout<<"Out of memory: target"<<target<<" does not match to id"<<_memID<<endl;
+            exit(-1);
+            %%;
+        }
+
+        if ((addr<0) || (addr+n) >= _space) {
+            blackbox(SystemCSim)%%
+                cout<<"Out of memory: ["<<addr<<", "<<addr+n<<") is out of range [0, "<<_space<<")"<<endl;
+            exit(-1);
+            %%;
+        }
+
+        mwli{@;
+ {$
+      beg{
+     e =  beg(getthread(), this.mwli);
+     _src.setSchedReqClass(e, SERVICE_ID_CONTEXT_SWITCH, 1, -1, -1);
+     _portSM.request(e, _src);
+
+     blackbox(SystemCSim)%%
+         //cout<<caller->name()<<" running Mem write mwli beg"<<endl;
+         %%;
+ }
+
+ end{
+     r =  end(getthread(), this.mwli);
+     _src.setSchedReqClass(r, e, SERVICE_ID_WRITE_INIT, 1, -1, -1);
+     _portSM.request(r, _src);
+
+     blackbox(SystemCSim)%%
+         //cout<<caller->name()<<" running Mem write mwli end"<<endl;
+         %%;
+ }
+ $}@};
+
+        mwl{@
+ {
+     for (int i=0; i<n; i++) {
+         _memory[i+addr] = data[i];
+     }
+ }
+
+ {$
+      beg{
+     e =  beg(getthread(), this.mwl);
+     _src.setSchedReqClass(e, SERVICE_ID_WRITE, n, -1, -1);
+     _portSM.request(e, _src);
+
+     blackbox(SystemCSim)%%
+         cout<<caller->name()<<" running Mem write mwl beg, totally "<<n<<" times"<<endl;
+     %%;
+ }
+
+ end{
+     r =  end(getthread(), this.mwl);
+     _src.setSchedReqClass(r, e, SERVICE_ID_RELEASE, 1, -1, -1);
+     _portSM.request(r, _src);
+
+     blackbox(SystemCSim)%%
+         //cout<<caller->name()<<" running Mem write mwl end"<<endl;
+         %%;
+ }
+ $}@};
+    }
+
+    public update void busSlaveWriteLongProtect(int target, int addr, int n, int[] data) {
+        event e, r;
+
+        if (target != _memID) {
+            blackbox(SystemCSim)%%
+                cout<<"Out of memory: target"<<target<<" does not match to id"<<_memID<<endl;
+            exit(-1);
+            %%;
+        }
+
+        if ((addr<0) || (addr+n) >= _space) {
+            blackbox(SystemCSim)%%
+                cout<<"Out of memory: ["<<addr<<", "<<addr+n<<") is out of range [0, "<<_space<<")"<<endl;
+            exit(-1);
+            %%;
+        }
+
+        mwlpi{@;
+ {$
+      beg{
+     e =  beg(getthread(), this.mwlpi);
+     _src.setSchedReqClass(e, SERVICE_ID_CONTEXT_SWITCH, 1, -1, -1);
+     _portSM.request(e, _src);
+
+     blackbox(SystemCSim)%%
+         //cout<<caller->name()<<" running Mem write mwlpi beg"<<endl;
+         %%;
+ }
+
+ end{
+     r =  end(getthread(), this.mwlpi);
+     _src.setSchedReqClass(r, e, SERVICE_ID_WRITE_INIT, 1, -1, -1);
+     _portSM.request(r, _src);
+
+     blackbox(SystemCSim)%%
+         //cout<<caller->name()<<" running Mem write mwlpi end"<<endl;
+         %%;
+ }
+ $}@};
+
+        mwlp{@
+ {
+     for (int i=0; i<n; i++) {
+         _memory[i+addr] = data[i];
+     }
+ }
+
+ {$
+      beg{
+     e =  beg(getthread(), this.mwlp);
+     _src.setSchedReqClass(e, SERVICE_ID_WRITE_PROTECTED, n, -1, -1);
+     _portSM.request(e, _src);
+
+     blackbox(SystemCSim)%%
+         cout<<caller->name()<<" running Mem write mwlp beg, totally "<<n<<" times"<<endl;
+     %%;
+ }
+
+ end{
+     r =  end(getthread(), this.mwlp);
+     _src.setSchedReqClass(r, e, SERVICE_ID_RELEASE, 1, -1, -1);
+     _portSM.request(r, _src);
+
+     blackbox(SystemCSim)%%
+         //cout<<caller->name()<<" running Mem write mwlp end"<<endl;
+         %%;
+ }
+ $}@};
+    }
+
+    ///////////////////////////////////////////////////////////////////
+    ////                         protected methods                 ////
+
+    ///////////////////////////////////////////////////////////////////
+    ////                         private methods                  ////
+
+
+}

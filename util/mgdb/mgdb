@@ -1,0 +1,86 @@
+#!/bin/sh
+# $Id: mgdb,v 1.8 2005/03/02 20:24:23 allenh Exp $
+#
+# The metamodel debugger.
+#
+# This requires that
+#       - the Gnu debugger gdb is in your $PATH,
+#       - $METRO environment variable is set properly to the root
+#         directory of this Metropolis installation.
+#
+# Usage: mgdb <executable>
+#
+# where <executable> is an executable metamodel simulation file
+# produced by running the command
+#       $METRO/bin/systemc -mmdebug <mmm_source_files> ...
+# and then compiling the resulting .cpp source using the resulting
+# makefile, systemc_sim.mk:
+#       make -f systemc_sim.mk
+# 
+# See $METRO/examples/producers_consumer/makefile for an example.
+
+PROG=`echo $0 | sed 's!.*/!!'`
+
+USAGE_STRING="${PROG} [-h] [<gdb_options> ...] <executable>
+    -h:  Display this help message and exit"
+
+TMP_DIR=/tmp/mgdb_$$
+mkdir -p ${TMP_DIR}
+
+DEBUGGER=gdb
+if [ ${PROG} = "mddd" ]; then
+    DEBUGGER=ddd
+fi
+
+if [ "${1}" = "-h" -o \
+     "${1}" = "-help" -o \
+     "${1}" = "-?" ]; then
+    echo "${USAGE_STRING}" 1>&2
+    exit 1
+fi
+
+DEBUG=
+if [ "${1}" = "-d" ]; then
+    DEBUG=debug
+    shift
+fi
+
+if [ ! "${DEBUG}" ]; then
+    trap "/bin/rm -rf ${TMP_DIR}" 0 1 2 3 15
+fi
+
+SYSTEM=`uname -s`
+case "${SYSTEM}" in
+    SunOS)  # echo "" > ${TMP_DIR}/define_n
+            # echo "define n" >> ${TMP_DIR}/define_n
+            # echo "  printf \"\\\"n\\\" abbreviation \"" >> ${TMP_DIR}/define_n
+            # echo "  printf \"for \\\"next\\\" not \"" >> ${TMP_DIR}/define_n
+            # echo "  printf \"supported on Suns.\\n\"" >> ${TMP_DIR}/define_n
+            # echo "end" >> ${TMP_DIR}/define_n
+            # Any definition of n causes a segfault on Sun Solaris
+              ;;
+    *)        echo "" > ${TMP_DIR}/define_n
+              echo "define n" >> ${TMP_DIR}/define_n
+              echo "  next" >> ${TMP_DIR}/define_n
+              echo "end" >> ${TMP_DIR}/define_n
+              ;;
+esac
+
+if [ "${DEBUG}" ]; then
+    sed -e 's!xxTMP_DIRxx!'"${TMP_DIR}"'!g' \
+        -e '/^define z_hideOutput/,/^end/s/^ /# /' \
+        -e '/^define z_unhideOutput/,/^end/s/^ /# /' \
+        -e '/xxDEFINE_Nxx/r '"${TMP_DIR}"'/define_n' \
+        $METRO/util/mgdb/mgdb.ini > ${TMP_DIR}/mgdb.ini
+else
+    sed -e 's!xxTMP_DIRxx!'"${TMP_DIR}"'!g' \
+        -e '/xxDEFINE_Nxx/r '"${TMP_DIR}"'/define_n' \
+        $METRO/util/mgdb/mgdb.ini > ${TMP_DIR}/mgdb.ini
+fi
+
+EXTRA_INIT=
+if [ -r mgdb.ini ]; then
+    EXTRA_INIT="-x mgdb.ini"
+fi
+
+${DEBUGGER} -x ${TMP_DIR}/mgdb.ini ${EXTRA_INIT} "$@"

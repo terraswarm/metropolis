@@ -1,0 +1,301 @@
+/* Lexical analyzer for the MetaModel. 
+   Lexer.java is derived from the Lexer file.
+ */
+
+package metropolis.metamodel.frontend.lexer;
+
+import metropolis.metamodel.frontend.parser.MetaModelParser;
+import metropolis.metamodel.frontend.parser.MetaModelParserval;
+
+/**
+Lexical analyzer for the MetaModel. 
+<p>Lexer.java is derived from the Lexer file by running JLex.
+
+<p>Portions of JLexer are Copyright (C) 1995, 1997 by Paul N. Hilfinger.  All rights reserved.
+ Portions of this code were derived from sources developed under the
+auspices of the Titanium project, under funding from the DARPA, DoE,
+and Army Research Office.
+@author Paul N. Hilfinger, Jeff Tsay, Robert Clariso
+@version $Id: Lexer,v 1.15 2004/10/19 08:21:21 guyang Exp $
+*/
+%%
+
+%integer
+%full  
+%line
+%notunix
+%class Lexer
+%public
+
+%{
+  /** Return the current line number.
+   *  @return The line number.
+   */
+  public int lineNumber() { return yyline + 1; }
+  /** Return the MetaModelParserval.
+   *  @return The MetaModelParserval
+   */ 	
+  public MetaModelParserval getMetaModelParserval() { return returnVal; }
+  /** Integer 0 Metamodel Parser value. **/
+  protected MetaModelParserval returnVal = new MetaModelParserval(0);
+%}
+
+HEX=[0-9A-Fa-f]
+DEC=[0-9]
+OCT=[0-7]
+
+Letter=[a-zA-Z_]
+AlphaNum=({Letter}|{DEC})
+
+Identifier=({Letter}{AlphaNum}*)
+
+UnicodeChar=(\\u+{HEX}{HEX}{HEX}{HEX})
+LiteralChar=(\\([btnfr\"'\\]|{OCT}{OCT}?|[0-3]{OCT}{OCT})|[^'\"\n]|{UnicodeChar})
+
+EndOfLineComment=("//".*[\n\r])
+TraditionalComment=("/*"([^*]|"*"+[^*/])*"*"+"/")
+
+BBoxContent=("%%"([^%]|"%"[^%])*"%%")
+
+ReservedKey=("catch"|"const"|"finally"|"goto"|"native"|"strictfp"|"synchronized"|"throw"|"throws"|"transient"|"try"|"volatile")
+
+
+%%
+
+
+[ \f\t\r\n]+            { }
+{EndOfLineComment}      { }
+{TraditionalComment}    { }
+
+"abstract"          { return MetaModelParser.ABSTRACT; }
+"boolean"           { return MetaModelParser.BOOLEAN; }
+"break"             { return MetaModelParser.BREAK; }
+"byte"              { return MetaModelParser.BYTE; }
+"case"              { return MetaModelParser.CASE; }
+"char"              { return MetaModelParser.CHAR; }
+"class"             { return MetaModelParser.CLASS; }
+"continue"          { return MetaModelParser.CONTINUE; }
+"default"           { return MetaModelParser.DEFAULT; }
+"do"                { return MetaModelParser.DO; }
+"double"            { return MetaModelParser.DOUBLE; }
+"else"              { return MetaModelParser.ELSE; }
+"extends"           { return MetaModelParser.EXTENDS; }
+"final"             { return MetaModelParser.FINAL; }
+"float"             { return MetaModelParser.FLOAT; }
+"for"               { return MetaModelParser.FOR; }
+"if"                { return MetaModelParser.IF; }
+"implements"        { return MetaModelParser.IMPLEMENTS; }
+"import"            { return MetaModelParser.IMPORT; }
+"instanceof"	    { return MetaModelParser.INSTANCEOF; }
+"int"               { return MetaModelParser.INT; }
+"interface"         { return MetaModelParser.INTERFACE; }
+"long"              { return MetaModelParser.LONG; }
+"new"               { return MetaModelParser.NEW; }
+"null"              { return MetaModelParser._NULL; }
+"package"           { return MetaModelParser.PACKAGE; }
+"private"           { return MetaModelParser.PRIVATE; }
+"protected"         { return MetaModelParser.PROTECTED; }
+"public"            { return MetaModelParser.PUBLIC; }
+"return"            { return MetaModelParser.RETURN; }
+"short"             { return MetaModelParser.SHORT; }
+"static"            { return MetaModelParser.STATIC; }
+"super"             { return MetaModelParser.SUPER; }
+"switch"            { return MetaModelParser.SWITCH; }
+"this"              { return MetaModelParser.THIS; }
+"void"              { return MetaModelParser.VOID; }
+"while"             { return MetaModelParser.WHILE; }
+
+"true"              { return MetaModelParser.TRUE; }
+"false"             { return MetaModelParser.FALSE; }
+
+"addcomponent"      { return MetaModelParser.ADDCOMPONENT; }
+"all"               { return MetaModelParser.ALL; }
+"await"             { return MetaModelParser.AWAIT; }
+"beg"               { return MetaModelParser.BEG; }
+"blackbox"          { return MetaModelParser.BLACKBOX; }
+"block"             { return MetaModelParser.BLOCK; }
+"boundedloop"       { return MetaModelParser.BOUNDEDLOOP; }
+"connect"           { return MetaModelParser.CONNECT; }
+"constant"          { return MetaModelParser.CONSTANT; }
+"constraint"        { return MetaModelParser.CONSTRAINT; }
+"end"               { return MetaModelParser.END; }
+"eval"              { return MetaModelParser.EVAL; }
+"excl"              { return MetaModelParser.EXCL; }
+"GXI"         { return MetaModelParser.EXECINDEX; }
+"exists"            { return MetaModelParser.EXISTS; }
+"F"                 { return MetaModelParser.F; }
+"forall"            { return MetaModelParser.FORALL; }
+"G"                 { return MetaModelParser.G; }
+"getconnectionnum"  { return MetaModelParser.GETCONNECTIONNUM; }
+"getnthconnectionsrc"  { return MetaModelParser.GETNTHCONNECTIONSRC; }
+"getnthconnectionport" { return MetaModelParser.GETNTHCONNECTIONPORT; }
+"isconnectionrefined" { return MetaModelParser.ISCONNECTIONREFINED; }
+"label"             { return MetaModelParser.LABEL; }
+"lfo"               { return MetaModelParser.LFO; }
+"ltl"               { return MetaModelParser.LTL; }
+"mindelta"          { return MetaModelParser.MINDELTA; }
+"maxdelta"          { return MetaModelParser.MAXDELTA; }
+"minrate"           { return MetaModelParser.MINRATE; }
+"maxrate"           { return MetaModelParser.MAXRATE; }
+"period"            { return MetaModelParser.PERIOD; }
+"medium"            { return MetaModelParser.MEDIUM; }
+"mutex"             { return MetaModelParser.MUTEX; }
+"netlist"           { return MetaModelParser.NETLIST; }
+"nondeterminism"    { return MetaModelParser.NONDETERMINISM; }
+"parameter"         { return MetaModelParser.PARAMETER; }
+"pc"                { return MetaModelParser.PC; }
+"pcval"             { return MetaModelParser.PCVAL; }
+"port"              { return MetaModelParser.PORT; }
+"process"           { return MetaModelParser.PROCESS; }
+"redirectconnect"   { return MetaModelParser.REDIRECTCONNECT; }
+"refine"            { return MetaModelParser.REFINE; }
+"refineconnect"     { return MetaModelParser.REFINECONNECT; }
+"scheduler"         { return MetaModelParser.SCHEDULER; }
+"setscope"          { return MetaModelParser.SETSCOPE; }
+"simul"             { return MetaModelParser.SIMUL; }
+"statemedium"       { return MetaModelParser.STATEMEDIUM; }
+"template"          { return MetaModelParser.TEMPLATE; }
+"U"                 { return MetaModelParser.U; }
+"update"            { return MetaModelParser.UPDATE; }
+"useport"           { return MetaModelParser.USEPORT; }
+"X"                 { return MetaModelParser.X; }
+
+"event"             { return MetaModelParser.EVENT; }
+"loc"               { return MetaModelParser.LOC; }
+"eloc"              { return MetaModelParser.ELOC; }
+"getcompname"       { return MetaModelParser.GETCOMPNAME; }
+"getcomponent"      { return MetaModelParser.GETCOMPONENT; }
+"getconnectiondest" { return MetaModelParser.GETCONNECTIONDEST; }
+"getinstname"       { return MetaModelParser.GETINSTNAME; }
+"getnthport"        { return MetaModelParser.GETNTHPORT; }
+"getportnum"        { return MetaModelParser.GETPORTNUM; }
+"getprocess"        { return MetaModelParser.GETPROCESS; }
+"getthread"         { return MetaModelParser.GETTHREAD; }
+"getscope"          { return MetaModelParser.GETSCOPE; }
+"gettype"           { return MetaModelParser.GETTYPE; }
+"LAST"              { return MetaModelParser.LAST; }
+"priority"          { return MetaModelParser.PRIORITY; }
+"synch"             { return MetaModelParser.SYNCH; }
+"retval"            { return MetaModelParser.RETVAL; }
+"none"              { return MetaModelParser.NONE; }
+"other"             { return MetaModelParser.OTHER; }
+"quantity"          { return MetaModelParser.QUANTITY; }
+"elaborate"         { return MetaModelParser.ELABORATE; }
+
+{ReservedKey}   { throw new RuntimeException("reserved keyword " + yytext() +
+                        " ignored"); }
+
+{BBoxContent}   { String s = yytext();
+                  s = s.substring(2,s.length()-2);
+	          returnVal = new MetaModelParserval(s);
+	          return MetaModelParser.BLACKBOX_CONTENT; }
+
+{Identifier}    { returnVal = new MetaModelParserval(yytext());
+                  return MetaModelParser.IDENTIFIER; } 
+
+[1-9]{DEC}*     { returnVal = new MetaModelParserval(yytext());
+	          return MetaModelParser.INT_LITERAL; }
+
+0{OCT}*	        { returnVal = new MetaModelParserval(yytext());
+                  return MetaModelParser.INT_LITERAL; }
+
+0[xX]{HEX}+     { returnVal = new MetaModelParserval(yytext());
+                  return MetaModelParser.INT_LITERAL; }
+
+[1-9]{DEC}*[lL]	{ String s = yytext();
+                  s = s.substring(0,s.length() - 1);
+                  returnVal = new MetaModelParserval(s);
+	          return MetaModelParser.LONG_LITERAL; }
+	          
+0{OCT}*[lL]	{ String s = yytext();
+                  s = s.substring(0,s.length() - 1);
+                  returnVal = new MetaModelParserval(s);
+	          return MetaModelParser.LONG_LITERAL; }
+
+0[xX]{HEX}+[lL]	{ String s = yytext();
+                  s = s.substring(0,s.length() - 1);
+                  returnVal = new MetaModelParserval(s);
+	          return MetaModelParser.LONG_LITERAL; }
+
+{DEC}+"."{DEC}*([eE][-+]?{DEC}+)?[dD]?|"."{DEC}+([eE][-+]?{DEC}+)?[dD]?|{DEC}+([eE][-+]?{DEC}+)[dD]?|{DEC}+[dD]
+                { returnVal = new MetaModelParserval(yytext());
+                  return MetaModelParser.DOUBLE_LITERAL; }
+	
+{DEC}+"."{DEC}*([eE][-+]?{DEC}+)?[fF]|"."{DEC}+([eE][-+]?{DEC}+)?[fF]|{DEC}+([eE][-+]?{DEC}+)[fF]|{DEC}+[fF]
+                { returnVal = new MetaModelParserval(yytext());
+                  return MetaModelParser.FLOAT_LITERAL; }
+
+'({LiteralChar}|\")'	
+                { String s = yytext();
+                  s = s.substring(1,s.length() - 1);
+                  returnVal = new MetaModelParserval(s);
+	          return MetaModelParser.CHARACTER_LITERAL; }
+
+\"({LiteralChar}|"'")*\" 
+                { String s = yytext();
+                  s = s.substring(1,s.length() - 1);
+                  returnVal = new MetaModelParserval(s);
+	          return MetaModelParser.STRING_LITERAL; }
+"@"							{ return MetaModelParser.AT; }
+"{@"            { return MetaModelParser.BEGIN_LABEL; }
+"@}"            { return MetaModelParser.END_LABEL; }
+"{$"            { return MetaModelParser.BEGIN_ANNOTATION; }
+"$}"            { return MetaModelParser.END_ANNOTATION; }
+["(){}];,."]    { return yytext().charAt(0); }
+
+"["([ \t\n]|{EndOfLineComment}|{TraditionalComment})*"]"?  
+                { String s = yytext();
+                  if (s.charAt(s.length() - 1) == ']') 
+                      return MetaModelParser.EMPTY_DIM;
+                  else 
+                      return yytext().charAt(0); }
+
+["-=><!~?:+*/&|^%"]   
+                { return yytext().charAt(0); }
+
+"-<"            { return MetaModelParser.BEGIN_TEMPLATE; }
+">-"            { return MetaModelParser.END_TEMPLATE; }
+
+"=>"            { return MetaModelParser.IMPLY; }
+"->"            { return MetaModelParser.CIF; }
+"<->"           { return MetaModelParser.CIFF; } 
+"&&"            { return MetaModelParser.CAND; }
+"||"            { return MetaModelParser.COR; }
+"=="            { return MetaModelParser.EQ; }
+"!="            { return MetaModelParser.NE; }
+"<="            { return MetaModelParser.LE; }
+">="            { return MetaModelParser.GE; }
+"<<"            { return MetaModelParser.LSHIFTL; }
+">>"            { return MetaModelParser.ASHIFTR; }
+">>>"           { return MetaModelParser.LSHIFTR; }
+"+="            { return MetaModelParser.PLUS_ASG; }
+"-="            { return MetaModelParser.MINUS_ASG; }
+"*="            { return MetaModelParser.MULT_ASG; }
+"/="            { return MetaModelParser.DIV_ASG; }
+"%="	        { return MetaModelParser.REM_ASG; }
+"<<="	        { return MetaModelParser.LSHIFTL_ASG; }
+">>="           { return MetaModelParser.ASHIFTR_ASG; }
+">>>="          { return MetaModelParser.LSHIFTR_ASG; }
+"&="            { return MetaModelParser.AND_ASG; }
+"^="            { return MetaModelParser.XOR_ASG; }
+"|="            { return MetaModelParser.OR_ASG; }
+"++"            { return MetaModelParser.PLUSPLUS; }
+"--"            { return MetaModelParser.MINUSMINUS; }
+
+.	        {  throw new RuntimeException("Lexical error : Line " + 
+                         (1 + yyline) + " Unmatched input: " + yytext()); }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

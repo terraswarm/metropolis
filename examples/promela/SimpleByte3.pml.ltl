@@ -1,0 +1,43 @@
+#define p	(vByteX_p0_write_start == true)
+#define q	(vByteX_c0_read_start == true)
+#define r	(vByteX_p0_write_end == true)
+
+	/*
+	 * Formula As Typed: []  ((p  && ([]  <>  q)) -> (<>  r))
+	 * The Never Claim Below Corresponds
+	 * To The Negated Formula !([]  ((p  && ([]  <>  q)) -> (<>  r)))
+	 * (formalizing violations of the original)
+	 */
+
+never {    /* !([]  ((p  && ([]  <>  q)) -> (<>  r))) */
+T0_init:
+	if
+	:: (! ((r)) && (p) && (q)) -> goto accept_S4
+	:: (! ((r)) && (p)) -> goto T0_S4
+	:: (1) -> goto T0_init
+	fi;
+accept_S4:
+	if
+	:: (! ((r))) -> goto T0_S4
+	fi;
+T0_S4:
+	if
+	:: (! ((r)) && (q)) -> goto accept_S4
+	:: (! ((r))) -> goto T0_S4
+	fi;
+}
+
+#ifdef NOTES
+Use Load to open a file or a template.
+
+#endif
+#ifdef RESULT
+<starting verification>
+spin -a -X -N pan.ltl  pan_in
+spin: line 1310 "_tmp2_", Error: undeclared variable: vByte_p0_write_end	saw 'operator: =='
+spin: line 1310 "_tmp2_", Error: undeclared variable 'vByte_p0_write_end'
+spin: 2 error(s) - aborting
+child process exited abnormally
+
+
+#endif

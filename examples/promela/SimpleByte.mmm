@@ -1,0 +1,126 @@
+/*
+  Copyright (c) 2004-2005 The Regents of the University of California.
+  All rights reserved.
+
+  Permission is hereby granted, without written agreement and without
+  license or royalty fees, to use, copy, modify, and distribute this
+  software and its documentation for any purpose, provided that the
+  above copyright notice and the following two paragraphs appear in all
+  copies of this software and that appropriate acknowledgments are made
+  to the research of the Metropolis group.
+
+  IN NO EVENT SHALL THE UNIVERSITY OF CALIFORNIA BE LIABLE TO ANY PARTY
+  FOR DIRECT, INDIRECT, SPECIAL, INCIDENTAL, OR CONSEQUENTIAL DAMAGES
+  ARISING OUT OF THE USE OF THIS SOFTWARE AND ITS DOCUMENTATION, EVEN IF
+  THE UNIVERSITY OF CALIFORNIA HAS BEEN ADVISED OF THE POSSIBILITY OF
+  SUCH DAMAGE.
+
+  THE UNIVERSITY OF CALIFORNIA SPECIFICALLY DISCLAIMS ANY WARRANTIES,
+  INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+  MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. THE SOFTWARE
+  PROVIDED HEREUNDER IS ON AN "AS IS" BASIS, AND THE UNIVERSITY OF
+  CALIFORNIA HAS NO OBLIGATION TO PROVIDE MAINTENANCE, SUPPORT, UPDATES,
+  ENHANCEMENTS, OR MODIFICATIONS.
+
+  METROPOLIS_COPYRIGHT_VERSION_1
+  COPYRIGHTENDKEY
+*/
+
+interface ByteWriter extends Port {
+    update void writeByte(byte data);
+    eval int space();
+}
+
+interface ByteReader extends Port {
+    update byte readByte();
+    eval int n();
+}
+
+process ByteX {
+    port ByteReader port0;
+    port ByteWriter port1;
+
+    ByteX(String name){super(name);}
+
+    void thread() useport port0, port1 {
+        byte x;
+
+        while (true) {
+            x = port0.readByte();
+            port1.writeByte(x);
+        }
+    }
+
+}
+
+medium EnvModel implements ByteWriter, ByteReader {
+
+    EnvModel(String name){super(name);}
+    public update void writeByte(byte data) { return; }
+    public update byte readByte() { return nondeterminism(byte); }
+    public eval int space() { return 1; }
+    public eval int n() { return 1; }
+}
+
+netlist DoubleStream {
+
+    DoubleStream(String name) {
+
+        EnvModel env = new EnvModel("ENV");addcomponent(env, this);
+
+        ByteX p0 = new ByteX("P0");  addcomponent(p0, this);
+        ByteX p1 = new ByteX("P1");  addcomponent(p1, this);
+        ByteX c0 = new ByteX("C0");  addcomponent(c0, this);
+        ByteM bytem0 = new ByteM("BYTEM0"); addcomponent(bytem0, this);
+
+        connect(p0, port1, bytem0);
+        connect(p1, port1, bytem0);
+        connect(c0, port0, bytem0);
+
+        connect(p0, port0, env);
+        connect(p1, port0, env);
+        connect(c0, port1, env);
+    }
+}
+
+public medium ByteM implements ByteWriter, ByteReader, IW,IR,IC,IS,IN {
+    byte storage = 0;
+    int space = 1;
+    int n = 0;
+
+    ByteM(String name){super(name);}
+    public update void writeByte(byte data) {
+        await (space>0; this.IW, this.IS; this.IW)
+            await (true; this.IC, this.IS, this.IN; this.IC)
+            block(writebyte) {
+            space = 0;
+            n = 1;
+            storage = data;
+        }
+    }
+
+    public update byte readByte() {
+        await (n>0; this.IR, this.IN; this.IR)
+            await (true; this.IC, this.IS, this.IN; this.IC)
+            block(readbyte) {
+            space = 1;
+            n = 0;
+            return storage;
+        }
+    }
+
+    public eval int space() {
+        await(true; this.IW, this.IC; this.IS) return space;
+    }
+
+    public eval int n() {
+        await(true; this.IR, this.IC; this.IN) return n;
+    }
+
+}
+
+interface IW extends Port {}
+interface IR extends Port {}
+interface IC extends Port {}
+interface IS extends Port {}
+interface IN extends Port {}

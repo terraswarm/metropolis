@@ -1,0 +1,590 @@
+This file describes the list of visitors and passes that will be executed in 
+front-end of the meta-model compiler. It is intended to provide a useful 
+guide for developers implementing these visitors. This document also 
+describes the scope and declaration data structures that are used to
+store semantic information in the front-end compilation of Metropolis.
+
+
+
+Author:   Robert Clariso
+Updated:  Xi Chen
+Version:  $Id: VISITORS.txt,v 1.3 2004/09/07 20:35:14 cxh Exp $
+
+0. CONTENTS
+-----------
+   1. Passes in Ptolemy II
+   2. Visitors in Ptolemy II
+   3. Passes in Metropolis
+   4. Visitors in Metropolis 
+
+Section 1 describes the architecture of the Ptolemy II front-end: the passes
+   that are used, and the task that they want to accomplish.
+Section 2 describes the concrete list of visitors used in Ptolemy II.
+Section 3 provides an overall architecture for the passes in the Metropolis
+   front-end. It describes the goals of the passes and the relations 
+   between them.
+Section 4 describes the scope and declaration data structures associated with
+   the ASTs. They are used to store semantic information obtained in the front-
+   end compilation and are built top-down from package level to individual 
+   names by various front-end visitors.
+Section 5 provides a detailed specification of the visitors that should
+   be implemented in Metropolis to perform all the tasks needed by the 
+   passes described in section 3 and how scopes are built by the visitors.
+
+
+1. PASSES IN PTOLEMY II
+-----------------------
+After parsing a Java file, the front-end performs semantic analysis in the 
+AST produced by the parser. This semantic analysis is performed by several
+visitor, grouped in "passes".
+
+Ptolemy II performs 3 passes on the source code:
+
+  o Pass 0: Package resolution
+     - Initialize the environments for semantic analysis (Scope, Decl)
+     - Resolution of import statements
+     - Resolution of type names
+     - Additional classes might be loaded during this pass
+
+  o Pass 1: Class resolution
+     - Add class members (fields, methods) to environments 
+     - Add inherited members to environments
+     - Additional classes might be loaded during this pass
+
+  o Pass 2: Name resolution
+     - Resolution of references to local variables, parameters and labels
+     - Resolution of references to class members (fields, methods)
+    
+Passes must be applied in sequential order, e.g. before applying pass 2 we
+must apply pass 0 and pass 1. However, applying all passes to all sources is
+not mandatory. Pass 2 is applied only to those classes whose statements are
+relevant, e.g. the statements will be used by the back-end. Pass 0 and pass
+1 should be applied to all source files that are compiled, i.e. referenced
+from a file that is going to undergo pass 2.
+
+Passes are stored in the file StaticResolution.java. Loading a file with a
+given pass can be done using StaticResolution.loadCompileUnit(filename,pass).
+Internally, this method calls _resolvePass0(), _resolvePass1(), 
+_resolvePass2(), the methods that call the visitor in the AST.
+
+
+2. VISITORS IN PTOLEMY II
+-------------------------
+Visitors are classes that traverse the AST performing a task in each node of 
+the tree. All visitors offer a basic functionality, which is defined in the
+abstract class JavaVisitor.java:
+
+  o A visit method for each node class in the tree, with prototype
+         public Object visitX(X node, LinkedList args) {}
+    where:
+         - X is the name of the node class being visited.
+         - The return value, of type object, can be accessed by the visitor
+           in other nodes using the method childReturValueAt(index) in class
+           TreeNode . If the return value is not used, then return null.
+         - Args is the list of arguments of the Visitor. It can be used
+           to propagate information from the root of the tree to the
+           leaves.
+  
+  o A default visit method, which called by default by all visitX methods
+    in the tree if they are not redefined. Its prototype is:
+         protected Object _defaultVisit(TreeNode node, LinkedList args) 
+
+  o A traversal method, which describes the order in which the visit 
+    methods are called. The traversal method can be set in the constructor
+    ,e.g. JavaVisitor(TM_CHILDREN_FIRST), and its possible values are 
+    defined in IVisitor.java:
+         - TM_CHILDREN_FIRST: Visit methods are automatically called on
+           children before being called on current method (post-order 
+           traversal). 
+         - TM_SELF_FIRST: Current node is visited before visiting its
+           children (pre-order traversal).
+         - TM_CUSTOM: User can define how visit methods are called. Each
+           node should invoke EXPLICITLY the visit method on its children.
+	
+Classes like TreeNode have some methods related to visitors. Some of 
+those methods are very useful when traversing an AST. Some examples are:
+
+  o TreeNode.ignoreChildren(): When using TM_SELF_FIRST traversal method,
+    this method disables the traversal of children of a node. This method
+    can be used to prune subtrees. Other nodes are unaffected, and later
+    visits on this node are also unaffected, i.e. ignoreChildren() only
+    affects the CURRENT visit of the node.
+
+  o TreeNode.setChild(index,child): Changes a child of a node.
+ 
+  o TreeNode.setChildren(list): Changes all the children list of a node.
+
+  o TreeNode.traverseChildren(visitor,args,ret): This method can be
+    used with TM_CUSTOM traversal method to visit the children of a node.
+    The last parameter is set to true if the return values of the visit
+    in children nodes should be stored.
+
+  o TreeNode.accept(visitor,args,ret):  When used with TM_CUSTOM, this
+    method traverses only current node. This method can be used to 
+    traverse only one child of the AST. The return value of the visit
+    is returned by accept, i.e. it is NOT stored.
+
+  o TreeNode.childReturnValueAt(index): Get the return value of the most
+    recent visitor that has visited the node with set child return values
+    to true. The value return is the one that corresponds to the "index"
+    children of the node (not the value of the current node).
+
+  o TreeNode.getChild(index): Get a specific child of a node.
+
+  o TreeNode.getParent(): Return the parent of a given node
+
+  o PropertyMap.setProperty(), PropertyMap.getProperty(): Can be used to
+    store additional information in the nodes of the AST. Each property
+    has an integer key that identifies it, and the full list of keys is
+    defined in JavaStaticSemanticConstants.java. An example of usage of
+    this methods  is:
+         compileUnit.setProperty(IDENT_KEY,filename);
+    that stores the filename of the source in a variable of type 
+    CompileUnitNode called compileUnit. The filename can be later
+    restored using:
+         String name = compileUnit.getProperty(IDENT_KEY);
+
+Moreover, Ptolemy II defines a hierarchy of abstract visitors which try to
+provide general features that can be reused in several visitors. The top
+of the hierarchy, JavaVisitor, is generated automatically by the 
+GenerateVisitor tool, while its subclasses are written by hand. The 
+hierarchy of abstract visitors is the following:
+
+  - JavaVisitor: Offers the basic functionality described in this section.
+    The default traversal method is TM_CHILDREN_FIRST, but it can be changed 
+    in the constructor. 
+
+  - ReplacementJavaVisitor: Inherits from JavaVisitor, and offers basic
+    functionalities for visitors that replace code. Each node does NOT call
+    _defaultVisit(), instead it returns itself as a result. The result of
+    each visit() method should be the tree that should replace current node,
+    so return 'node' if the subtree should not be replaced.
+    The default traversal method is TM_CUSTOM, but it can be changed to
+    TM_CHILDREN_FIRST in the constructor. TM_SELF_FIRST cannot be used
+    as the traversal method.
+
+  - ResolveVisitorBase: Inherits from JavaVisitor, and offers basic
+    functionalities for nodes that do resolution of some kind. Basically,
+    all nodes that are leafs of the tree do nothing with this visitor,
+    and nodes with children just call _defaultVisit(), which traverses
+    the children of the node with the same arguments. Nodes that only have 
+    "NameNode"s as their children do nothing as well, because they will
+    have to be redefined during the resolution.
+    The default traversal method is TM_CUSTOM, but it can be changed in
+    the constructor.
+
+With this information in mind, we can now describe in detail the list of
+concrete visitors that are provided in Ptolemy II. For each visitor, the 
+following information is listed: name, parent, traversal method, and a
+short description.
+
+PASS 0 VISITORS (IN ORDER)
+   
+   o PackageResolutionVisitor
+     - Parent:      JavaVisitor
+     - Traversal:   TM_CUSTOM
+     - Description: Set property PACKAGE_KEY in CompileUnitNode. Build a
+       file scope. Call ResolvePackageVisitor and ResolveTypesVisitor, 
+       in this order.
+
+   o ResolvePackageVisitor
+     - Parent:      ResolveVisitorBase
+     - Traversal:   TM_CUSTOM
+     - Description: Add the names of classes defined in the file to the 
+       file scope, create scopes for all nodes with scopes. Calls 
+       ResolveImportsVisitor to resolve the imports.
+
+   o ResolveImportsVisitor
+     - Parent:      JavaVisitor
+     - Traversal:   TM_CUSTOM
+     - Description: Set the value of property IMPORTED_PACKAGES_KEY in 
+       CompileUnitNode. Add imported classes to the file scope.
+
+   o ResolveTypesVisitor
+     - Parent:      ResolveVisitorBase
+     - Traversal:   TM_CUSTOM
+     - Description: Visit all nodes that contain type names and resolve
+       those names, i.e. call StaticResolution.resolveAName() which 
+       returns the decl for this name. This resolution can make us load
+       new files.
+
+PASS 1 VISITORS (IN ORDER)
+
+   o ResolveClassVisitor
+     - Parent:      ResolveVisitorBase
+     - Traversal:   TM_CUSTOM
+     - Description: Create declarations for fields, constructors and
+       methods, and add them to the scope of their class. Types of the
+       declarations are not checked for conflicts, this is done later.
+
+   o ResolveInheritanceVisitor
+     - Parent:      ResolveVisitorBase
+     - Traversal:   TM_CUSTOM
+     - Description: Add declarations for inherited fields, constructors
+       and methods to the scope of current class. Use a TypePolicy to
+       decide when a method overrides another method.
+
+PASS 2 VISITORS (IN ORDER)
+
+   o ResolveNameVisitor
+     - Parent:      ReplacementJavaVisitor
+     - Traversal:   TM_CUSTOM
+     - Description: Resolve names of local variables, formal parameters,
+       field accesses, method calls and statement labels.  This means that
+       declarations are created for locals and parameters, and they are 
+       added to the scopes. All accesses to the those locals will be 
+       labelled with the decl using property DECL_KEY. Also, ObjectNode in
+       the AST is replaced by ThisFieldAccessNode, SuperFieldAccessNode or
+       ObjectFieldAccessNode, so after this visitor only varibles and 
+       parameters will use ObjectNode. Overloading is not checked at this 
+       point, so overloaded methods can be pointing a wrong declaration.
+
+   o ResolveFieldVisitor
+     - Parent:      ReplacementJavaVisitor
+     - Traversal:   TM_CUSTOM
+     - Description: Resolution of fields and methods. Check for overloading
+       of methods, using TypeVisitor to know the type of parameters.
+
+   o TypeVisitor
+     - Parent:      JavaVisitor
+     - Traversal:   TM_CUSTOM
+     - Description: Visitor that computes the types of expressions, and
+       is run at the beginning of an expression node. Use class TypePolicy
+       to figure out the type of an expression.
+
+
+3. PASSES IN METROPOLIS
+-----------------------
+The passes in Metropolis are very similar to those in Ptolemy II.  There are
+additional passes, however, to eliminate templates from the source code, and
+to check the semantics of meta-model.
+
+Notice that some checks that are described in the Java Language Specification
+are not performed by the Ptolemy II front-end. For example, type-checking is
+not performed thoroughly:
+     if (2) { 
+     	int a = -45.777;
+     }
+does not produce an error as well. This checks should be incoporated in the
+meta-model compiler.
+
+With this information in mind, this is the description of the passes in the
+meta-model compiler:
+
+  o Pass 0: Package resolution
+     - Initialize the environments for semantic analysis (Scope, Decl)
+     - Resolution of import statements
+     - Resolution of type names
+     - Additional classes might be loaded during this pass
+
+  o Pass 1: Class resolution
+     - Add class members (fields, methods, ports, parameters) to 
+       the environments 
+     - Add inherited members to the environments
+     - Additional classes might be loaded during this pass
+
+  o Pass 2: Template elimination
+     - Locate all instantiations of templates in the source file;
+       Identify the set of type instantiations of each template.
+     - For each template and each type instantiation of the template, 
+       generate a "instantiated template" class file.  
+     - Replace all references to the template by references to the
+       "instantiated template" class.
+     - Of course, "instantiated template" class must be loaded and undergo 
+       at least pass 0 and pass 1.
+
+  o Pass 3: Name resolution
+     - Resolution of references to local variables, parameters and labels
+     - Resolution of references to class members (fields, methods)
+
+  o Pass 4: Meta-model checks
+     - At this point, we have enough information to proceed to the back-end,
+       it is only a matter of checking that the program is valid. This pass 
+       can be time-consuming, and so it should be optional. It should be 
+       possible to skip this pass using compiler flags.
+     - Perform thorough type-checking of all statements, expressions and
+       variable initializations. This includes type-checking of meta-model
+       constructs like await, non-determinism, pc, beg, etc.
+     - Perform non type-related checks of meta-model statements.
+
+As in the Ptolemy compiler, all passes must be performed sequent ally, i.e.
+before performing pass 3 on an AST, it must undergo passes 0, 1 and 2.
+
+
+4. SCOPE AND DECLARATIONS
+-------------------------
+Scope and declaration data structures are used to store language semantic 
+information obtained from the front-end compilation. In compiler terminology,
+they are called "symbol tables". A scope contains a list of declarations that 
+represent the objects declared in the scope and a pointer to a parent scope 
+that is its upper level scope. The language semantics of MMM constructs are 
+represented by different declaration classes such as PackageDecl, ProcessDecl,
+MediumDecl and MethodDecl. In addition, PackageDecl and the declarations for
+all the objects have a scope field to represent their scopes.
+
+As shown in the figure (SCOPE_HIERARCHY.pdf shows a scope hierarchy from 
+the example template_resolution), the root of the scope hierarchy is 
+SYSTEM_PACKAGE, which is a PackageDecl. The scope of SYSTEM_PACKAGE 
+contains all the top level packages including lang and util. The scope of 
+a PackageDecl contains its sub-packages and all the objects (e.g. classes, 
+processes and media) defined in the package. The scope of object contains 
+its field and methods. The tricky part is that the parent of the scope of 
+an object points to a file scope that represents the file where the object 
+is defined. A file scope's parent is a package scope where the file is in. 
+A package scope's parent points to an import scope that contains all the 
+imported packages and object types including lang and util. Finally an 
+import scope's parent is the scope of SYSTEM_PACKAGE.
+
+For each node that contains a NameNode in AST, the NameNode has a property 
+indexed by DECL_KEY and the property is a pointer to a declaration in the 
+scope hierarchy that represents the semantics of the node. For example, a 
+ProcessDeclNode in AST has a NameNode and the DECL_KEY property of its 
+NameNode points to a ProcessDecl in the scope hierarchy that includes all 
+the semantic information about the process. The scope hierarchy is built
+top-down from package level to individual names in the front-end compilation 
+by various visitors.
+
+
+5. VISITORS IN METROPOLIS
+-------------------------
+All visitors in Metropolis inherit from the abstract class MetaModelVisitor.
+MetaModelVisitor offers the same basic functions that were offered in
+Ptolemy by JavaVisitor.
+
+All methods that were available in Ptolemy to implement visitors are also
+available in Metropolis. Methods like ignoreChildren(), getParent(), etc.
+can be used in the Metropolis visitors.
+
+The abstract visitor classes ReplacementJavaVisitor and ResolveVisitorBase 
+should be implemented in Metropolis, providing the same functionality that
+they provided in Ptolemy. The names of those visitors should be
+ReplacementVisitorBase and ResolveVisitorBase.
+
+This is the list of visitors that we will need to implement in the Metropolis
+project. For each visitor, the following information is listed: name, parent,
+traversal method, the correspondent visitor in Ptolemy, a short description,
+and (if applicable) a list of changes to the correspondent Ptolemy visitor 
+that will be needed to adapt the visitor to meta-model.
+
+ABSTRACT VISITORS
+
+   o MetaModelVisitor
+     - Parent:      Object
+     - Traversal:   TM_CHILDREN_FIRST by default, can be changed
+     - In Ptolemy:  JavaVisitor
+     - Description: Basic common methods for visitors (see section 2)
+     - Changes:     None (automatically generated).
+
+   o ReplacementVisitorBase
+     - Parent:      MetaModelVisitor
+     - Traversal:   TM_CUSTOM by default, can be changed to TM_CHILDREN_FIRST
+     - In Ptolemy:  ReplacementJavaVisitor
+     - Description: Common methods for replacement visitors (see section 2)
+     - Changes:     Add methods for new classes (?).
+
+   o ResolveVisitorBase
+     - Parent:      MetaModelVisitor
+     - Traversal:   TM_CUSTOM by default, can be changed
+     - In Ptolemy:  Same name
+     - Description: Common methods for resolution visitors (see section 2)
+     - Changes:     Add methods for new classes (?).
+     
+PASS 0 VISITORS (IN ORDER)
+   
+   o PackageResolutionVisitor
+     - Parent:      MetaModelVisitor
+     - Traversal:   TM_CUSTOM
+     - In Ptolemy:  Same name
+     - Description: Set property PACKAGE_KEY in CompileUnitNode. Build
+       package scopes. Call ResolvePackageVisitor and ResolveTypesVisitor, 
+       in this order.
+     - Changes:     No major changes expected.
+
+   o ResolvePackageVisitor
+     - Parent:      ResolveVisitorBase
+     - Traversal:   TM_CUSTOM
+     - In Ptolemy:  Same name
+     - Description: Add the names of classes defined in the package to the 
+       package scope, create scopes for all nodes with scopes. Calls 
+       ResolveImportsVisitor to resolve the imports. For each nodes,
+       build a file scope and let the parent of the node scope be the file
+       scope. Also add all the package scopes on top of the file scope.
+     - Changes:     Add methods to visit new meta-model kinds of objects,
+       like process, medium. This visit should be similar to the one 
+       performed in the visitClassDecl() and visitInterfaceDecl(). 
+       Add templates to class scopes (MAJOR CHANGE)!!!
+
+   o ResolveImportsVisitor
+     - Parent:      MetaModelVisitor
+     - Traversal:   TM_CUSTOM
+     - In Ptolemy:  Same name
+     - Description: Set the value of property IMPORTED_PACKAGES_KEY in 
+       CompileUnitNode. Add imported classes to the import scope.
+     - Changes:     No major changes expected.
+
+   o ResolveTypesVisitor
+     - Parent:      ResolveVisitorBase
+     - Traversal:   TM_CUSTOM
+     - Description: Visit all nodes that contain type names and resolve
+       those names, i.e. call StaticResolution.resolveAName() which 
+       returns the decl for this name. This resolution can make us load
+       new files.
+     - Changes:     Add visit methods to visit new meta-model constructs and 
+       statements that can contain a type. Change "resolveAName" to take 
+       into account type parameter names. Check that the type being referred
+       is instantiated with the correct number of types, if it is a template.
+
+PASS 1 VISITORS (IN ORDER)
+ 
+   o ResolveClassVisitor
+     - Parent:      ResolveVisitorBase
+     - Traversal:   TM_CUSTOM
+     - In Ptolemy:  Same name
+     - Description: Create declarations for class members and add them to 
+       the scope of their class. Types of the declarations are not checked 
+       for conflicts, this is done later.
+     - Changes:     In Ptolemy this is done only for fields, methods and
+       constructors. We should also do it for our new class members,
+       parameter and port.
+
+   o ResolveInheritanceVisitor
+     - Parent:      ResolveVisitorBase
+     - Traversal:   TM_CUSTOM
+     - In Ptolemy:  Same name
+     - Description: Add declarations for inherited members to the scope of 
+       current class. Use a TypePolicy to decide when a method overrides 
+       another method.
+     - Changes:     Again, in Ptolemy the only possible members are fields,
+       methods and constructors. We should do the same with parameters and
+       ports.
+
+PASS 2 VISITORS (IN ORDER)
+
+   o TemplateEliminationVisitor
+     - Parent:      MetaModelVisitor
+     - Traversal:   TM_CUSTOM
+     - In Ptolemy:  New class
+     - Description: Traverse the AST looking for instantiations of a template.
+       If a instantiated template is found, first we should traverse the 
+       types in the instantiated list before continue visiting current node.
+       Then, we should call 
+            TemplateResolver.instantiateTemplate(this_ast,package_name,
+                                                  name,type_node_list)
+       which returns a name. Replace the instantiated template by a 
+       the new name. For example: 
+            metropolis.util.List-<int>-
+       means that we need to call
+            TemplateResolver.instantiateTemplate(ast,"java.util",
+                                      "List", IntTypeNode.instance);
+       which returns "List_$int$_".
+
+     TemplateResolver checks if the template has previously been 
+     instantiated with the same type parameters. If this is the case,
+     the it simply returns the name of the generated class. Otherwise,
+     it does the following tasks:
+         - Retrieve the AST for the template class.
+         - Clone the AST.
+         - Generate a new name for the template + list of types.
+         - Apply InstantiateTemplateVisitor on the cloned AST,
+           using the list of type parameters, and the new name
+           as arguments.
+         - Assign a file name to the generated AST.
+	 
+     After the template resolution, the template prototypes are not 
+     removed. The newly added template instantiations have a property
+     indexed by TEMPLDECL_KEY to point to their prototypes. In addition,
+     all the other files that are involved with templates need to
+     go through all the above visitors again. Before doing that,
+     their scopes needs to be cleared first.
+
+     - Todo: If a user defined object type is used to instantiate
+     a template, its full name needs to used to name the template
+     instantiation. It is to avoid ambiguity caused by objects with
+     same names but in different packages. In addition, if the object
+     type is invisible to the template, it needs to be automatically
+     to imported to where the template is defined.
+
+   o InstantiateTemplateVisitor
+     - Parent:      MetaModelVisitor
+     - Traversal:   TM_CUSTOM
+     - In Ptolemy:  New class
+     - Description: The argument of this visitor is a list of TypeNodes,
+       and a name. This visitor must traverse a UserTypeDeclNode (any of 
+       its subclasses) performing the following transformations:
+            - Replace the name of the class with new name
+            - Eliminate the list of templates from the class declaration
+            - Replace EACH instance of NameNode referring to the i-th 
+              parametric type with a clone of the i-th TypeNode in the
+              list.
+
+   The instantiated template AST and the source AST with templates
+   removed must undergo passes 0-2 before continuing.
+
+PASS 3 VISITORS (IN ORDER)
+   o The visitors in pass 3 are already moved to pass 2 just after 
+     TemplateEliminationVisitor is called.
+     
+   o ResolveNameVisitor
+     - Parent:      ReplacementVisitorBase
+     - Traversal:   TM_CUSTOM
+     - In Ptolemy:  Same name
+     - Description: Resolve names of local variables, formal parameters,
+       field accesses, method calls and statement labels.  This means that
+       declarations are created for locals and parameters, and they are 
+       added to the scopes. All accesses to the those locals will be 
+       labelled with the decl using property DECL_KEY. Also, ObjectNode in
+       the AST is replaced by ThisFieldAccessNode, SuperFieldAccessNode or
+       ObjectFieldAccessNode, so after this visitor only varibles and 
+       parameters will use ObjectNode. Overloading is not checked at this 
+       point, so overloaded methods can be pointing a wrong declaration.
+     - Changes: Take into account ports and parameters when doing the name
+       resolution. Add methods for the new nodes in the AST.
+
+   o ResolveFieldVisitor
+     - Parent:      ReplacementVisitorBase
+     - Traversal:   TM_CUSTOM
+     - In Ptolemy:  Same name
+     - Description: Resolution of fields and methods. Check for overloading
+       of methods, using TypeVisitor to know the type of parameters.
+     - Changes:     Take into account ports and parameters when doing the
+       name resolution. Add methods for the new nodes in the AST
+
+   o TypeVisitor
+     - Parent:      MetaModelVisitor
+     - Traversal:   TM_CUSTOM
+     - In Ptolemy:  Same name
+     - Description: Visitor that computes the types of expressions, and
+       is run at the beginning of an expression node. Use class TypePolicy
+       to figure out the type of an expression.
+     - Changes:    Add methods for the new nodes in the AST. Take into 
+       account the new kinds of expressions (e.g. non-determinism) in the 
+       meta-model, and the new kinds of types: PC and parametric type.
+
+PASS 4 VISITORS (IN ORDER)
+
+   o TypeCheckingVisitor
+     - Parent:      MetaModelVisitor
+     - Traversal:   TM_CUSTOM
+     - In Ptolemy:  New class
+     - Description: Check types in: expressions, initializations of
+       variables and statements (if, while, await, ...).  Use TypeVisitor
+       and TypePolicy to compute the type of expressions and check the 
+       type of results.
+   
+   o SemanticCheckingVisitor
+     - Parent:      MetaModelVisitor
+     - Traversal:   TM_CUSTOM
+     - In Ptolemy:  New class
+     - Description: Check everything that has not been checked before. 
+       This pass consists of many scattered tests that should be performed
+       on the program. Some of this checks are:
+          - cannot assign a value to a port
+          - cannot assign a value to a parameter outside the constructor
+          - cannot define an effect in a method of a process
+          - cannot use "break" or "continue" statement to jump outside 
+            of an await statement
+          - interfaces in the list of locks of await must be implemented
+            by the port
+          - increment must be <>0 for bounded loops
+          - if increment > 0, initialization < termination for bounded loops
+          - if increment < 0, initialization > termination for bounded loops

@@ -1,0 +1,565 @@
+/* A hashtable-based implementation of the Map interface
+   (see class java.util.HashMap).
+
+   Metropolis: Design Environment for Heterogeneus Systems.
+
+   Copyright (c) 1998-2005 The Regents of the University of California.
+   All rights reserved.
+
+   Permission is hereby granted, without written agreement and without
+   license or royalty fees, to use, copy, modify, and distribute this
+   software and its documentation for any purpose, provided that the
+   above copyright notice and the following two paragraphs appear in all
+   copies of this software and that appropriate acknowledgments are made
+   to the research of the Metropolis group.
+
+   IN NO EVENT SHALL THE UNIVERSITY OF CALIFORNIA BE LIABLE TO ANY PARTY
+   FOR DIRECT, INDIRECT, SPECIAL, INCIDENTAL, OR CONSEQUENTIAL DAMAGES
+   ARISING OUT OF THE USE OF THIS SOFTWARE AND ITS DOCUMENTATION, EVEN IF
+   THE UNIVERSITY OF CALIFORNIA HAS BEEN ADVISED OF THE POSSIBILITY OF
+   SUCH DAMAGE.
+
+   THE UNIVERSITY OF CALIFORNIA SPECIFICALLY DISCLAIMS ANY WARRANTIES,
+   INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+   MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. THE SOFTWARE
+   PROVIDED HEREUNDER IS ON AN "AS IS" BASIS, AND THE UNIVERSITY OF
+   CALIFORNIA HAS NO OBLIGATION TO PROVIDE MAINTENANCE, SUPPORT, UPDATES,
+   ENHANCEMENTS, OR MODIFICATIONS.
+
+   METROPOLIS_COPYRIGHT_VERSION_1
+   COPYRIGHTENDKEY
+
+*/
+
+package metamodel.util;
+
+
+public class HashMap extends AbstractMap implements Map
+{
+    private HashMap.Entry m_table[];
+    private int m_size;
+    private int m_threshold;
+    private float m_loadFactor;
+
+    /**
+     * WARNING: must throw NullPointerException - if the specified map is null.
+     */
+    public HashMap(Map map)
+    {
+        this((int)(map.size()/0.75)-1, (float)0.75);
+        int initialCapacity = (int)(map.size()/0.75)-1; //TODO: check this (initial capacity)
+        Set entrySet = map.entrySet();
+
+        // copy the source map
+        Iterator iter = entrySet.iterator();
+        int i = 0;
+        m_size = map.size();
+        while (iter.hasNext())
+            {
+                Map.Entry srcEntry = (Map.Entry)iter.next();
+                Object value = srcEntry.getValue();
+                int hash = value.hashCode();
+                int index = (hash & 0x7FFFFFFF) % m_table.length;
+
+                // create and add the new entry.
+                HashMap.Entry newEntry = new HashMap.Entry(srcEntry.getKey(), value, hash);
+                newEntry.m_next = m_table[index];
+                m_table[index] = newEntry;
+                i ++;
+            }
+        modCount = 1;
+    }
+
+    public HashMap()
+    {
+        this(16, (float)0.75);
+    }
+
+    /**
+     * WARNING: must throw IllegalArgumentException - if the initial capacity is negative.
+     */
+    public HashMap(int initialCapacity)
+    {
+        this(initialCapacity, (float)0.75);
+    }
+
+    /**
+     * WARNING: must throw IllegalArgumentException - if the initial capacity is negative or the load factor is nonpositive.
+     */
+    public HashMap(int initialCapacity, float loadFactor)
+    {
+        m_size = 0;
+        m_table = new HashMap.Entry[initialCapacity];
+        m_loadFactor = loadFactor;
+        m_threshold = (int)(initialCapacity * loadFactor);
+        modCount = 1;
+    }
+
+    /**
+     */
+    public int size()
+    {
+        return m_size;
+    }
+
+    /**
+     */
+    public boolean isEmpty()
+    {
+        return (size() == 0);
+    }
+
+    Map.Entry findValue(Object value)
+    {
+        if (value == null)
+            {
+                for (int i = 0; i < m_table.length; i ++)
+                    for (HashMap.Entry entry = m_table[i]; entry != null; entry = entry.m_next)
+                        if (entry.m_value == null)
+                            return entry;
+            }
+        else
+            {
+                for (int i = 0; i < m_table.length; i ++)
+                    for (HashMap.Entry entry = m_table[i]; entry != null; entry = entry.m_next)
+                        if (value.equals(entry.m_value))
+                            return entry;
+            }
+        return null;
+    }
+
+    /**
+     * WARNING: must throw ClassCastException - if the value is of an inappropriate type for this map (optional).
+     */
+    public boolean containsValue(Object value)
+    {
+        return findValue(value) != null;
+    }
+
+    Map.Entry findKey(Object key)
+    {
+        int hash = key.hashCode();
+        int index = (hash & 0x7FFFFFFF) % m_table.length;
+        for (HashMap.Entry entry = m_table[index]; entry != null ; entry = entry.m_next)
+            if ((entry.m_hash == hash) && entry.m_key.equals(key))
+                return entry;
+        return null;
+    }
+
+    /**
+     * WARNING: must throw ClassCastException - if the key is of an inappropriate type for this map (optional).
+     * WARNING: must throw NullPointerException - if the key is null and this map does not not permit null keys (optional).
+     */
+    public boolean containsKey(Object key)
+    {
+        return findKey(key) != null;
+    }
+
+    /**
+     * WARNING: must throw ClassCastException - if the key is of an inappropriate type for this map (optional).
+     */
+    public Object get(Object key)
+    {
+        Map.Entry e = findKey(key);
+        return (e != null) ? e.getValue() : null;
+    }
+
+    protected void rehash()
+    {
+        int oldCapacity = m_table.length;
+        HashMap.Entry oldTable[] = m_table;
+
+        int newCapacity = oldCapacity * 2 + 1;
+
+        m_threshold = (int)(newCapacity * m_loadFactor);
+        m_table = new HashMap.Entry[newCapacity];
+
+        for (int i = oldCapacity-1; i >= 0 ; i --)
+            {
+                for (HashMap.Entry srcEntry = oldTable[i] ; srcEntry != null ; )
+                    {
+                        HashMap.Entry entry = srcEntry;
+                        srcEntry = srcEntry.m_next;
+
+                        int index = (entry.m_hash & 0x7FFFFFFF) % newCapacity;
+                        entry.m_next = m_table[index];
+                        m_table[index] = entry;
+                    }
+            }
+    }
+
+    /**
+     * WARNING: must throw UnsupportedOperationException - if the put operation is not supported by this map.
+     * WARNING: must throw ClassCastException - if the class of the specified key or value prevents it from being stored in this map.
+     * WARNING: must throw IllegalArgumentException - if some aspect of this key or value prevents it from being stored in this map.
+     */
+    public Object put(Object key, Object value)
+    {
+        // check if the key is already in the table
+        modified();
+        int hash = key.hashCode();
+        int index = (hash & 0x7FFFFFFF) % m_table.length;
+        for (HashMap.Entry entry = m_table[index]; entry != null; entry = entry.m_next)
+            {
+                if ((entry.m_hash == hash) && entry.m_key.equals(key))
+                    {
+                        Object obTmp = entry.m_value;
+                        entry.m_value = value;
+                        return obTmp;
+                    }
+            }
+
+        if (size() >= m_threshold)
+            {
+                // rehash the table if the threshold is reached
+                rehash();
+                return put(key, value);
+            }
+
+        // create the new entry.
+        HashMap.Entry newEntry = new HashMap.Entry(key, value, hash);
+        newEntry.m_next = m_table[index];
+        m_table[index] = newEntry;
+        m_size ++;
+        return null;
+    }
+
+    /**
+     * WARNING: must throw ClassCastException - if the key is of an inappropriate type for this map (optional).
+     * WARNING: must throw NullPointerException - if the key is null and this map does not not permit null keys (optional).
+     * WARNING: must throw UnsupportedOperationException - if the remove method is not supported by this map.
+     */
+    public Object remove(Object key)
+    {
+        if (key == null)
+            return null; // must throw NullPointerException here
+        modified();
+        int hash = key.hashCode();
+        int index = (hash & 0x7FFFFFFF) % m_table.length;
+        for (HashMap.Entry curEntry = m_table[index], prevEntry = null ; curEntry != null ; prevEntry = curEntry, curEntry = curEntry.m_next)
+            {
+                if ((curEntry.m_hash == hash) && curEntry.m_key.equals(key))
+                    {
+                        modified();
+                        if (prevEntry != null)
+                            prevEntry.m_next = curEntry.m_next;
+                        else
+                            m_table[index] = curEntry.m_next;
+                        m_size --;
+                        return curEntry.m_value;
+                    }
+            }
+        return null;
+    }
+
+    /**
+     * WARNING: must throw UnsupportedOperationException - if the putAll method is not supported by this map.
+     * WARNING: must throw ClassCastException - if the class of a key or value in the specified map prevents it from being stored in this map.
+     * WARNING: must throw IllegalArgumentException - some aspect of a key or value in the specified map prevents it from being stored in this map.
+     * WARNING: must throw NullPointerException - the specified map is null, or if this map does not permit null keys or values, and the specified map contains null keys or values.
+     */
+    public void putAll(Map map)
+    {
+        if (map == null)
+            return; // must throw NullPointerException here
+        Set entrySet = map.entrySet();
+        // copy the source map
+        Iterator iter = entrySet.iterator();
+        while (iter.hasNext())
+            {
+                Map.Entry entry = (Map.Entry)iter.next();
+                put(entry.getKey(), entry.getValue());
+            }
+    }
+
+    /**
+     */
+    public void clear()
+    {
+        if (m_size > 0)
+            modified();
+        for (int i = m_table.length-1; i >= 0; i --)
+            m_table[i] = null;
+        m_size = 0;
+    }
+
+    /**
+     */
+    public Object clone()
+    {
+        HashMap newTable = new HashMap(0, m_loadFactor);
+        newTable.m_table = new HashMap.Entry[m_table.length];
+        newTable.m_threshold = (int)(m_table.length * m_loadFactor);
+        newTable.m_size = m_size;
+        for (int i = newTable.m_table.length - 1; i >=0; i --)
+            {
+                HashMap.Entry e = m_table[i];
+                if (e != null)
+                    {
+                        HashMap.Entry eNew = (HashMap.Entry)e.clone();
+                        newTable.m_table[i] = eNew;
+                        while (e.m_next != null)
+                            {
+                                e = e.m_next;
+                                eNew.m_next = (HashMap.Entry)e.clone();
+                                eNew = eNew.m_next;
+                            }
+                    }
+                else
+                    newTable.m_table[i] = null;
+            }
+        return newTable;
+    }
+
+    /**
+     */
+    public Set keySet()
+    {
+        return new HashSet(this, 2);
+    }
+
+    /**
+     */
+    public Collection values()
+    {
+        return new HashSet(this, 3);
+    }
+
+    /**
+     */
+    public Set entrySet()
+    {
+        return new HashSet(this, 1);
+    }
+
+    class Entry implements Map.Entry
+    {
+        int m_hash;
+        Object m_key;
+        Object m_value;
+        HashMap.Entry m_next;
+
+        /**
+         */
+        Entry(Object key, Object value, int hash)
+        {
+            m_key = key;
+            m_value = value;
+            m_next = null;
+            m_hash = hash;
+        }
+
+        /**
+         */
+        Entry(Object key, Object value)
+        {
+            m_key = key;
+            m_value = value;
+            m_next = null;
+            m_hash = value.hashCode();
+        }
+
+        /**
+         * Declared protected in Java but made public since the parent class
+         * (metamodel.lang.Object) declared as public
+         */
+        public Object clone()
+        {
+            return new HashMap.Entry(m_key, m_value, m_hash);
+        }
+
+        /**
+         */
+        public Object getKey()
+        {
+            return m_key;
+        }
+
+        /**
+         */
+        public Object getValue()
+        {
+            return m_value;
+        }
+
+        /**
+         */
+        public Object setValue(Object ob)
+        {
+            Object obTmp = m_value;
+            m_value = ob;
+            return obTmp;
+        }
+
+        /**
+         */
+        public boolean equals(Object ob)
+        {
+            if (ob == this)
+                return true;
+            if (ob == null)
+                return false;
+            Hashtable.Entry entry = (Hashtable.Entry)ob;
+            return (entry.getKey() == null ? getKey() == null : entry.getKey().equals(getKey()))
+                && (entry.getValue() == null ? getValue() == null : entry.getValue().equals(getValue()));
+        }
+
+        /**
+         */
+        public int hashCode()
+        {
+            return (getKey()==null ? 0 : getKey().hashCode())
+                ^ (getValue()==null ? 0 : getValue().hashCode());
+        }
+
+        /**
+         */
+        public String toString()
+        {
+            return getKey().toString() + "=" + getValue().toString();
+        }
+    }
+
+    /**
+     * HashMap based iterator
+     */
+    abstract class AbstractHashIterator implements Iterator
+    {
+        int m_type;
+        /* private */ int expectedModCount;
+        HashMap m_hashMap;              /** used only to update the m_size field during remove */
+    }
+
+    /**
+     * included for use by HashSet and possibly other HashMap based classes
+     */
+    AbstractHashIterator iterator(int type)
+    {
+        return isEmpty() ? (AbstractHashIterator)new HashMap.EmptyHashIterator(this) : (AbstractHashIterator)new HashMap.HashIterator(this, type);
+    }
+
+    class EmptyHashIterator extends AbstractHashIterator implements Iterator
+    {
+
+        EmptyHashIterator(HashMap hashMap)
+        {
+            expectedModCount = hashMap.modCount;
+            m_hashMap = hashMap;
+        }
+
+        /**
+         */
+        public boolean hasNext()
+        {
+            if (expectedModCount != m_hashMap.modCount)
+                return false; // must throw ConcurrentModificationException here
+            return false;
+        }
+
+        /**
+         * WARNING: must throw NoSuchElementException
+         */
+        public Object next()
+        {
+            if (expectedModCount != m_hashMap.modCount)
+                return null; // must throw ConcurrentModificationException here
+            return null; // must throw NoSuchElementException here
+        }
+
+        /**
+         * WARNING: must throw IllegalStateException
+         */
+        public void remove()
+        {
+            if (expectedModCount != m_hashMap.modCount)
+                return; // must throw ConcurrentModificationException here
+            // must throw IllegalStateException here
+        }
+    }
+
+    class HashIterator extends AbstractHashIterator implements Iterator
+    {
+        int m_tableIndex;               /** table position */
+        int m_index;                    /** element index */
+        HashMap.Entry m_lastReturned;   /** iterator position */
+        HashMap.Entry m_previous;       /** used to keep the previous element - for remove only */
+        boolean m_stateValid;           /** used for determining if the state is valid for remove() */
+
+        HashIterator(HashMap hashMap, int type)
+        {
+            m_hashMap = hashMap;
+            m_type = type;
+            m_stateValid = false;
+            m_lastReturned = null;
+            m_previous = null;
+            m_tableIndex = 0;
+            m_index = 0;
+            expectedModCount = hashMap.modCount;
+        }
+
+        /**
+         * WARNING: must throw ConcurrentModificationException if the parent collection is structurally changed to ensure that the iterator is fail-fast
+         */
+        public boolean hasNext()
+        {
+            if (expectedModCount != m_hashMap.modCount)
+                return false; // must throw ConcurrentModificationException here
+            return m_index < m_hashMap.size();
+        }
+
+        /**
+         * WARNING: must throw ConcurrentModificationException if the parent collection is structurally changed to ensure that the iterator is fail-fast
+         * WARNING: must throw NoSuchElementException - iteration has no more elements.
+         */
+        public Object next()
+        {
+            if (expectedModCount != m_hashMap.modCount)
+                return null; // must throw ConcurrentModificationException here
+            if (hasNext() == false)
+                return null; // must throw NoSuchElementException here
+            m_stateValid = true;
+            m_index ++;
+            m_previous = m_lastReturned;
+            if (m_lastReturned != null)
+                m_lastReturned = m_lastReturned.m_next;
+            if (m_lastReturned == null)
+                {
+                    m_previous = null;
+                    while ((m_tableIndex < m_hashMap.m_table.length) && (m_lastReturned == null))
+                        {
+                            m_lastReturned = m_hashMap.m_table[m_tableIndex];
+                            m_tableIndex ++;
+                        }
+                }
+            return m_type == 1 ? m_lastReturned : m_type == 2 ? m_lastReturned.m_key : m_lastReturned.m_value;
+        }
+
+        /**
+         * WARNING: must throw ConcurrentModificationException if the parent collection is structurally changed to ensure that the iterator is fail-fast
+         * WARNING: must throw IllegalStateException - if the next method has not yet been called, or the remove method has already been called after the last call to the next method.
+         */
+        public void remove()
+        {
+            if (expectedModCount != m_hashMap.modCount)
+                return; // must throw ConcurrentModificationException here
+            if (!m_stateValid)
+                return; // must throw IllegalStateException here
+            if (m_previous != null)
+                {
+                    m_previous.m_next = m_lastReturned.m_next;
+                    m_lastReturned = m_previous;
+                }
+            else
+                {
+                    m_tableIndex --;
+                    m_hashMap.m_table[m_tableIndex] = m_lastReturned.m_next;
+                    m_lastReturned = null;
+                }
+            m_hashMap.m_size --;
+            m_index --;
+            m_stateValid = false;
+            m_hashMap.modified();
+            expectedModCount = m_hashMap.modCount;
+        }
+    }
+}

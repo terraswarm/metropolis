@@ -1,0 +1,196 @@
+/*
+  @Copyright (c) 2004-2005 The Regents of the University of California.
+  All rights reserved.
+
+  Permission is hereby granted, without written agreement and without
+  license or royalty fees, to use, copy, modify, and distribute this
+  software and its documentation for any purpose, provided that the
+  above copyright notice and the following two paragraphs appear in all
+  copies of this software and that appropriate acknowledgments are made
+  to the research of the Metropolis group.
+
+  IN NO EVENT SHALL THE UNIVERSITY OF CALIFORNIA BE LIABLE TO ANY PARTY
+  FOR DIRECT, INDIRECT, SPECIAL, INCIDENTAL, OR CONSEQUENTIAL DAMAGES
+  ARISING OUT OF THE USE OF THIS SOFTWARE AND ITS DOCUMENTATION, EVEN IF
+  THE UNIVERSITY OF CALIFORNIA HAS BEEN ADVISED OF THE POSSIBILITY OF
+  SUCH DAMAGE.
+
+  THE UNIVERSITY OF CALIFORNIA SPECIFICALLY DISCLAIMS ANY WARRANTIES,
+  INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+  MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. THE SOFTWARE
+  PROVIDED HEREUNDER IS ON AN "AS IS" BASIS, AND THE UNIVERSITY OF
+  CALIFORNIA HAS NO OBLIGATION TO PROVIDE MAINTENANCE, SUPPORT, UPDATES,
+  ENHANCEMENTS, OR MODIFICATIONS.
+
+  METROPOLIS_COPYRIGHT_VERSION_1
+  COPYRIGHTENDKEY
+*/
+package metamodel.plt.storage;
+
+import metamodel.plt.yapitemplate.*;
+
+template(T)
+        public interface storageinterface extends Port
+        {
+            update void write(int offset, int bytes, T [] data); // this will be mapped
+            update void write_one(int offset, T data);
+            eval T [] read(int offset, int bytes);        // this will be mapped
+            eval T read_one(int offset);
+        }
+
+template(T)
+        public medium genericStorage implements storageinterface-<T>-
+{
+    parameter int _size;
+    T [] _data;
+
+    public genericStorage(String n, int size_of_token, int size)
+        {
+            super(n);
+            _size = size;
+            _data = new T[_size];
+        }
+
+    public elaborate void load(int offset, T new_data)
+        {
+            _data[offset] = new_data;
+        }
+
+    public update void write(int offset, int items, T [] new_data)
+        {
+            blackbox(SystemCSim) %%
+                cerr << "Writing: " << name()
+                     << " " << offset
+                     << " " << items
+                     << endl;
+            %%;
+
+            for (int i = 0; i < items; i++)
+                {
+                    if (_data[offset + i] != null) // overwriting
+                        {
+                            blackbox(SystemCSim)
+                                %%;
+                            delete _data[offset + i];
+                            %%;
+                        }
+                    _data[offset + i] = new_data[i].clone();
+                }
+        }
+
+    public update void write_one(int offset, T new_data)
+        {
+            T [] array = new T[1];
+            array[0] = new_data;
+            write(offset, 1, array);
+
+            blackbox(SystemCSim) %%
+                delete array;
+            %%;
+        }
+
+    public eval T [] read(int offset, int items)
+        {
+            blackbox(SystemCSim) %%
+                cerr << "Reading: " << name()
+                     << " " << offset
+                     << " " << items
+                     << endl;
+            %%;
+
+            T [] new_data = new T[items];
+
+            for (int i = 0; i < items; i++)
+                {
+                    if (_data[offset + i] == null)
+                        {
+                            blackbox(SystemCSim) %%
+                                cerr << "Trying to read an empty block: " << name()
+                                     << " " << offset
+                                     << " " << items
+                                     << endl;
+
+                            exit(1);
+                            %%;
+                        }
+                    new_data[i] = _data[offset + i].clone();
+
+                }
+            return new_data;
+        }
+
+    public eval T read_one(int offset)
+        {
+            T [] array = read(offset, 1);
+            return array[0];
+        }
+}
+
+template(T)
+        public medium genericStorage_primitive implements storageinterface-<T>-
+{
+    parameter int _size;
+    T [] _data;
+
+    public genericStorage_primitive(String n, int size_of_token, int size)
+        {
+            super(n);
+            _size = size;
+            _data = new T[_size];
+        }
+
+    public elaborate void load(int offset, T new_data)
+        {
+            _data[offset] = new_data;
+        }
+
+    public update void write(int offset, int items, T [] new_data)
+        {
+            blackbox(SystemCSim) %%
+                //        cerr << "Writing: " << name()
+                //                 << " " << offset
+                //                 << " " << items
+                //                 << endl;
+                %%;
+
+            for (int i = 0; i < items; i++)
+                {
+                    _data[offset + i] = new_data[i];
+                }
+        }
+
+    public update void write_one(int offset, T new_data)
+        {
+            T [] array = new T[1];
+            array[0] = new_data;
+            write(offset, 1, array);
+
+            blackbox(SystemCSim) %%
+                delete array;
+            %%;
+        }
+
+    public eval T [] read(int offset, int items)
+        {
+            blackbox(SystemCSim) %%
+                //        cerr << "Reading: " << name()
+                //                 << " " << offset
+                //                 << " " << items
+                //                 << endl;
+                %%;
+
+            T [] new_data = new T[items];
+
+            for (int i = 0; i < items; i++)
+                {
+                    new_data[i] = _data[offset + i];
+                }
+            return new_data;
+        }
+
+    public eval T read_one(int offset)
+        {
+            T [] array = read(offset, 1);
+            return array[0];
+        }
+}

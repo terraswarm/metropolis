@@ -1,0 +1,281 @@
+<html>
+<!-- $Id: mgdb_user_guide.htm,v 1.20 2005/02/10 01:19:20 allenh Exp $ -->
+<!-- Author: Allen Hopkins -->
+<head>
+<title>mgdb - The Metamodel Debugger</title>
+</head>
+<body>
+<h1>
+mgdb -- The Metamodel Debugger
+</h1>
+
+<dl><dd>
+<h3>CONTENTS</h3>
+<ol type="I">
+<li><a href="#intro">Introduction</a>
+<li><a href="#requirements">Requirements</a>
+<li><a href="#compiling">Compiling the metamodel for debugging</a>
+<li><a href="#running">Running the debugger</a>
+<li><a href="#commands">Debugger commands</a>
+    <ol type="A">
+    <li><a href="#next"><code>next</code></a>
+    <li><a href="#pnext"><code>pnext</code></a>
+    <li><a href="#mnext"><code>mnext</code></a>
+    <li><a href="#pname"><code>pname</code></a>
+    <li><a href="#mwhere"><code>mwhere</code></a>
+    <li><a href="#delog"><code>delog</code></a>
+    </ol>
+<li><a href="#caveats">Limitations, caveats</a>
+<li><a href="#bugs">Bugs</a>
+</ol>
+</dd></dl>
+<ol type="I">
+<li><h3><a name="intro">INTRODUCTION</a></h3>
+<p>
+The metamodel debugger <code>mgdb</code> is a wrapper around the Gnu
+debugger, <code>gdb</code>.  It allows the user to run a SystemC
+simulation of a metamodel in the debugger, and to set breakpoints
+directly in the metamodel (<code>.mmm</code>) source code, and to track
+execution in that source code instead of the generated C++ code from
+which the executable is compiled.
+<p>
+A graphical version <code>mddd</code> uses <code>ddd</code>, which is
+itself a graphical wrapper
+around <code>gdb</code>.
+</li>
+
+<li><h3><a name="requirements">REQUIREMENTS</a></h3>
+<p>
+<code>mgdb</code> uses <code>gdb</code> and several standard Unix utilities,
+which all must be on the user's PATH.  The programs that must be on the 
+user's PATH include
+<code>sh</code>,
+<code>rm</code>,
+<code>sed</code>,
+<code>awk</code>,
+<code>sort</code>,
+<code>touch</code>,
+<code>echo</code>,
+<code>comm</code> and
+<ul>
+<li><code>gdb</code>, version 6.1 or later
+<li><code>ddd</code> (for <code>mddd</code>), version 3.2.1 or later
+</ul>
+<p>
+<code>mgdb</code> has been successfully tested on code compiled
+with g++ version 3.3.3.  It is known to fail to set breakpoints at expected
+places when running on code produced with g++ version 3.2.
+<p>
+The user must have write access to the directory <code>/tmp</code>, since
+the program writes temporary files there.
+</li>
+
+<li><h3><a name="compiling">COMPILING THE METAMODEL SIMULATION FOR DEBUGGING</a></h3>
+<p>
+To compile metamodel code to create a SystemC simulation, the user
+ordinarily runs the script <code>$METRO/bin/systemc</code> with the
+source code file names as arguments, and then
+"<code>make -f systemc_sim.mk</code>", where <code>systemc_sim.mk</code>
+is a makefile created by the <code>systemc</code> program.
+To compile for debugging, simply add the command-line option,
+"<code>-mmdebug</code>" to the <code>$METRO/bin/systemc</code>
+command, before the file names.  For example:
+<pre>
+        $METRO/bin/systemc <b>-mmdebug</b> -top myPkg.myNetlist Foo.mmm Blah.mmm
+</pre>
+This adds extra information to the generated C++ code of two basic types:
+<ul>
+<li>"<code>#line</code>" preprocessor directives that relate each
+executable C++ code line to a line in the corresponding metamodel
+(<code>.mmm</code>) file, and
+<li>statements that keep track of the current metamodel line number and
+the line numbers of all metamodel statements that might execute next from any
+given statement.
+</ul>
+<h4>Replacing existing .cpp files</h4>
+If the metamodel simulation has been compiled previously without the 
+<code>-mmdebug</code> option, generated <code>.cpp</code> files will already
+exist.
+In order for them to be replaced by ones with the added debugging information,
+they should be removed before compiling with <code>-mmdebug</code>, or
+else the <code>-w</code> option should be added to the <code>systemc</code>
+command to forcibly overwrite them.  The latter may be the simplest way to
+be sure that the build is consistent, if not all the generated .cpp files are in
+the current directory.
+<p>
+The generated makefile called "<code>systemc_sim.mk</code>"
+that is created when compiling with "<code>-mmdebug</code>"
+is configured to remove all the generated <code>.cpp</code>
+files when "<code>make clean</code>" is done.
+However, if <code>systemc</code> is run without <code>-mmdebug</code>
+before a "<code>make clean</code>" is done, <code>systemc_sim.mk</code>
+will be replaced with a version that doesn't know how to remove all the
+generated <code>.cpp</code> files.
+In this case, debugging-version
+files may get left still existing in various directories.
+If this happens,
+the current best solution is to recreate the debugging version of
+<code>systemc_sim.mk</code> by running <code>systemc</code> again with
+<code>-mmdebug</code>, and then to do a "<code>make clean</code>".
+(Or, it may be easier to remove them by hand if there aren't that many of them.)
+</li>
+
+
+<li><h3><a name="running">RUNNING THE DEBUGGER</a></h3>
+<p>
+To run the debugger, execute the command:
+<pre>
+        $METRO/bin/mgdb run.x
+</pre>
+or
+<pre>
+        $METRO/bin/mddd run.x
+</pre>
+where <code>run.x</code> is the name of the executable file generated by
+<code>$METRO/bin/systemc</code>.
+<p>
+Running either command with an initial argument of <code>-h</code>
+displays a simple usage message and quits.
+<p>
+The first source file to be shown by the <code>list</code> command (or in
+the source code window under <code>mddd</code>) on startup will not be a
+metamodel source file, but some underlying C++ code.  To display a
+<code>.mmm</code> file of interest, use the <code>list</code> command
+with an argument of the file name and a line number.  For example:
+<pre>
+    &gt; list architecture.mmm:1
+</pre>
+Breakpoints can be set in the currently listed file using just the line
+number:
+<pre>
+    &gt; break 10
+</pre>
+or in another file by preceding the line number with the file name and a colon:
+<pre>
+    &gt; break behavior.mmm:7
+</pre>
+<p>
+The debugger accepts all of <code>gdb</code>'s command-line options, although
+many of them don't make sense for debugging metamodel code.  The 
+<code>-x&nbsp;<i>init_file</i></code> option can be useful for automatically
+executing a stored set of commands on startup.
+<p>
+If the file <code>mgdb.ini</code> exists in the user's current directory
+on startup, and is readable, that file will be assumed to contain startup
+commands and will automatically be executed before any other files listed
+with <code>-x</code> options.
+</li>
+
+<li><h3><a name="commands">DEBUGGER COMMANDS</a></h3>
+<p>
+The following are special commands provided by <code>mgdb</code>:
+<dl>
+
+<dt><b><a name="next">next</a></b></dt>
+<dd>
+Stop at the next executable metamodel statement in the current process.
+<p>
+Like <code>gdb</code>'s "<code>next</code>", this does not step into
+methods, but treats them as one statement.  Also, this ignores the
+test-condition code of <code>await</code> statements, and stops only in
+the <code>await</code>'s critical-section code.
+<p>
+Since "<code>next</code>" will stop only at the next statement encountered
+by the <i>current</i> process, it is possible that various other process may 
+execute code before the <code>next</code> command stops.
+</dd>
+
+<dt><b><a name="pnext">pnext</a></b></dt>
+<dd>
+Stop when the thread of execution 
+changes from one process to another, just before the first metamodel
+statement to be executed by the newly swapped-in process.
+<br>
+<br>
+</dd>
+
+<dt><b><a name="mnext">mnext</a></b></dt>
+<dd>
+Stop at the next executable metamodel statement in the current process,
+or, if the thread of execution changes to another process before the 
+current process' next statement is reached, stop at the first statement
+to be executed by the new process.
+<p>
+This might be thought of as the "union" of the behaviors of the
+<code>next</code> and <code>pnext</code> commands.
+</dd>
+
+<dt><b><a name="pname">pname</a></b></dt>
+<dd>
+Echo the name of the current process.
+<br>
+<br>
+</dd>
+
+<dt><b><a name="mwhere">mwhere</a></b></dt>
+<dd>
+List the metamodel file names and
+line numbers where each process is currently stopped, along with other
+status information about each process.
+In the list that is displayed, an asterisk appears at the far left next
+to the name of the current process.
+<br>
+<br>
+</dd>
+
+<dt><b><a name="delog">delog</a></b></dt>
+<dd>
+The <code>mgdb</code> commands redirect console output to 
+temporary files to gather information of various kinds.
+If a segmentation fault or bus error should occur while output is being
+redirected,
+it will continue to be redirected, which can be very confusing to the user.
+(If a <code>where</code> command produces no output, this is what has happened.)
+<p>The command <code>delog</code> displays the most recently redirected output
+and restores the output stream to the user console.
+</dd>
+</dl>
+
+<li><h3><a name="caveats">LIMITATIONS and CAVEATS</a></h3>
+<h4><a name="no_step">No step</a></h4>
+<p>
+The <code>gdb</code> "<code>step</code>" command currently
+does not work in any useful way, since it executes the next command in the
+<code>.cpp</code> code, which may have little to do with the next command
+in the <code>.mmm</code> code.
+<p>
+<h4><a name="no_logging">No logging</a></h4>
+<p>
+Because <code>mgdb</code> uses <code>gdb</code>'s logging feature to gather
+information that it needs into temporary files, the user cannot use 
+<code>gdb</code>'s logging features to save or redirect output.
+<p>
+<h4><a name="disappearing_output">Disappearing output</a></h4>
+<p>
+See the description of the <code>delog</code> command, above.  If you find
+that your commands produce no output, try the <code>delog</code> command to
+restore normal function.
+<p>
+<h4><a name="for_loops">"next" on for-loops</a></h4>
+You may find, when using the "<code>next</code>" command to step through
+a for-loop, that the debugger will skip the "<code>for (...)</code>"
+statement when the loop iterates, and
+instead stop on the first statement in the body of the loop.
+This is because the "<code>next</code>" command works by explicitly setting
+breakpoints behind the scenes,
+and <code>gdb</code> will only stop at a breakpoint set at
+a <code>for (...)</code> statement once, on entry to the loop.
+This in turn is because <code>gdb</code> considers only the
+first statement among
+multiple statements that appear on one line, and the first statement at
+the top of a for-loop is the initialization statement, which is only executed
+once, on entry to the loop.
+</li>
+
+<li><h3><a name="bugs">BUGS</a></h3>
+<h4><a name="n">n on Solaris</a></h4>
+<p>
+The <b>n</b> abbreviation for <b>next</b> causes a bus error on Sun Solaris.
+</ol>
+</body>
+</html>

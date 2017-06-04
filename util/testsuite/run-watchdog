@@ -1,0 +1,33 @@
+#!/bin/sh
+# $Id: run-watchdog,v 1.6 2004/08/25 18:13:03 allenh Exp $
+# Usage: run-watchdog [-n seconds] command-arg1 [...command-argN]
+# Run a subprocess for n seconds and then kill it.
+# The default timeout is two seconds.
+# To change the time use the -n argument.  
+#   "watchdog -n 20 sleep 30" will kill the sleep command after 20 seconds
+
+# Number of seconds to run for
+n=2
+
+if [ "$1" = "-n" ]; then
+    n=$2
+    shift
+    shift
+fi
+
+
+# Run the job passes in as the arguments to this script in the background
+$@ &
+
+# Get the Process Id of the last process put into the background
+pid=$!
+#echo "PID is $pid, sleeping for $n seconds"
+sleep $n
+
+# Kill the background process 
+kill -9 $pid > /dev/null 2>&1 
+
+# If the process has already exited, then killing its pid will result
+# in an error, so we echo a message so we avoid an error code on exit
+# from run-watchdog.
+echo "run-watchdog: Done"

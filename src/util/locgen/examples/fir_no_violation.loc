@@ -1,0 +1,3 @@
+loc: t(Stimuli[i]) - t(Stimuli[i-1]) == 10
+annotation: event val t
+trace: "%s : %d at time %d"

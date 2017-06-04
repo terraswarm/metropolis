@@ -1,0 +1,626 @@
+<!-- $Id: eclipse.htm,v 1.11 2006/10/13 03:27:31 cxh Exp $ -->
+<html>
+<head>
+<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=iso-8859-1">
+<title>Using Eclipse with Metropolis</title>
+</head>
+<body>
+<H1>Using Eclipse with Metropolis</H1>
+
+These instructions assume you are using Eclipse 3.0 under Windows.
+
+ <p>Contents of this page:
+<menu>
+<li><a href="#Installing">Install Eclipse</a>
+<li><a href="#SettingUp">Set up Eclipse for Ptolemy II</a>
+<li><a href="#UsingEclipse">Using Eclipse</a>
+<li><a href="#Optional">Optional Extensions</a>
+<li><a href="#Troubleshooting">Troubleshooting</a>
+</menu>
+
+<h1><a name="Installing">Install Eclipse</a></h1>
+<ol>
+<li>
+Download the latest version of Eclipse from
+<a href="http://www.eclipse.org" target="_top">
+http://www.eclipse.org</a>.
+<li>
+Unzip the download file into an appropriate place (such as <CODE>C:\Program Files</CODE>).
+<li>
+Finish the installation by running <CODE>eclipse/eclipse.exe</CODE>.
+<br>The first time this is run it will complete the installation process.
+<br>After the first run, normal start-up will occur whenever it is started.
+</ol>
+
+<h1><a name="SettingUp">Set up Eclipse for Metropolis</a></h1>
+
+<h2><a name="Preferences">Eclipse Preferences for Metropolis</a></h1>
+<p>
+The default configuration of Eclipse has some difficulties with Metropolis,
+so a few changes are necessary.
+<ol>
+<li>
+By default, Eclipse rebuilds a project when any change is made
+to a file.  This will result in thousands of errors when Metropolis
+is first checked out, and during normal usage, can be annoying because
+of the pauses it creates. We suggest disabling this feature as
+follows:
+<ol>
+<li> Select Window -&gt; Preferences.
+<li> Highlight General -&gt; Workspace (probably already highlighted).
+<li> Deselect "Build automatically."
+</ol>
+<p>
+<li>
+Metropolis source files are worked on by many people with different editors.
+Unfortunately, different text editors interpret tab characters differently,
+so it is best to use spaces rather than tabs.  You can specify for Eclipse
+to always do this as follows:
+ <ol>
+  <li> Select Window-&gt;Preferences in the menu.
+  <li> Expand the Java tree, select "Editor" and then click on the "Typing"
+       tab at the right. 
+  <li> Check "Insert spaces for tabs (see Code Formatter preference page)".
+  <li> Click OK.
+ </ol>
+</ol>
+
+<h2>Check Out Metropolis from the CVS Repository</h1>
+<p>
+Eclipse will manage your metro code tree as a <em>project</em> called
+the metro project.  Assuming Eclipse is running:
+<ol>
+<li> Set up the CVS connection:
+
+<ol>
+<li> Expose the CVS repositories view by selecting
+     Window-&gt;Show View-&gt;Other in the menus.
+     Then select CVS->CVS Repositories.
+<li> In the CVS Repositories Panel, right mouse click
+     and select New-&gt;Repository Location:
+
+ <br>&nbsp;&nbsp;&nbsp;Host: <CODE>source.eecs.berkeley.edu</CODE>
+ <br>&nbsp;&nbsp;&nbsp;Repository path: <CODE>/home/cvs</CODE>
+ <br>&nbsp;&nbsp;&nbsp;Your user name
+are given <a href="http://embedded.eecs.berkeley.edu/concurrency/private/4.html">here</a>. To get access to that page, you must be a member of
+the "concurrency" group.
+
+ <br>ConnectionType
+	<ul>
+	<li> If you have CVS read only access, select <CODE>pserver</CODE>
+	<li> If you have CVS read/write access and have an external ssh
+	binary installed, select <CODE>ext</CODE>.  The
+	Cygwin installation can optionally include an appropriate ssh
+	binary.  If you have Cygwin installed, startup bash and type
+	<CODE>ssh -v</CODE> to see if ssh is installed.
+	<li> <CODE>extssh</CODE> is not recommended because it
+	uses version 1 of the SSH protocol which is implemented
+	by a version of ssh that is built in to Eclipse.
+	 <b>SSH V1 is not as likely to be supported as SSH V2.</b>
+	 <br>Note further that if you select <CODE>extssh</CODE>,
+	then to run cvs from within
+	Cygwin bash on the same directory tree as the Eclipse tree
+	you will need to use the <CODE>-d</CODE> option
+	 <br><CODE>cvs -d :ext:<i>yourlogin</i>@ic.eecs.berkeley.edu:/projects/hwsw/hwsw/common/src</CODE>
+	 <br>The <CODE>-d</CODE> option is necessary because the Cygwin bash
+	<CODE>cvs</CODE> binary does not understand the <CODE>extssh</CODE>
+	protocol
+	</ul>
+<li> Click Finish.
+</ol>
+
+<p>
+<li> In the CVS Repositories View window, click on the repository and then on
+HEAD until you see the <CODE>metro</CODE> Head.
+
+<p>
+<li> Right mouse click on the <CODE>metro</CODE> Head,
+then Select the "Check Out As..." option.  Follow the wizard,
+creating selections as follows:
+<ul>
+<li> Check out as a project configured using the New Project Wizard
+<li> Java project
+<li> Name of the project: <CODE>metro</CODE>
+<li> We recommend that you select "Create project at external location:"
+     and specify a directory you will find easily, such as
+     <CODE>C:\metro</CODE>, rather than the default, which is within the
+     Eclipse workspace directory. 
+<li> Click Finish.
+</ul>
+
+<p>
+<li> Wait for the checkout to finish. Go get coffee. 
+ <br><B>Note:</B>If you did not disable build automatically, as
+suggested above, then Eclipse will build the project and produce
+<B>thousands of errors</B>. This is not really a problem.  You will
+fix the errors below with the <CODE>.classpath.default</CODE> file.
+
+<p>
+<li> You will want to view the project in the Java perspective.
+If you aren't already in the Java perspective, select
+Window-&gt;Open Perspective-&gt;Java in the menu.
+By default, Eclipse offers a "package explorer" as the main navigation
+mechanism for the source files. I much prefer to use the "navigator."
+To get the navigator, select
+Window-&gt;Show View-&gt;Navigator in the menu.
+You can now browse the source files.
+
+<li> Eclipse needs to be told that the root of the Metropolis java
+files is <code>metro/<b>src</b></code>, not <code>metro/</code>, so
+right click on the metro icon, select Properties -&gt; Java Build Path -&gt;
+Source and hit the 'Add Folder' button.  
+<br>Expand the metro icon and select 'src', then 'ok'
+<li>In the Java Build Path window, change the 'Default Output Folder'
+to <code>metro/src</code>, then 'ok'.
+<li>When the 'Setting Build Paths' window comes up: 
+<br>"The output folder has changed. OK to remove all generated resources
+from the old location '/metro'"
+<br>click 'Yes'
+
+<li> There will probably be
+several errors reported that are due to the .classpath that was just
+created as part of the checkout/project creation process.
+
+</ol>
+Now, go on to the next step: Creating the .classpath and .project files.
+
+
+<h2><a name="dotFileSetup">Creating the .classpath and .project files</a></h2>
+
+There are parts of the metro tree that are not meant to be
+compiled, or are meant to be compiled only in certain situations.
+However, without specific instructions to exclude parts of the metro tree, 
+Eclipse will attempt to compile every .java in the project
+which typically leads to many, many error messages.
+These exclusion instructions are generated by running
+<code>$METRO/configure</code>.
+When <code>$METRO/configure</code> is run, it 
+reads in <code>$METRO/.classpath.in</code> substitutes in variables
+that are surrounded with <code>@</code> and generates
+<code>$METRO/.classpath</code>, and
+<code>$METRO/src/.classpath</code>, which will contain the
+proper classpath and directories to exclude.
+
+<ol>
+<li> Start up Cygwin bash.
+<li> Set the METRO variable and export it
+<pre>
+METRO=c:/metro
+export METRO
+</pre>
+Note: Do <b>not</b> do <code>METRO=`pwd`</code> under Cygwin bash,
+as that will set METRO to a path that includes <code>/cygdrive</code>
+and Java does not understand the <code>/cygdrive</code> notation.
+
+<li> cd to the METRO directory
+<pre>
+cd $METRO
+</pre>
+<li>Run configure:
+<pre>
+./configure
+</pre>
+This will create <code>$METRO/.classpath</code>
+
+<li>
+If you plan on running the Metropolis startup scripts in 
+<CODE>$METRO/bin</CODE> from within Cygwin bash, you will probably
+want to run the following commands within Cygwin bash:
+<pre>
+cd $METRO/bin
+make
+</pre>
+
+</ol>  
+
+<a href="createDerivedSourceFiles">Create Derived Source Files</a>.
+<ol>
+<li>Create MetaModelParser.java by first creating Lexer.java
+<pre>
+cd $METRO/src/metropolis/metamodel/frontend/lexer
+make
+</pre>
+It is ok if the actual compilation fails, what we are trying to do
+is generate the MetaModelParser.java file here, we will compile it later.
+
+<li> In Eclipse, perform a <a name="Refresh">Refresh</a> on the metro project
+by Window -&gt; Open Perspective -&gt; Java,
+<br> goto the Package Explorer, 
+<br> right click on the metro icon and select Refresh
+<br> This will
+cause Eclipse to see the new <code>metro/src/.classpath</code> and build
+the project
+
+</ol>
+
+<h2><a name="Compiling C libraries">Compiling C libraries</h2>
+The SystemC backend includes C and C++ files that need to be compiled:
+<pre>
+cd $METRO/src/metropolis/metamodel/backends/systemc
+make
+</pre>
+
+Now, import the Metropolis specific preferences:
+
+<h2><a name="MetropolisPreferences">Importing the Metropolis specific preferences</a></h2>
+The Metropolis project has a number of requirments in the way that Eclipse is configured.
+For example, using spaces instead of tabs for indentation purposes.
+Eclipse can be configured to meet many of these requirements.
+The file $METRO/.eclipse.epf has these configuration settings and should be used to achieve uniformity
+amongst Metropolis developers using Eclipse.
+The following table shows these settings.
+<h2></h2>
+<TABLE BORDER="2">
+ <caption align="bottom">Preferences set by $METRO/.eclipse.epf</caption>
+ <TR>
+  <TH>Preference</TH>
+  <TH>Value</TH>
+  <TH>Description</TH>
+</TR>
+
+ <TR>
+  <TD><a href="#autorebuild">Auto Rebuild on Resource Modification</a></TD>
+  <TD ALIGN="right">false</TD>
+  <TD>Don't rebuild everytime a resource is modified</TD>
+ </TR>
+
+ <TR>
+  <TD><a href="#tabs">Java Editor Spaces for Tabs</a></TD>
+  <TD ALIGN="right">true</TD>
+  <TD>Java Editor will use spaces for indentation, not tabs</TD>
+ </TR>
+
+ <TR>
+  <TD><a href="#ignoreClassAndJar">CVS Ignore Files</a></TD>
+  <TD ALIGN="right">  *.class, *.jar, *.lnk, alljsimpletests.tcl,
+       alljtests.tcl</TD>
+  <TD> CVS will ignore these files. Can be overidden on a case by case basis
+  </TD> 
+ </TR>
+
+ <TR>
+  <TD><a href="#tcl">Tcl file Editor</a></TD>
+  <TD ALIGN="right">Text Editor</TD>
+  <TD> Default Editor for .tcl files is Text Editor</TD>
+ </TR>
+
+ <TR>
+  <TD>Label Decorations</TD>
+  <TD ALIGN="right">CVS, Linked Resources</TD>
+  <TD>Resources under CVS control are labelled with CVS info</TD>
+ </TR>
+ <TR>
+  <TD><a href="#fixmes">Task Tags Highlight FIXMES</a></TD>
+  <TD ALIGN="right">FIXME</TD>
+  <TD>FIXMEs are highlighted</TD>
+ </TR>
+</TABLE>
+
+<h2></h2>
+To import the $METRO/.eclipse.epf settings
+<ol>
+<li> Window -&gt; Preferences
+<li> Select Import, and then guide the dialog
+to <code>$METRO/.eclipse.epf</code>.
+</ol>
+
+
+<h2><a name="ByHand">Setting up for Metropolis By Hand<a></h2>
+Below are instructions on how to set up a project by hand.
+Note that the Metropolis tree includes <code>.classpath</code>
+and <code>.project</code> files, so rather than
+setting up by hand, you might want to try 
+<a href="#dotFileSetup">Using dot files in $METRO to set up</a>.
+
+<p>It is probably faster if you do:
+<pre>
+cd $METRO
+make clean
+</pre>
+before setting up Eclipse.
+
+<ol>
+ <li> Download and install Eclipse from
+<a href="http://www.eclipse.org" target="_top"><CODE>http://www.eclipse.org</CODE></a>
+
+ <li> Start Eclipse.
+ <li> <a name="autorebuild">Disable auto rebuild with:</a>
+Window-&gt;Preferences. 
+Deselect Workbench-&gt;"Perform build automatically on resource modification."
+Deselect Debug-&gt;"Build (if required) before launching"
+ <li> File-&gt;New-&gt;Project. Select 'Java project'. Name it Metropolis.
+Deselect 'Use default' and browse to the <code>metro/<b>src</b></code>
+directory. Finish.  You need to use <code>metro/<b>src</b></code>
+because the java tree is rooted there and not in <code>metro</code>
+
+<li>When asked if you want to shift to the Java perspective, click on Yes.
+ <li> Right click on the <code>Metropolis</code> icon in the Package Explorer
+ and select Properties</i>.
+ select Java Build Path -&gt; Libraries tab -&gt
+Add JARs. Browse to <code>Metropolis/lib/</code>
+and select all the jar files by holding down the Control key
+and clicking on each jar file.  Hit OK, then Finish.
+<li> Exclude some of the larger directories that will not compile.
+<br>In the 'Properties for Metropolis' window, select
+Source, then expand the Metropolis folder by clicking on the +,
+then click on the Exclusion Filter and hit Edit.  
+<br>Note that the filter paths should have trailing slashes.
+<br><code>**</code> is specially interpreted.
+<br>Click on Add and type in <code>**/CVS/</code>. Ok
+<br>Click on Add and type in <code>**/codeDoc/</code>. Ok
+<br>Click on Add and type in <code>ptolemy/apps/</code>. Ok
+<br>Click on Add and type in <code>vendors/</code>. Ok
+<br>Click on OK to close the Exclusion Filter
+<br>Click on OK to close the 'Properties for Metropolis' window.
+ <li> In the top level Eclipse window: Project-&gt; Rebuild All.
+</ol>
+
+
+<h2><a name="tabs">Don't use tabs in the editor</a></h2>
+This setting is in the <code>$METRO/.eclipse.epf</code> file.
+See <a href="#importPreferences">Import the Metropolis specific preferences</a>
+for details.
+
+<p><b>Before editing any files, adjust the Editor Preference to not
+use tabs</b>. 
+<p>Either import the Metropolis specific preferences or follow
+the steps below
+
+
+<ol>
+<li> Window -&gt;Preferences
+<li> Expand the Java tree, select 'Code Formatter' and then the Style tab.
+<li> Uncheck 'Insert tabs for indentation, not spaces'.
+
+<li> Go back to to the Java tree on the left, select
+'Editor' and then the Typing tab.
+Check 'InsertSpace for tabs (see Code Formatter preference page)
+
+<li> Click Ok
+</ol>
+
+
+<h2><a name="ignoreClassAndJar">Ignore .class and .jar files</a></h2>
+This setting is in the <code>$METRO/.eclipse.epf</code> file.
+See <a href="#importPreferences">Import the Metropolis specific preferences</a>
+for details.
+
+<ol>
+<li> Window -&gt; Preferences -&gt; Team -&gt; CVS -&gt; Ignored
+Resources
+
+<li> Add <CODE>*.class</CODE> and <CODE>*.jar</CODE>
+
+</ol>
+The semantics seem to be ignore .jar files that are not already part of CVS.
+This can be overridden on a case by case base if new .jar files get created
+that need to be part of CVS.
+
+
+<h2><a name="tcl">Associating the Text editor with .tcl files</a></h2>
+This setting is <b>not</b> in the <code>$METRO/.eclipse.epf</code> file.
+
+
+<p>In the initial default settings, when you double click on a .tcl file
+it tries to execute it.
+
+ <p>The fix is:
+<ol>
+<li> Window -&gt;Preferences: expand the Workbench tree, select
+'File Associations'
+
+<li> In the 'File types:' section, hit Add and enter 
+<CODE>*.tcl</CODE>, then hit OK
+
+<li> In the 'Associated editors' section, hit Add
+and select the Text editor, then hit OK.
+</ol>
+
+ <p>Also, if you check in a <CODE>.tcl</CODE> file with the wrong association, then it will be checked in in binary mode (<CODE>-kb</CODE>), and
+under Solaris, you will get strange test failures.
+ <p>To fix this, first set up your File Association Preferences
+as per the above.
+ <p>To fix the file under Solaris:
+<pre>
+cvs admin -kv Foo.tcl
+dos2unix Foo.tcl tmp.tcl
+mv tmp.tcl Foo.tcl
+cvs commit -m "Got rid of binary chars" Foo.tcl
+</pre>
+
+<h2><a name="fixmes">Task Tags Highlight FIXMES</a></h2>
+Eclipse can be set up to hightlight FIXMEs:
+<ol>
+<li> Window -&gt; Preferences -&gt; 
+<li> Expand the Java tree, select 'Task Tags'
+<li> Select New and then add FIXME as a Normal priority task.
+</ol>
+
+<hr>
+<h1><a name="UsingEclipse">Using Eclipse</a></h1>
+<h2><a name="RunningEclipse">Running Eclipse</a></h2>
+
+After installing (unzipping) the Eclipse install into a directory
+(e.g., c:\eclipse), the workbench is started by running the Eclipse
+executable found in the top-level install directory.  The file is
+eclipse.exe on Windows systems and simply eclipse on Linux
+systems. Note, the following discussion details the setup on Windows
+systems.  The Linux setup is analogous.
+
+<p>If you don't specify differently, the platform creates a default
+workspace directory as a sibling of the executable (e.g.,
+c:\eclipse\workspace).  This workspace directory is used as the
+default content area for your projects as well as for holding any
+required metadata.  For shared or multi-workspace installs you should
+explicitly state the location of your workspace rather than using the
+default.  There are two ways to control the location of your
+workspace; using the current working directory or using the -data
+command line argument.
+
+ <p>Perhaps the easiest way of using the current working directory is
+to create a shortcut using the following steps:
+
+
+<ol>
+
+<li> Navigate to eclipse.exe in the Windows Explorer and using a right
+button drag, create a shortcut to eclipse.exe.
+
+<li> Edit the properties of the shortcut such that the "Start in:" box
+identifies the location of your workspace (e.g., c:\myworkspace).
+
+<li>  Close the properties dialog and double-click on the shortcut.
+</ol>
+
+ <p>Of course you can get the same effect using a command prompt by
+ changing directory to your workspace directory and then running
+ eclipse.exe.
+
+ <p>To use the -data command line argument, simply add -data &lt;your
+ workspace location&gt; (e.g., -data c:\myworkspace) to the "Target:"
+ line in the shortcut or include it explicitly on your command prompt
+ command line.
+
+<h2><a name="UsingCVS">Using CVS</a></h2>
+Resources:
+<ul>
+<li><a href="http://dev.eclipse.org/viewcvs/index.cgi/~checkout~/platform-vcm-home/docs/online/cvs_features2.0/cvs-faq.html#misc_3" target="_top">The Eclipse CVS FAQ</a> 
+<li><a href="http://www.gigascale.org/softdevel/faq/1/" target="_top">GSRC CVS FAQ</a></a>
+</ul>
+
+<h3>Syncronizing with the repository</h3>
+
+<ol>
+<li>In the Navigator view scroll/open until you see the resource
+(directory or file) to be synchronized.
+<li>Right click that resource and select Team->Synchronize With Repository...
+<li>The Synchronize view should then be visible.
+<li>Select the Incoming, Outgoing, or Incoming/Outgoing menu bar icon as appropriate
+</ol>
+
+<h3>Restoring a file from the repository</h3>
+<ol>
+<li>In the Navigator view scroll/open until you see the resource (directory or file) to be restored.
+<li>Right click that resource and select Replace With->Latest From Head.
+</ol>
+
+<h2>  <a name="#debugTclTests">Debugging Tcl Tests</a></h2>
+<ol>
+<li> Go to Windows -&gt; Open Perspective -&gt; Java.
+
+<li> In Package Explorer, locate ptjacl.jar -&gt; tcl.lang -&gt;
+Shell.class -&gt;  Shell and highlight it.
+
+<li> Go to Run -&gt; Debug...
+
+<li> Select Arguments tag.
+
+<li> In Program arguments, put alljtests.tcl or any individual test tcl file. 
+ <br>(E.g. SimpleDelay.tcl)
+
+<li> In VM arguments, put <CODE>-Dptolemy.metro.dir=<I>your PtII directroy</I></CODE>
+ <br>(E.g. <CODE>-Dptolemy.metro.dir=c:\hyzheng\metro</CODE>)
+
+
+<li> Select Local directory, browse to the directory containing the tcl 
+tests.
+ <br> (E.g. <CODE>C:\hyzheng\metro\ptolemy\domains\de\lib\test</CODE>)
+
+<li> Select Debug.
+
+</ol>
+
+The nice thing of using Eclipse is that you can very easily locate where 
+the exception is thrown by clicking the classes listed in the stack trace. 
+You may further register a breakpoint to do more diagnosis.
+
+
+<h2><a name="troubleshooting">Troubleshooting</a></h2>
+
+<h3>Preferences</h3>
+If you have already used Eclipse and you would like to start over with
+new projects and preferences, remove the <code>workspace</code> 
+ directory in the
+Eclipse directory.  The <code>workspace</code> directory will only
+appear if you have already run Eclipse.  <b>Note that removing the
+<code>workspace<code> directory will cause Eclipse to 'forget'
+about any projects that you may have set up</b>
+<p>Eclipse 3.x seesm to also have a <code>.config</code> directory
+that is generated when Eclipse is first run.  So, if you are really
+stuck, you can remove the <code>.config</code> directory as well 
+if it is present.
+
+
+<h3><a name="cvsConsole">CVS Console</h3>
+You might find the cvs console to be of use, to use it do
+Window -&gt; Show View -&gt; Other -&gt; CVS -&gt; CVS Console.
+
+
+<h3><a name="cvsCompression">Problems with CVS compression</h3>
+
+If, under Eclipse 2.1, you receive a message "Terminated with fatal
+signal 10", then try using a different compression level, see the
+
+<a href="http://dev.eclipse.org/viewcvs/index.cgi/~checkout~/platform-vcm-home/docs/online/cvs_features2.0/cvs-faq.html#misc_3" target="_top">The Eclipse CVS FAQ</a>
+for details.
+<br><a href="https://bugs.eclipse.org/bugs/show_bug.cgi?id=15724" target="_top"><code>https://bugs.eclipse.org/bugs/show_bug.cgi?id=15724</code></a> suggests using
+a compression level of 5.
+
+<p>After the failure, the cvs log (Window -&gt; Show Views -&gt; CVS -&gt; CVS Console says:
+
+<pre>
+  U metro/ptolemy/domains/fsm/demo/ABP/img/Receiver.vsd
+  U metro/ptolemy/domains/fsm/demo/ABP/img/Sender.gif
+  Terminated with fatal signal 11
+The server reported an error while performing the "cvs checkout" command. (took 15:16.607)
+Error: : Terminated with fatal signal 11
+***
+</pre>
+
+<h3>Rebuilding Briefly flashes a window</h3> 
+<p>If you have problems where clicking on build briefly flashes up
+a window, look in <code>$METRO/.classpath</code> for and empty
+exclusion that looks like <code>||</code>
+
+<p>If you have problems with the classpath, look in the 
+<code>workspace/.metadata/log</code> file that is in
+the directory where eclipse is installed. For more information
+about the <code>.metadata</code> directory, see
+<a href="#metadata">below</a>.
+
+
+<h3>Eclipse takes a long time to start up</h3>
+
+If Eclipse takes a long time to start up, then the problem could be that
+
+ <p>Basically, when eclipse starts up, it might try to update
+<a name="metadata"><CODE>H:/workspace/.metadata</CODE></a>
+.  The solution is covered in
+<a href="http://www.eclipse.org/documentation/html/plugins/org.eclipse.platform.doc.user/doc/tasks/running_eclipse.htm" target="_top"><CODE>http://www.eclipse.org/documentation/html/plugins/org.eclipse.platform.doc.user/doc/tasks/running_eclipse.htm</CODE></a>:
+
+
+
+The way I figured this out was by running Norton Antivirus and
+doing View -&gt; File System Realtime Scan Statistics and then I noticed 
+that my machine was updating H:/workspace/.metadata
+
+ <p>I think I introduced the problem by clicking on the Eclipse.exe
+binary and selecting Pin to Start Menu.  My solution was to remove the
+Eclipse bogus entry in the start menu and then create a shortcut,
+change Start in property and then pin that shortcut to my start menu.
+
+
+<h3>Running Eclipse under JDK1.4 on an IBM T30</h3>
+If you are running on an IBM T30 laptop with JDK1.4, and
+your machine locks up upon exiting an application, then
+you may
+need to invoke java with the <CODE>-Dsun.java2d.d3d=false</CODE> 
+argument.
+
+The way to do this is to do
+<CODE>Run</CODE> 0&gt; <CODE>Debug ...</CODE> -&gt; <CODE>Arguments</CODE>
+and then add <CODE>-Dsun.java2d.d3d=false</CODE>  to the
+<CODE>VM arguments</CODE> text area.
+
+</body>
+</html>

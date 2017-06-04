@@ -1,0 +1,123 @@
+/*
+  Copyright (c) 2004-2005 The Regents of the University of California.
+  All rights reserved.
+
+  Permission is hereby granted, without written agreement and without
+  license or royalty fees, to use, copy, modify, and distribute this
+  software and its documentation for any purpose, provided that the
+  above copyright notice and the following two paragraphs appear in all
+  copies of this software and that appropriate acknowledgments are made
+  to the research of the Metropolis group.
+
+  IN NO EVENT SHALL THE UNIVERSITY OF CALIFORNIA BE LIABLE TO ANY PARTY
+  FOR DIRECT, INDIRECT, SPECIAL, INCIDENTAL, OR CONSEQUENTIAL DAMAGES
+  ARISING OUT OF THE USE OF THIS SOFTWARE AND ITS DOCUMENTATION, EVEN IF
+  THE UNIVERSITY OF CALIFORNIA HAS BEEN ADVISED OF THE POSSIBILITY OF
+  SUCH DAMAGE.
+
+  THE UNIVERSITY OF CALIFORNIA SPECIFICALLY DISCLAIMS ANY WARRANTIES,
+  INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+  MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. THE SOFTWARE
+  PROVIDED HEREUNDER IS ON AN "AS IS" BASIS, AND THE UNIVERSITY OF
+  CALIFORNIA HAS NO OBLIGATION TO PROVIDE MAINTENANCE, SUPPORT, UPDATES,
+  ENHANCEMENTS, OR MODIFICATIONS.
+
+  METROPOLIS_COPYRIGHT_VERSION_1
+  COPYRIGHTENDKEY
+*/
+package metamodel.plt.TTL;
+
+import metamodel.plt.yapi.*;
+
+public netlist TTLmediumnetlist {
+
+    boundedfifo bf;
+    rdwrthreshold rwtr;
+    yapichannel channel;
+    yapi2TTLchannel y2bf;
+    TTL2yapichannel bf2y;
+
+    public TTLmediumnetlist(String n,yapichannel ch,int ts,int nt,int it,stfunc f) {
+        super(n);
+        channel = ch;
+        y2bf = new yapi2TTLchannel(n+"y2bf",ts,nt,f);
+        bf2y = new TTL2yapichannel(n+"bf2y",ts,nt,f);
+
+        rwtr = new rdwrthreshold(n+"rdwrth");
+
+        bf = new boundedfifo(n+"bf",ts,nt,it, 1); // default width
+
+        addcomponent(y2bf,this,n+"y2bf_inst");
+        addcomponent(bf2y,this,n+"bf2y_inst");
+        addcomponent(rwtr,this,n+"rdwrth_inst");
+        addcomponent(bf,this,n+"bf_inst");
+        addcomponent(ch,this,n+"yapirefch_inst");
+
+        connect(y2bf,tofifo,bf);
+        connect(bf2y,fromfifo,bf);
+        connect(y2bf,fromfifo,bf);
+        connect(bf2y,tofifo,bf);
+
+        connect(y2bf,rdwrth,rwtr);
+        connect(bf2y,rdwrth,rwtr);
+
+        refine(ch,this);
+        refineconnect(this,getnthconnectionsrc(ch,yapioutinterface,0),getnthconnectionport(ch,yapioutinterface,0),y2bf);
+        refineconnect(this,getnthconnectionsrc(ch,yapiininterface,0),getnthconnectionport(ch,yapiininterface,0),bf2y);
+    }
+
+    public TTLmediumnetlist(String n,yapichannel ch,int ts,int nt,int it,int ds,stfunc f) {
+        super(n);
+        channel = ch;
+        y2bf = new yapi2TTLchannel(n+"y2bf",ts,nt,f);
+        bf2y = new TTL2yapichannel(n+"bf2y",ts,nt,f);
+
+        rwtr = new rdwrthreshold(n+"rdwrth");
+
+        bf = new boundedfifo(n+"bf",ts,nt,it, ds);
+
+        addcomponent(y2bf,this,n+"y2bf_inst");
+        addcomponent(bf2y,this,n+"bf2y_inst");
+        addcomponent(rwtr,this,n+"rdwrth_inst");
+        addcomponent(bf,this,n+"bf_inst");
+        addcomponent(ch,this,n+"yapirefch_inst");
+
+        connect(y2bf,tofifo,bf);
+        connect(bf2y,fromfifo,bf);
+        connect(y2bf,fromfifo,bf);
+        connect(bf2y,tofifo,bf);
+
+        connect(y2bf,rdwrth,rwtr);
+        connect(bf2y,rdwrth,rwtr);
+
+        refine(ch,this);
+        refineconnect(this,getnthconnectionsrc(ch,yapioutinterface,0),getnthconnectionport(ch,yapioutinterface,0),y2bf);
+        refineconnect(this,getnthconnectionsrc(ch,yapiininterface,0),getnthconnectionport(ch,yapiininterface,0),bf2y);
+    }
+
+    public elaborate boundedfifo getBoundedFifo()
+    {
+        return bf;
+    }
+
+    public elaborate rdwrthreshold getRdWrThreshold()
+    {
+        return rwtr;
+    }
+
+    public elaborate yapichannel getChannel()
+    {
+        return channel;
+    }
+
+    public elaborate yapi2TTLchannel getY2T()
+    {
+        return y2bf;
+    }
+
+    public elaborate TTL2yapichannel getT2Y()
+    {
+        return bf2y;
+    }
+
+}

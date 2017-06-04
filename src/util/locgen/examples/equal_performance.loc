@@ -1,0 +1,3 @@
+loc: pc(pipeline_NP1[i]) == pc(pipeline_NP2[i]) && thread(pipeline_NP1[i]) == thread(pipeline_NP2[i]) && microengine(pipeline_NP1[i]) == microengine(pipeline_NP2[i]) && cycle(pipeline_NP1[i]) - cycle(pipeline_NP2[i]) <= i/21 + 8 && cycle(pipeline_NP2[i]) - cycle(pipeline_NP1[i]) <= i/21+8 
+annotation: cycle microengine thread pc alu_out event
+trace: "%d %d %d %d %x %s"

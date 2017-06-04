@@ -1,0 +1,207 @@
+# Makefile for Metropolis makefile variables determined by configure 
+#
+# @version: $Id: metro.mk.in,v 1.26 2005/02/18 16:43:56 cxh Exp $
+#
+# Copyright (c) 2003-2004 The Regents of the University of California.
+# All rights reserved.
+#
+# Permission is hereby granted, without written agreement and without
+# license or royalty fees, to use, copy, modify, and distribute this
+# software and its documentation for any purpose, provided that the
+# above copyright notice and the following two paragraphs appear in all
+# copies of this software and that appropriate acknowledgments are made
+# to the research of the Metropolis group.
+# 
+# IN NO EVENT SHALL THE UNIVERSITY OF CALIFORNIA BE LIABLE TO ANY PARTY
+# FOR DIRECT, INDIRECT, SPECIAL, INCIDENTAL, OR CONSEQUENTIAL DAMAGES
+# ARISING OUT OF THE USE OF THIS SOFTWARE AND ITS DOCUMENTATION, EVEN IF
+# THE UNIVERSITY OF CALIFORNIA HAS BEEN ADVISED OF THE POSSIBILITY OF
+# SUCH DAMAGE.
+#
+# THE UNIVERSITY OF CALIFORNIA SPECIFICALLY DISCLAIMS ANY WARRANTIES,
+# INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+# MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. THE SOFTWARE
+# PROVIDED HEREUNDER IS ON AN "AS IS" BASIS, AND THE UNIVERSITY OF
+# CALIFORNIA HAS NO OBLIGATION TO PROVIDE MAINTENANCE, SUPPORT, UPDATES,
+# ENHANCEMENTS, OR MODIFICATIONS.
+#
+# 						PT_COPYRIGHT_VERSION_2
+# 						COPYRIGHTENDKEY
+
+# NOTE: Don't edit this file if it is called metro.mk, instead
+# edit metro.mk.in, which is read by configure.
+
+# Location of Metropolis metacomp command.
+# Include $(AUXCLASSPATH) so that we get Javascope code coverage classes
+METACOMP = CLASSPATH=$(AUXCLASSPATH) $(METRO)/bin/metacomp
+
+# JTCLSHFLAGS gets set to -Dptolemy.ptII.isRunningNightlyBuild=true
+# when we are running the nightly build.
+METROSHELL =	CLASSPATH="$(CLASSPATH)$(AUXCLASSPATH)$(CLASSPATHSEPARATOR)$(PTJACL_JAR)" "$(JAVA)" $(JAVAFLAGS) $(JTCLSHFLAGS) metropolis.metamodel.shell.Shell -classpath "$(METRO)/lib"
+
+
+
+# Variables with @ around them are substituted in by the configure script
+
+# Archiver, such as ar, used to create libraries from .o files
+METRO_AR =	@METRO_AR@
+
+# Set to arm_sim and used in $METRO/examples/yapi_cpus/makefile if libbfd
+# is found.
+METRO_ARM_SIM_DIR =	@METRO_ARM_SIM_DIR@
+
+# Bison, used by locgen.
+METRO_BISON =	@METRO_BISON@
+
+# C compiler, such as gcc
+METRO_CC =      @METRO_CC@
+
+# C++ compiler, such as g++
+METRO_CXX =     @METRO_CXX@
+
+# flex, used by locgen.
+METRO_FLEX =	@METRO_FLEX@
+
+# The home of the Java Developer's Kit (JDK)
+# Generating Java documentation uses this makefile variable
+# The line below gets substituted by the configure script
+METRO_JDK = 	@METRO_JDK@
+
+# Set to locgen and used in src/util/makefile if bison and flex are found
+METRO_LOCGEN_DIR =	@METRO_LOCGEN_DIR@
+
+# ranlib, used to generate the index of an archive created by METRO_AR 
+METRO_RANLIB =	@METRO_RANLIB@
+
+
+
+# C OPTIMIZER - The setting for the optimizer, usually -O2
+C_OPTIMIZER = -O2 -g
+
+# C_WARNINGS  - Flags that print warnings.
+C_WARNINGS = -w
+
+# Flags used by gcov:
+GCC_COVERAGE_FLAGS =  -fprofile-arcs -ftest-coverage
+
+# C_MAKEFILE_FLAGS - Metropolis makefiles may optionally set this for
+#   flags that are included on a per makefile basis.
+#
+# C_COVERAGE_FLAGS is used by gcov for code coverage, try
+# make C_COVERAGE_FLAGS="-fprofile-arcs -ftest-coverage
+#
+# C_USERFLAGS - Metropolis makefiles never set this, but the user can set it.
+
+C_FLAGS = $(C_OPTIMIZER) $(C_WARNINGS) $(C_MAKEFILE_FLAGS) $(C_COVERAGE_FLAGS) $(C_USERFLAGS)
+
+
+# CXX OPTIMIZER - The setting for the optimizer, usually -O2
+CXX_OPTIMIZER = -O2 -g
+
+# CXX_WARNINGS  - Flags that print warnings.
+CXX_WARNINGS = -Wno-deprecated
+
+# CXX_MAKEFILE_FLAGS - Metropolis makefiles may optionally set this for
+#   flags that are included on a per makefile basis.
+#
+# Flags used by gcov 
+# CXX_COVERAGE_FLAGS = -fprofile-arcs -ftest-coverage
+#
+# CXX_USERFLAGS - Metropolis makefiles never set this, but the user can set it.
+
+CXX_FLAGS = $(CXX_OPTIMIZER) $(CXX_WARNINGS) $(CXX_MAKEFILE_FLAGS) $(CXX_COVERAGE_FLAGS) $(CXX_USERFLAGS)
+
+
+# JDK Version from the java.version property
+JVERSION =	@JVERSION@
+
+# Java CLASSPATH separator
+# For Unix, this would be :
+# For Cygwin, this would be ;
+CLASSPATHSEPARATOR = @CLASSPATHSEPARATOR@
+
+# The 'javac' compiler.
+JAVAC = 	$(METRO_JDK)/bin/javac
+
+# Flags to pass to javac.  Usually something like '-g -depend'
+JDEBUG =	-g
+JOPTIMIZE =	-O
+JFLAGS = 	$(JDEBUG) $(JOPTIMIZE)
+
+# The 'javadoc' program
+JAVADOC = 	$(METRO_JDK)/bin/javadoc
+
+# -breakiterator is only present in jdk1.4 and later
+JDOCBREAKITERATOR = @JDOCBREAKITERATOR@
+
+# Increase the amount of memory that javadoc uses.
+JDOCMEMORY =	-J-Xmx132m
+
+# Doccheck is a doclet that checks for bugs, see
+# http://java.sun.com/developer/earlyAccess/doccheck/
+JDOCCHECKFLAGS = $(JDOCBREAKITERATOR) $(JDOCMEMORY) $(JDOCSOURCEFLAGS)
+
+# Flags to pass to javadoc.
+# Use -protected so that we can link to TreeNode._childList
+JDOC_FLAGS =	-classpath "$(CLASSPATH)$(CLASSPATHSEPARATOR)$(PTJACL_JAR)" \
+		-d $(DOC_DIR) \
+		$(JDOCCHECKFLAGS) -version -author -protected
+
+# The jar command, used to produce jar files, which are similar to tar files
+JAR =		$(METRO_JDK)/bin/jar
+
+# Command to run that indexes a jar file named tmp.jar
+# Usually it looks like '"$(JAR)" -i tmp.jar'
+JAR_INDEX =	@JAR_INDEX@
+
+# The 'java' interpreter.
+JAVA =		$(METRO_JDK)/bin/java
+
+# Flags to use with java.  Try 'java -help' or 'java -X'
+# A common value is -Xmx100m to set the maximum stack size
+JAVAFLAGS = 
+
+# The variables below are for the SunTest JavaScope code coverage tool
+# See http://www.suntest.com/JavaScope
+# The 'jsinstr' command, which instruments Java code.
+JSINSTR = 	jsinstr
+JSINSTRFLAGS = 	-IFLUSHCLASS=true
+# The 'jsrestore' command which uninstruments Java code.
+JSRESTORE =	jsrestore
+# The pathname to the JavaScope.zip file
+JSCLASSPATH = 	/users/ptdesign/vendors/sun/JavaScope/JavaScope.zip
+
+# The major type of OS we are running under.
+# Under all forms Windows, this should be Windows; under Linux: Linux, etc.
+# Used in ptolemy/matlab/makefile
+MAJOR_OS_NAME =	@MAJOR_OS_NAME@
+
+# Set to "javasim" in $METRO/mk/metro.mk by configure if 
+# src/metropolis/metamodel/backends/javasim/ exists.
+METRO_JAVASIM =	@METRO_JAVASIM@
+
+# OS is used in metroworkspace/lib/yapi-systemc
+OS =		@OS@
+
+# Set to shell and used in src/metropolis/metamodel/makefile if ptjacl is found
+PTJACL_DIR =	@PTJACL_DIR@
+
+# Jar file that contains Jacl
+PTJACL_JAR =	@PTJACL_JAR@
+
+# jtclsh script to run Jacl for the test suite.
+# We could use bin/ptjacl here, but instead we start it from within
+# make and avoid problems
+# configure sets @JTCLSH@ to include JTCLSHFLAGS
+# JTCLSHFLAGS gets set to -Dptolemy.ptII.isRunningNightlyBuild=true
+# when we are running the nightly build.
+JTCLSH =	CLASSPATH="$(CLASSPATH)$(AUXCLASSPATH)$(CLASSPATHSEPARATOR)$(PTJACL_JAR)" @JTCLSH@
+
+# backends/systemc/zchaff under Solaris has a platform dependency 
+RAND_MAX_FLAG = @RAND_MAX_FLAG@
+
+# Location of the SystemC directory, for example /usr/local/systemc-2.0.1
+SYSTEMC =	@SYSTEMC@
+
+# Location of the SystemC libraries, i.e lib-cygwin
+SYSTEMC_LIB =	@SYSTEMC_LIB@

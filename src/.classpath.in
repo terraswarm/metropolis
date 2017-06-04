@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<classpath>
+    <classpathentry
+         excluding="**/CVS/|**/codeDoc/|vendors/@ECLIPSE_EXCLUDING_SRC@"
+         kind="src" path=""/>
+    <classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
+	@ECLIPSE_CLASSPATHENTRY_LIBS@
+    <classpathentry kind="output" path=""/>
+</classpath>

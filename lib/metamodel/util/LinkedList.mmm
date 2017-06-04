@@ -1,0 +1,516 @@
+/* An implementation of a double-linked list (see java.util.LinkedList).
+
+Metropolis: Design Environment for Heterogeneus Systems.
+
+Copyright (c) 1998-2005 The Regents of the University of California.
+All rights reserved.
+
+Permission is hereby granted, without written agreement and without
+license or royalty fees, to use, copy, modify, and distribute this
+software and its documentation for any purpose, provided that the
+above copyright notice and the following two paragraphs appear in all
+copies of this software and that appropriate acknowledgments are made
+to the research of the Metropolis group.
+
+IN NO EVENT SHALL THE UNIVERSITY OF CALIFORNIA BE LIABLE TO ANY PARTY
+FOR DIRECT, INDIRECT, SPECIAL, INCIDENTAL, OR CONSEQUENTIAL DAMAGES
+ARISING OUT OF THE USE OF THIS SOFTWARE AND ITS DOCUMENTATION, EVEN IF
+THE UNIVERSITY OF CALIFORNIA HAS BEEN ADVISED OF THE POSSIBILITY OF
+SUCH DAMAGE.
+
+THE UNIVERSITY OF CALIFORNIA SPECIFICALLY DISCLAIMS ANY WARRANTIES,
+INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. THE SOFTWARE
+PROVIDED HEREUNDER IS ON AN "AS IS" BASIS, AND THE UNIVERSITY OF
+CALIFORNIA HAS NO OBLIGATION TO PROVIDE MAINTENANCE, SUPPORT, UPDATES,
+ENHANCEMENTS, OR MODIFICATIONS.
+
+METROPOLIS_COPYRIGHT_VERSION_1
+COPYRIGHTENDKEY
+
+*/
+
+package metamodel.util;
+
+
+public class LinkedList extends AbstractSequentialList implements List
+{
+    private LinkedList.Entry m_first; // list first entry
+    private LinkedList.Entry m_last;  // list last entry
+    private int m_size;               // list size
+
+    /**
+     * Constructs an empty list.
+     */
+
+    public LinkedList()
+    {
+        m_first = null;
+        m_last = null;
+        m_size = 0;
+    }
+
+    /**
+     * Constructs a list containing the elements of the specified collection, in the order they are returned by the collection's iterator.
+     * WARNING: must throw NullPointerException - if the specified collection is null
+     */
+    public LinkedList(Collection col)
+    {
+        m_first = null;
+        m_last = null;
+        Iterator iter = col.iterator();
+        while (iter.hasNext())
+            addLast(iter.next());
+    }
+
+    /**
+     * WARNING: must throw NoSuchElementException - if this list is empty
+     */
+    public Object getFirst()
+    {
+        return m_first.m_data;
+    }
+
+    /**
+     * WARNING: must throw NoSuchElementException - if this list is empty
+     */
+    public Object getLast()
+    {
+        return m_last.m_data;
+    }
+
+    /**
+     * WARNING: must throw IndexOutOfBoundsException - if the specified index is is out of range (index < 0 || index >= size()).
+     */
+    LinkedList.Entry getEntry(int index)
+    {
+        if (index < 0 || index >= size())
+            return null; //must throw IndexOutOfBoundsException here
+        Entry e = m_first;
+        for (int i = 0; i < index; i ++)
+            e = e.m_next;
+        return e;
+    }
+
+    /**
+     * WARNING: must throw IndexOutOfBoundsException - if the specified index is is out of range (index < 0 || index >= size()).
+     */
+    public Object get(int index)
+    {
+        return getEntry(index).m_data;
+    }
+
+    /**
+     * WARNING: must throw UnsupportedOperationException - set is not supported by this list.
+     * WARNING: must throw NullPointerException - this list does not permit null elements and one of the elements of c is null.
+     * WARNING: must throw ClassCastException - class of the specified element prevents it from being added to this list.
+     * WARNING: must throw IllegalArgumentException - some aspect of the specified element prevents it from being added to this list.
+     * WARNING: must throw IndexOutOfBoundsException - if the specified index is is out of range (index < 0 || index >= size()).
+     */
+    public Object set(int index, Object ob)
+    {
+        Entry e = getEntry(index);
+        Object tmpObj = e.m_data;
+        e.m_data = ob;
+        return tmpObj;
+    }
+
+    /**
+     * WARNING: must throw UnsupportedOperationException - add is not supported by this list.
+     * WARNING: must throw NullPointerException - this list does not permit null elements ob is null.
+     * WARNING: must throw ClassCastException - class of ob prevents it from being added to this list.
+     * WARNING: must throw IllegalArgumentException - some aspect of the specified element prevents it from being added to this list.
+     * WARNING: must throw IndexOutOfBoundsException - if the specified index is is out of range (index < 0 || index >= size()).
+     */
+    public void add(int index, Object ob)
+    {
+        Entry e = getEntry(index);
+        Entry eNew = new LinkedList.Entry(e == null ? m_last : e.m_previous, e);
+        if (eNew.m_previous != null)
+            eNew.m_previous.m_next = eNew;
+        else
+            m_first = eNew;
+        if (eNew.m_next != null)
+            {
+                eNew.m_next.m_previous = eNew;
+                if (m_last == null)
+                    m_last = m_first;
+            }
+        else
+            {
+                m_last = eNew;
+                if (m_first == null)
+                    m_first = m_last;
+            }
+        eNew.m_data = ob;
+        m_size ++;
+    }
+
+    /**
+     * WARNING: must throw NoSuchElementException - if this list is empty
+     */
+    public Object removeFirst()
+    {
+        if (isEmpty())
+            return null; //must throw NoSuchElementException here
+        LinkedList.Entry entryRemoved = m_first;
+        Object ob = m_first.m_data;
+        m_first = m_first.m_next;
+        if (m_first != null) // sublist operation
+            m_first.m_previous = entryRemoved.m_previous;
+        m_size --;
+        return entryRemoved.m_data;
+    }
+
+    /**
+     * WARNING: must throw NoSuchElementException - if this list is empty
+     */
+    public Object removeLast()
+    {
+        if (isEmpty())
+            return null; //must throw NoSuchElementException here
+        LinkedList.Entry entryRemoved = m_last;
+        m_last = m_last.m_previous;
+        if (m_last != null) // sublist operation
+            m_last.m_next = entryRemoved.m_next;
+        m_size --;
+        return entryRemoved.m_data;
+    }
+
+    /**
+     */
+    public void addFirst(Object ob)
+    {
+        LinkedList.Entry newEntry = new LinkedList.Entry(m_first != null ? m_first.m_previous : null, m_first);
+        if (m_first != null)
+            {
+                if (m_first.m_previous != null)
+                    m_last.m_previous.m_next = newEntry;
+                m_first.m_previous = newEntry;
+            }
+        newEntry.m_data = ob;
+        m_first = newEntry;
+        if (m_last == null)
+            m_last = m_first;
+        m_size ++;
+    }
+
+    /**
+     */
+    public void addLast(Object ob)
+    {
+        LinkedList.Entry newEntry = new LinkedList.Entry(m_last, m_last != null ? m_last.m_next : null);
+        if (m_last != null)
+            {
+                if (m_last.m_next != null)
+                    m_last.m_next.m_previous = newEntry;
+                m_last.m_next = newEntry;
+            }
+        newEntry.m_data = ob;
+        m_last = newEntry;
+        if (m_first == null)
+            m_first = m_last;
+        m_size ++;
+    }
+
+    /**
+     */
+    public int size()
+    {
+        return m_size;
+    }
+
+    /**
+     * Appends the specified element to the end of this list.
+     */
+    public boolean add(Object ob)
+    {
+        addLast(ob);
+        return true;
+    }
+
+    /**
+     */
+    public Object clone()
+    {
+        return new LinkedList(this);
+    }
+
+    /**
+     */
+    public Object[] toArray()
+    {
+        Object array[] = new Object[size()];
+        ListIterator lIter = listIterator(0);
+        for (int i = 0; i < size(); i ++)
+            array[i] = lIter.next();
+        return array;
+    }
+
+    /**
+     * WARNING: must throw ArrayStoreException - if the runtime type of a is not a supertype of the runtime type of every element in this list.
+     */
+    public Object[] toArray(Object[] array)
+    {
+        if (array.length < size())
+            {
+                //in Java the array is allocated of the runtime of the array specified
+                //array = array.getClass().newInstance();
+                array = new Object[size()];
+            }
+        else
+            if (array.length > size())
+                array[size()] = null;
+        ListIterator lIter = listIterator(0);
+        for (int i = 0; i < size(); i ++)
+            array[i] = lIter.next();
+        return array;
+    }
+
+    /**
+     */
+    public Iterator iterator()
+    {
+        return new LinkedList.Itr(this);
+    }
+
+    public ListIterator listIterator()
+    {
+        return new LinkedList.ListItr(this);
+    }
+
+    /**
+     * WARNING: must throw IndexOutOfBoundsException - if the specified index is is out of range (index < 0 || index >= size()).
+     */
+    public ListIterator listIterator(int index)
+    {
+        if (index > size())
+            return null;
+        return new LinkedList.ListItr(this, index);
+    }
+
+    /**
+     * Removes all of the elements from this list.
+     */
+    public void clear()
+    {        modified();
+    m_first = null;
+    m_last = null;
+    m_size = 0;
+    }
+
+    class Entry
+    {
+        LinkedList.Entry m_next;
+        LinkedList.Entry m_previous;
+        Object m_data;
+
+        /**
+         */
+        Entry(LinkedList.Entry previous, LinkedList.Entry next)
+        {
+            this.m_previous = previous;
+            this.m_next = next;
+        }
+    }
+
+    class Itr implements Iterator
+    {        protected int nextIndex;
+        protected int expectedModCount;
+        protected LinkedList.Entry lastReturned;
+        protected LinkedList.Entry next;
+        protected LinkedList m_list;
+        protected Itr()
+        {
+            m_list = null;
+            lastReturned = null;
+            next = null;
+            nextIndex = 0;
+            expectedModCount = 0;
+        }
+
+        protected Itr(LinkedList lList)
+        {
+            m_list = lList;
+            lastReturned = null;
+            next = lList.m_first;
+            nextIndex = 0;
+            expectedModCount = m_list.modCount;
+        }
+
+        /**
+         * WARNING: must throw ConcurrentModificationException if the parent collection is structurally changed to ensure that the iterator is fail-fast
+         */
+        public boolean hasNext()
+        {
+            if (modCount != m_list.modCount)
+                return false; // must throw ConcurrentModificationException here
+            return (nextIndex < m_list.size());
+            //return ((next != null) && (next != m_list.m_last.next));
+        }
+
+        /**
+         * WARNING: must throw ConcurrentModificationException if the parent collection is structurally changed to ensure that the iterator is fail-fast
+         * WARNING: must throw NoSuchElementException - if the iteration has no next element.
+         */
+        public Object next()
+        {
+            if (modCount != m_list.modCount)
+                return null; // must throw ConcurrentModificationException here
+            if (!hasNext())
+                return null; //must throw NoSuchElementException here
+            lastReturned = next;
+            next = next.m_next;
+            nextIndex ++;
+            return lastReturned.m_data;
+        }
+
+        /**
+         * WARNING: must throw ConcurrentModificationException if the parent collection is structurally changed to ensure that the iterator is fail-fast
+         * WARNING: must throw IllegalStateException - neither next nor previous have been called, or remove or add have been called after the last call to * next or previous.
+         */
+        public void remove()
+        {
+            if (modCount != m_list.modCount)
+                return; // must throw ConcurrentModificationException here
+            //        lastReturned = next != null ? next.m_previous : m_list.m_last;
+            //lastReturned is the entry to be deleted (set by the call to next() or previous())
+            // must throw IllegalStateException if (lastReturned == null)
+            if (next == lastReturned.m_next) //lastReturned returned by a call to next() - index is positioned after the entry to be removed
+                nextIndex --;
+            if (lastReturned.m_previous != null)
+                lastReturned.m_previous.m_next = lastReturned.m_next;
+            if (lastReturned.m_next != null)
+                lastReturned.m_next.m_previous = lastReturned.m_previous;
+            if (m_list.m_first == lastReturned)
+                m_list.m_first = lastReturned.m_next;
+            if (m_list.m_last == lastReturned)
+                m_list.m_last = lastReturned.m_previous;
+            next = lastReturned.m_next;
+            lastReturned = null; //reset lastReturned            modCount = m_list.modCount;
+            m_list.m_size --;
+        }
+    }
+    class ListItr extends Itr implements ListIterator
+    {
+        protected ListItr(LinkedList lList)
+        {
+            super(lList);        }
+        protected ListItr(LinkedList lList, int index)
+        {
+            m_list = lList;
+            expectedModCount = m_list.modCount;
+            if (index < lList.size()/2)
+                {
+                    nextIndex = 0;
+                    lastReturned = null;
+                    next = lList.m_first;
+                    for (int i = 0; i < index; i ++)
+                        next();
+                }
+            else
+                {
+                    nextIndex = lList.size();
+                    lastReturned = lList.m_last;
+                    next = null;
+                    for (int i = lList.size(); i > index; i --)
+                        previous();
+                }
+        }
+
+        /**
+         * WARNING: must throw ConcurrentModificationException if the parent collection is structurally changed to ensure that the iterator is fail-fast
+         */
+        public boolean hasPrevious()
+        {
+            if (modCount != m_list.modCount)
+                return false; // must throw ConcurrentModificationException here
+            return (nextIndex > 0);
+        }
+
+        /**
+         * WARNING: must throw ConcurrentModificationException if the parent collection is structurally changed to ensure that the iterator is fail-fast
+         * WARNING: must throw NoSuchElementException - if the iteration has no previous element.
+         */
+        public Object previous()
+        {
+            if (modCount != m_list.modCount)
+                return null; // must throw ConcurrentModificationException here
+            if (!hasPrevious())
+                return null; //must throw NoSuchElementException here
+            next = next != null ? next.m_previous : m_list.m_last;
+            nextIndex --;
+            lastReturned = next;
+            return lastReturned.m_data;
+        }
+
+        /**
+         * WARNING: must throw ConcurrentModificationException if the parent collection is structurally changed to ensure that the iterator is fail-fast
+         */
+        public int nextIndex()
+        {
+            if (modCount != m_list.modCount)
+                return -1; // must throw ConcurrentModificationException here
+            return nextIndex;
+        }
+
+        /**
+         * WARNING: must throw ConcurrentModificationException if the parent collection is structurally changed to ensure that the iterator is fail-fast
+         */
+        public int previousIndex()
+        {
+            if (modCount != m_list.modCount)
+                return -1; // must throw ConcurrentModificationException here
+            return nextIndex-1;
+        }
+
+        /**
+         * WARNING: must throw ConcurrentModificationException if the parent collection is structurally changed to ensure that the iterator is fail-fast
+         * WARNING: must throw ClassCastException - if the class of the specified element prevents it from being added to this list.
+         * WARNING: must throw IllegalArgumentException - if some aspect of the specified element prevents it from being added to this list.
+         * WARNING: must throw IllegalStateException - if neither next nor previous have been called, or remove or add have been called after the last call to next or previous.       * WARNING: must throw null pointer exception if next() == null
+         */
+        public void set(Object ob)
+        {
+            if (modCount != m_list.modCount)
+                return; // must throw ConcurrentModificationException here
+            lastReturned.m_data = ob;
+        }
+
+        /**
+         * WARNING: must throw ConcurrentModificationException if the parent collection is structurally changed to ensure that the iterator is fail-fast
+         * WARNING: must throw ClassCastException - if the class of the specified element prevents it from being added to this list.
+         * WARNING: must throw IllegalArgumentException - if some aspect of the specified element prevents it from being added to this list.
+         */
+        public void add(Object ob)
+        {
+            if (modCount != m_list.modCount)
+                return; // must throw ConcurrentModificationException here
+            m_list.add(nextIndex, ob);            modCount = m_list.modCount;
+            nextIndex ++;
+
+            /*            //alternative implementation
+                          Entry eNew = new LinkedList.Entry(next == null ? m_last : next.m_previous, next);
+                          if (eNew.m_previous != null)
+                          eNew.m_previous.m_next = eNew;
+                          else
+                          m_list.m_first = eNew;
+                          if (eNew.m_next != null)
+                          {
+                          eNew.m_next.m_previous = eNew;
+                          if (m_list.m_last == null)
+                          m_list.m_last = m_list.m_first;
+                          }
+                          else
+                          {
+                          m_list.m_last = eNew;
+                          if (m_list.m_first == null)
+                          m_list.m_first = m_list.m_last;
+                          }
+                          eNew.m_data = ob;
+                          m_list.m_size ++;
+                          nextIndex ++;
+            */
+        }
+    }
+}

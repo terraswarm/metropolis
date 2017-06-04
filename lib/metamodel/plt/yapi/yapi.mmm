@@ -1,0 +1,1054 @@
+/*
+  Copyright (c) 2004-2005 The Regents of the University of California.
+  All rights reserved.
+
+  Permission is hereby granted, without written agreement and without
+  license or royalty fees, to use, copy, modify, and distribute this
+  software and its documentation for any purpose, provided that the
+  above copyright notice and the following two paragraphs appear in all
+  copies of this software and that appropriate acknowledgments are made
+  to the research of the Metropolis group.
+
+  IN NO EVENT SHALL THE UNIVERSITY OF CALIFORNIA BE LIABLE TO ANY PARTY
+  FOR DIRECT, INDIRECT, SPECIAL, INCIDENTAL, OR CONSEQUENTIAL DAMAGES
+  ARISING OUT OF THE USE OF THIS SOFTWARE AND ITS DOCUMENTATION, EVEN IF
+  THE UNIVERSITY OF CALIFORNIA HAS BEEN ADVISED OF THE POSSIBILITY OF
+  SUCH DAMAGE.
+
+  THE UNIVERSITY OF CALIFORNIA SPECIFICALLY DISCLAIMS ANY WARRANTIES,
+  INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+  MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. THE SOFTWARE
+  PROVIDED HEREUNDER IS ON AN "AS IS" BASIS, AND THE UNIVERSITY OF
+  CALIFORNIA HAS NO OBLIGATION TO PROVIDE MAINTENANCE, SUPPORT, UPDATES,
+  ENHANCEMENTS, OR MODIFICATIONS.
+
+  METROPOLIS_COPYRIGHT_VERSION_1
+  COPYRIGHTENDKEY
+*/
+package metamodel.plt.yapi;
+//superclass
+interface yapiinterface extends Port {
+    eval boolean checkfifo(int n,int dir);
+}
+
+//input port interface
+public interface yapioutinterface extends yapiinterface {
+    update void write(Object data);
+    update void write(Object[] data,int n);
+    update void write(Object[][] data,int n,int m);
+    update void write(int data);
+    update void write(int[] data,int n);
+    update void write(int[][] data,int n,int m);
+    update void write(short data);
+    update void write(short[] data,int n);
+    update void write(short[][] data,int n,int m);
+    update void write(double data);
+    update void write(double[] data,int n);
+    update void write(double[][] data,int n,int m);
+}
+
+//output port interface
+public interface yapiininterface extends yapiinterface {
+    update Object read();
+    update void read(Object[] data,int n);
+    update void read(Object[][] data,int n,int m);
+    update int readint();
+    update void read(int[] data,int n);
+    update void read(int[][] data,int n,int m);
+    update short readshort();
+    update void read(short[] data,int n);
+    update void read(short[][] data,int n,int m);
+    update double readdouble();
+    update void read(double[] data,int n);
+    update void read(double[][] data,int n,int m);
+}
+
+interface rdi extends Port{
+}
+interface wri extends Port{
+}
+interface cki extends Port{
+}
+
+
+public medium yapichannel implements yapiininterface,yapioutinterface,rdi,wri,cki {
+
+    //Memory buffer to store the incoming data
+    Object[] FIFO, FIFOcopy;
+    int ntokens;
+    int size,rp,wp;
+
+
+    //Constructor
+    public yapichannel(String n,int isize) {
+        super(n);
+
+        if (isize <= 0) {
+            isize = 1;
+            blackbox(SystemCSim)%%
+                cerr << "WARNING:: yapichannel called with isize of < 1\n";
+            %%;
+        }
+        FIFO = new Object[isize];
+        size = isize;
+        wp = 0;
+        rp =0;
+        ntokens = 0;
+
+        /*
+          constraint{
+          ltl(G(getconnectionnum(this,yapioutinterface) < 2));
+          ltl(G(getconnectionnum(this,yapiininterface)==1)); // TM
+          }
+        */
+    }
+
+    //Write and read methods
+
+    public update void write(Object[] data,int n) {
+        //1.Await until nobody is reading form the buffer
+        //      then set the reading interface so that nobody will read
+        //2.Resize the array by using a temp array fifobuffercopy
+        //3.Increment the number of tokens in the buffer
+
+
+        await{
+            (true;this.rdi,this.cki;this.wri)
+                {
+                    int i;
+                    if ((ntokens + n) >= size){ //needs to be resized
+                        //String nm = new String(name);
+                        //blackbox(SystemCSim)%%
+                        //  cout << "Buffer Resized in " << endl;
+                        //%%;
+                        FIFOcopy = new Object[ntokens];
+                        for (i=0; i<ntokens; i++)
+                            FIFOcopy[i] = FIFO[(rp+i)%size];
+                        while ((ntokens + n) >= size) {
+                            size = 2*size;
+                        }
+                        FIFO = new Object[size];
+                        for (i= 0; i<ntokens ; i++)
+                            FIFO[i] = FIFOcopy[i];
+                        blackbox(SystemCSim)%%
+                            delete[] FIFOcopy;
+                        %%;
+                        for (i= 0; i< n ; i++)
+                            FIFO[ntokens + i] = data[i].clone();
+                        rp = 0;
+                        wp = ntokens + n;
+
+                        ntokens = ntokens + n;
+                    }
+                    else { //OK we can write directly
+
+                        //blackbox(SystemCSim)%%
+
+                        // cout << "data[0]->d " << "  =  " << ((yapiint*)data[0]->clone())->d << endl;
+                        //%%;
+                        for (i= 0; i< n ; i++)
+                            FIFO[(wp+i)%size] = data[i].clone();
+                        wp = (wp + n) % size;
+                        ntokens = ntokens + n;
+
+                        //blackbox(SystemCSim)%%
+                        //  cout << "I'm writing " << endl;
+                        //  for (int i=rp ; i< rp + ntokens ; i++)
+                        //      cout << "Token " << i << "   =  " << ((yapiint**)FIFO)[i]->d << endl;
+                        //%%;
+
+
+                    }
+
+                }
+        }
+    }
+
+    public update void write(Object[][] data,int n,int m) {
+
+        int i,j;
+        Object[] MtoV = new Object[n*m];
+        for (i=0;i<n;i++)
+            for (j=0;j<m;j++) {
+                MtoV[i*m + j] = data[i][j].clone();
+            };
+        write(MtoV,n*m);
+        blackbox(SystemCSim)%%
+            //cout << "Deleting " << endl;
+            for (i=0;i<n*m;i++)
+                delete MtoV[i];
+        delete[] MtoV;
+        %%;
+
+
+    }
+
+    public update void write(Object data) {
+        Object[] DtoV = new Object[1];
+
+        DtoV[0] = data.clone();
+        write(DtoV,1);
+        //blackbox(SystemCSim)%%
+        //        delete DtoV[0];
+        //  delete[] DtoV;
+        //%%;
+        blackbox(SystemCSim)%%  // YW
+            delete DtoV[0];
+        delete[] DtoV;
+        %%;
+    }
+
+    public update void write(int data) {
+        yapiint d = new yapiint(data);
+        write((Object)d);
+        blackbox(SystemCSim)%% // TM
+            delete d;
+        %%;
+    }
+
+    public update void write(int[] data,int n) {
+        int i;
+        yapiint[]  d = new yapiint[n];
+        for (i=0;i<n;i++)
+            d[i] = new yapiint(data[i]);
+        write((Object[])d,n);
+        blackbox(SystemCSim)%%
+            for (i=0;i<n;i++)
+                delete d[i] ;
+        delete[] d;
+        %%;
+    }
+
+    public update void write(int[][] data,int n,int m) {
+        int i,j;
+        yapiint[][]  d = new yapiint[n][m];
+        for (i=0;i<n;i++)
+            for (j=0;j<m;i++)
+                d[i][j] = new yapiint(data[i][j]);
+        write((Object[][])d,n,m);
+        blackbox(SystemCSim)%%
+            // cout << " Sto canclellando tutto" << endl;
+            for (i=0;i<n;i++) {
+                for (j=0;j<m;i++)
+                    delete d[i][j];
+            }
+        for (i=0;i<n;i++)
+            delete[] d[i];
+        delete[] d;
+        %%;
+
+    }
+
+    public update void write(short data) {
+        yapishort d = new yapishort(data);
+        write((Object)d);
+        blackbox(SystemCSim)%% // TM
+            delete d;
+        %%;
+    }
+
+    public update void write(short[] data,int n) {
+        int i;
+        yapishort[]  d = new yapishort[n];
+        for (i=0;i<n;i++)
+            d[i] = new yapishort(data[i]);
+        write((Object[])d,n);
+        blackbox(SystemCSim)%%
+            for (i=0;i<n;i++)
+                delete d[i];
+        delete[] d;
+        %%;
+    }
+
+    public update void write(short[][] data,int n,int m) {
+        int i,j;
+        yapishort[][]  d = new yapishort[n][m];
+        for (i=0;i<n;i++)
+            for (j=0;j<m;i++)
+                d[i][j] = new yapishort(data[i][j]);
+        write((Object[][])d,n,m);
+        blackbox(SystemCSim)%%
+            // cout << " Sto canclellando tutto" << endl;
+            for (i=0;i<n;i++) {
+                for (j=0;j<m;i++)
+                    delete d[i][j];
+            }
+        for (i=0;i<n;i++)
+            delete[] d[i];
+        delete[] d;
+        %%;
+    }
+
+    public update void write(double data) {
+        yapidouble d= new yapidouble(data);
+        write((Object)d);
+        blackbox(SystemCSim)%% // TM
+            delete d;
+        %%;
+    }
+
+    public update void write(double[] data,int n) {
+        int i;
+        yapidouble[]  d = new yapidouble[n];
+        for (i=0;i<n;i++)
+            d[i] = new yapidouble(data[i]);
+        write((Object[])d,n);
+        blackbox(SystemCSim)%%
+            for (i=0;i<n;i++)
+                delete d[i];
+        delete[] d;
+        %%;
+    }
+
+    public update void write(double[][] data,int n,int m) {
+        int i,j;
+        yapidouble[][]  d = new yapidouble[n][m];
+        for (i=0;i<n;i++)
+            for (j=0;j<m;i++)
+                d[i][j] = new yapidouble(data[i][j]);
+        write((Object[][])d,n,m);
+        blackbox(SystemCSim)%%
+            // cout << " Sto canclellando tutto" << endl;
+            for (i=0;i<n;i++) {
+                for (j=0;j<m;i++)
+                    delete d[i][j];
+            }
+        for (i=0;i<n;i++)
+            delete[] d[i];
+        delete[] d;
+        %%;
+
+    }
+
+
+    public update void read(Object[] data,int n) {
+        //1.Await until nobody is writing
+        //        then set the writing interface so that nobody will write
+        //2.Pop the fisrt n elemnts form the array
+        //  and assign them to the data variable
+        //3.Resize the array using a temp fifobuffercopy array
+        //4.Update the number of tokens in the buffer
+        await{
+            (ntokens > n-1;this.wri,this.cki;this.rdi)
+                {
+
+                    //For C++ simulator, free memory first
+                    blackbox(SystemCSim)%%
+                        for (int i=0 ; i<n ; i++)
+                            if (data[i]) delete data[i];
+                    %%;
+                    //blackbox(SystemCSim)%%
+                    // for (int i=rp ; i< rp + ntokens ; i++)
+                    //     cout << "Token " << i << "   =  " << ((yapiint**)FIFO)[i]->d << endl;
+                    //%%;
+                    for (int i=0 ; i<n ; i++) {
+                        data[i] = FIFO[rp];
+                        //data[i] = FIFO[rp].clone();
+                        blackbox(SystemCSim)%%
+                            //delete FIFO[rp];
+                            %%;
+                        rp = (rp +1)%size;
+                    }
+                    ntokens = ntokens - n;
+
+                }
+        }
+    }
+
+    public update void read(Object[][] data,int n,int m) {
+        await{
+            (ntokens > n*m-1;this.wri,this.cki;this.rdi)
+                {
+                    blackbox(SystemCSim)%%
+                        for (int i=0 ; i<n ; i++)
+                            for (int j=0; j< m ;j++)
+                                if (data[i][j]) delete data[i][j];
+                    %%;
+                    for (int i=0 ; i<n ; i++)
+                        for (int j=0; j< m ;j++) {
+                            data[i][j] = FIFO[rp].clone();
+                            blackbox(SystemCSim)%%
+                                delete FIFO[rp];
+                            %%;
+                            rp = (rp +1)%size;
+                        }
+                    ntokens = ntokens - n*m;
+                }
+        }
+    }
+
+    public update Object read() {
+        Object data;  // YW
+        Object[] DtoV = new Object[1];
+        // Object[0] = new Object;
+        DtoV[0] = null;  // YW
+        read(DtoV,1);
+        data = DtoV[0].clone();
+        blackbox(SystemCSim)%%  // YW
+            delete DtoV[0];
+        delete[] DtoV;
+        %%;
+        return data;  // YW
+    }
+
+    public update int readint() {
+        int ret;  // YW
+        yapiint[] d = new yapiint[1];
+        // d[0] = new yapiint(0);
+        d[0] = null;  // YW
+        read((Object[])d,1);
+        ret = d[0].d;
+        blackbox(SystemCSim)%%  // YW
+            delete d[0];  // TM
+        delete[] d;
+        %%;
+        return ret;  // YW
+    }
+
+    public update void read(int[] data,int n) {
+        int i;
+        yapiint[] d = new yapiint[n];
+        for (i=0;i<n;i++)
+            //          d[i] = new yapiint(0);
+            d[i] = null;
+        read((Object[])d,n);
+        for (int i=0;i<n;i++)
+            data[i] = d[i].d;
+        blackbox(SystemCSim)%%
+            for (i=0 ; i<n ; i++)
+                delete d[i];
+        delete[] d;
+        %%;
+    }
+    public update void read(int[][] data,int n,int m) {
+        int i,j;
+        yapiint[][] d = new yapiint[n][m];
+        for (i=0;i<n;i++)
+            for (j=0;j<m;j++)
+                //            d[i][j] = new yapiint(0);
+                d[i][j] = null;
+        read((Object[][])d,n,m);
+        for (int i=0;i<n;i++)
+            for (int j=0;j<m;j++)
+                data[i][j] = d[i][j].d;
+        blackbox(SystemCSim)%%
+            for (i=0;i<n;i++) {
+                for (j=0;j<m;i++)
+                    delete d[i][j];
+            }
+        for (i=0;i<n;i++)
+            delete[] d[i];
+        delete[] d;
+        %%;
+    }
+
+    public update short readshort() {
+        short ret;  // YW
+        yapishort[] d = new yapishort[1];
+        //      d[0] = new yapishort((short)0);
+        d[0] = null;  // YW
+        read((Object[])d,1);
+        ret =  d[0].d;
+        blackbox(SystemCSim)%%  // YW
+            delete d[0];  // TM
+        delete[] d;
+        %%;
+        return ret;  // YW
+    }
+
+    public update void read(short[] data,int n) {
+        int i;
+        yapishort[] d = new yapishort[n];
+        for (i=0;i<n;i++)
+            //          d[i] = new yapishort((short)0);
+            d[i] = null;
+        read((Object[])d,n);
+        for (int i=0;i<n;i++)
+            data[i] = d[i].d;
+        blackbox(SystemCSim)%%
+            for (i=0 ; i<n ; i++)
+                delete d[i];
+        delete[] d;
+        %%;
+    }
+    public update void read(short[][] data,int n,int m) {
+        int i,j;
+        yapishort[][] d = new yapishort[n][m];
+        for (i=0;i<n;i++)
+            for (j=0;j<m;j++)
+                //          d[i][j] = new yapishort((short)0);
+                d[i][j] = null;
+        read((Object[][])d,n,m);
+        for (int i=0;i<n;i++)
+            for (int j=0;j<m;j++)
+                data[i][j] = d[i][j].d;
+        blackbox(SystemCSim)%%
+            for (i=0;i<n;i++) {
+                for (j=0;j<m;i++)
+                    delete d[i][j];
+            }
+        for (i=0;i<n;i++)
+            delete[] d[i];
+        delete[] d;
+        %%;
+    }
+
+    public update double readdouble() {
+        double ret;
+        yapidouble[] d = new yapidouble[1];
+        //d[0] = new yapidouble(0.0);
+        read((Object[])d,1);
+        ret = d[0].d;
+        blackbox(SystemCSim)%%  // YW
+            delete d[0];  // TM
+        delete[] d;
+        %%;
+        return d[0].d;
+    }
+    public update void read(double[] data,int n) {
+        int i;
+        yapidouble[] d = new yapidouble[n];
+        for (i=0;i<n;i++)
+            //          d[i] = new yapidouble(0.0);
+            d[i] = null;  // YW
+        read((Object[])d,n);
+        for (int i=0;i<n;i++)
+            data[i] = d[i].d;
+        blackbox(SystemCSim)%%
+            for (i=0 ; i<n ; i++)
+                delete d[i];
+        delete[] d;
+        %%;
+    }
+    public update void read(double[][] data,int n,int m) {
+        int i,j;
+        yapidouble[][] d = new yapidouble[n][m];
+        for (i=0;i<n;i++)
+            for (j=0;j<m;j++)
+                //              d[i][j] = new yapidouble(0.0);
+                d[i][j] = null;
+        read((Object[][])d,n,m);
+        for (int i=0;i<n;i++)
+            for (int j=0;j<m;j++)
+                data[i][j] = d[i][j].d;
+        blackbox(SystemCSim)%%
+            for (i=0;i<n;i++) {
+                for (j=0;j<m;i++)
+                    delete d[i][j];
+            }
+        for (i=0;i<n;i++)
+            delete[] d[i];
+        delete[] d;
+        %%;
+    }
+
+
+    //This is used in the select function
+    //n number of tokens
+    //dir is direction (0 means input, others' means output)
+    //if n is -1 then it just returns false (menas that the port
+    //was input/output and I'm considering it as output/input
+    //then is it is input the function checks for availabel tokens
+    //if it is output the return true (unbounded fifo)
+
+
+    public eval boolean checkfifo(int n,int dir) {
+        await{
+            (true;this.wri,this.rdi;this.cki)
+                {
+                    if (n == -1)
+                        return false;
+                    else
+                        if (dir == 0) //input
+                            return ntokens >= n;
+                        else
+                            return true; //output is never blocked
+                }
+        }
+    }
+
+}
+
+
+public medium lossyyapichannel implements yapiininterface,yapioutinterface,rdi,wri,cki {
+
+    //Memory buffer to store the incoming data
+    Object[] FIFO;
+    int ntokens;
+    int size,rp,wp;
+
+
+    //Constructor
+    public lossyyapichannel(String n,int isize) {
+        super(n);
+        FIFO = new Object[isize];
+        size = isize;
+
+        /*
+          constraint{
+          ltl(G(getconnectionnum(this,yapioutinterface) < 2));
+          ltl(G(getconnectionnum(this,yapioutinterface)==1));
+          }
+        */
+    }
+
+
+    //Write and read methods
+
+    public update void write(Object[] data,int n) {
+        //1.Await until nobody is reading form the buffer
+        //      then set the reading interface so that nobody will read
+        //2.Resize the array by using a temp array fifobuffercopy
+        //3.Increment the number of tokens in the buffer
+
+        await{
+            (true;this.rdi,this.cki;this.wri)
+                {
+
+
+                    int i;
+                    for (i= 0; i< n ; i++) {
+                        FIFO[wp] = data[i].clone();
+                        wp = (wp + 1)%size;
+                        if (ntokens < size) {
+                            ntokens++;
+                        } else if (ntokens == size) {
+                            rp = wp;
+                        }
+
+
+                    };
+                }
+        }
+    }
+
+    public update void write(Object[][] data,int n,int m) {
+
+        int i,j;
+        Object[] MtoV = new Object[n*m];
+        for (i=0;i<n;i++)
+            for (j=0;j<m;j++) {
+                MtoV[i*m + j] = data[i][j].clone();
+            };
+        write(MtoV,n*m);
+        //blackbox(SystemCSim)%%
+        //cout << "Deleting " << endl;
+        //for (i=0;i<n*m;i++)
+        //  delete MtoV[i];
+        // delete[] MtoV;
+        //%%;
+
+
+    }
+
+    public update void write(Object data) {
+        Object[] DtoV = new Object[1];
+
+        DtoV[0] = data.clone();
+        write(DtoV,1);
+        //  blackbox(SystemCSim)%%
+        //          delete DtoV[0];
+        //          delete[] DtoV;
+        //        %%;
+    }
+
+    public update void write(int data) {
+        yapiint d = new yapiint(data);
+        write((Object)d);
+    }
+
+    public update void write(int[] data,int n) {
+        int i;
+        yapiint[]  d = new yapiint[n];
+        for (i=0;i<n;i++)
+            d[i] = new yapiint(data[i]);
+        write((Object[])d,n);
+        //  blackbox(SystemCSim)%%
+        //          for (i=0;i<n;i++)
+        //            delete d[i] ;
+        //          delete[] d;
+        //        %%;
+    }
+
+    public update void write(int[][] data,int n,int m) {
+        int i,j;
+        yapiint[][]  d = new yapiint[n][m];
+        for (i=0;i<n;i++)
+            for (j=0;j<m;i++)
+                d[i][j] = new yapiint(data[i][j]);
+        write((Object[][])d,n,m);
+        // blackbox(SystemCSim)%%
+        // cout << " Sto canclellando tutto" << endl;
+        //for (i=0;i<n;i++) {
+        //  for (j=0;j<m;i++)
+        //      delete d[i][j];
+        //    delete[] d[i];
+        //}
+        //  delete[] d;
+        // %%;
+
+    }
+
+    public update void write(short data) {
+        yapishort d = new yapishort(data);
+        write((Object)d);
+    }
+
+    public update void write(short[] data,int n) {
+        int i;
+        yapishort[]  d = new yapishort[n];
+        for (i=0;i<n;i++)
+            d[i] = new yapishort(data[i]);
+        write((Object[])d,n);
+        //   blackbox(SystemCSim)%%
+        //          for (i=0;i<n;i++)
+        //            delete d[i];
+        //          delete[] d;
+        //        %%;
+    }
+
+    public update void write(short[][] data,int n,int m) {
+        int i,j;
+        yapishort[][]  d = new yapishort[n][m];
+        for (i=0;i<n;i++)
+            for (j=0;j<m;i++)
+                d[i][j] = new yapishort(data[i][j]);
+        write((Object[][])d,n,m);
+        //  blackbox(SystemCSim)%%
+        //          for (i=0;i<n;i++) {
+        //              for (j=0;j<m;i++)
+        //                 delete d[i][j];
+        //              delete[] d[i];
+        //          }
+        //          delete[] d;
+        //        %%;
+    }
+
+    public update void write(double data) {
+        yapidouble d= new yapidouble(data);
+        write((Object)d);
+    }
+
+    public update void write(double[] data,int n) {
+        int i;
+        yapidouble[]  d = new yapidouble[n];
+        for (i=0;i<n;i++)
+            d[i] = new yapidouble(data[i]);
+        write((Object[])d,n);
+        //  blackbox(SystemCSim)%%
+        //          for (i=0;i<n;i++)
+        //            delete d[i];
+        //          delete[] d;
+        //        %%;
+    }
+
+    public update void write(double[][] data,int n,int m) {
+        int i,j;
+        yapidouble[][]  d = new yapidouble[n][m];
+        for (i=0;i<n;i++)
+            for (j=0;j<m;i++)
+                d[i][j] = new yapidouble(data[i][j]);
+        write((Object[][])d,n,m);
+        //   blackbox(SystemCSim)%%
+        //           for (i=0;i<n;i++) {
+        //              for (j=0;j<m;i++)
+        //                 delete d[i][j];
+        //              delete[] d[i];
+        //           }
+        //          delete[] d;
+        //        %%;
+    }
+
+
+    public update void read(Object[] data,int n) {
+        //1.Await until nobody is writing
+        //        then set the writing interface so that nobody will write
+        //2.Pop the fisrt n elemnts form the array
+        //  and assign them to the data variable
+        //3.Resize the array using a temp fifobuffercopy array
+        //4.Update the number of tokens in the buffer
+        await{
+            (ntokens > n-1;this.wri,this.cki;this.rdi)
+                {
+
+                    //For C++ simulator, free memory first
+                    //blackbox(SystemCSim)%%
+                    // for (int i=0 ; i<n ; i++)
+                    //    delete data[i];
+                    //%%;
+                    //blackbox(SystemCSim)%%
+                    // for (int i=rp ; i< rp + ntokens ; i++)
+                    //     cout << "Token " << i << "   =  " << ((yapiint**)FIFO)[i]->d << endl;
+                    //%%;
+                    for (int i=0 ; i<n ; i++) {
+                        data[i] = FIFO[(rp++)%size].clone();
+                    }
+                    ntokens = ntokens - n;
+
+                }
+        }
+    }
+
+    public update void read(Object[][] data,int n,int m) {
+        await{
+            (ntokens > n*m-1;this.wri,this.cki;this.rdi)
+                {
+                    //  blackbox(SystemCSim)%%
+                    //                    for (int i=0 ; i<n ; i++)
+                    //                      for (int j=0; j< m ;j++)
+                    //                        delete data[i][j];
+                    //                  %%;
+                    for (int i=0 ; i<n ; i++)
+                        for (int j=0; j< m ;j++)
+                            data[i][j] = FIFO[(rp++)%size].clone();
+                    ntokens = ntokens - n*m;
+                }
+        }
+    }
+
+    public update Object read() {
+        Object[] DtoV = new Object[1];
+        //Object[0] = new Object;
+        read(DtoV,1);
+        return DtoV[0].clone();
+    }
+
+    public update int readint() {
+        yapiint[] d = new yapiint[1];
+        d[0] = new yapiint(0);
+        read((Object[])d,1);
+        return d[0].d;
+    }
+
+    public update void read(int[] data,int n) {
+        int i;
+        yapiint[] d = new yapiint[n];
+        for (i=0;i<n;i++)
+            d[i] = new yapiint(0);
+        read((Object[])d,n);
+        for (int i=0;i<n;i++)
+            data[i] = d[i].d;
+        //   blackbox(SystemCSim)%%
+        //          for (i=0 ; i<n ; i++)
+        //               delete d[i];
+        //        delete[] d;
+        //        %%;
+    }
+    public update void read(int[][] data,int n,int m) {
+        int i,j;
+        yapiint[][] d = new yapiint[n][m];
+        for (i=0;i<n;i++)
+            for (j=0;j<m;j++)
+                d[i][j] = new yapiint(0);
+        read((Object[][])d,n,m);
+        for (int i=0;i<n;i++)
+            for (int j=0;j<m;j++)
+                data[i][j] = d[i][j].d;
+        //   blackbox(SystemCSim)%%
+        //          for (i=0 ; i<n ; i++) {
+        //                      for (j=0; j< m ;j++)
+        //                        delete d[i][j];
+        //                      delete[] d[i];
+        //          };
+        //        delete[] d;
+        //                  %%;
+    }
+
+    public update short readshort() {
+        yapishort[] d = new yapishort[1];
+        d[0] = new yapishort((short)0);
+        read((Object[])d,1);
+        return d[0].d;
+    }
+
+    public update void read(short[] data,int n) {
+        int i;
+        yapishort[] d = new yapishort[n];
+        for (i=0;i<n;i++)
+            d[i] = new yapishort((short)0);
+        read((Object[])d,n);
+        for (int i=0;i<n;i++)
+            data[i] = d[i].d;
+        blackbox(SystemCSim)%%
+            for (i=0 ; i<n ; i++)
+                delete d[i];
+        delete[] d;
+        %%;
+    }
+    public update void read(short[][] data,int n,int m) {
+        int i,j;
+        yapishort[][] d = new yapishort[n][m];
+        for (i=0;i<n;i++)
+            for (j=0;j<m;j++)
+                d[i][j] = new yapishort((short)0);
+        read((Object[][])d,n,m);
+        for (int i=0;i<n;i++)
+            for (int j=0;j<m;j++)
+                data[i][j] = d[i][j].d;
+        //  blackbox(SystemCSim)%%
+        //           for (i=0 ; i<n ; i++) {
+        //                      for (j=0; j< m ;j++)
+        //                        delete d[i][j];
+        //                      delete[] d[i];
+        //           };
+        //        delete[] d;
+        //                  %%;
+    }
+
+    public update double readdouble() {
+        yapidouble[] d = new yapidouble[1];
+        d[0] = new yapidouble(0.0);
+        read((Object[])d,1);
+        return d[0].d;
+    }
+    public update void read(double[] data,int n) {
+        int i;
+        yapidouble[] d = new yapidouble[n];
+        for (i=0;i<n;i++)
+            d[i] = new yapidouble(0.0);
+        read((Object[])d,n);
+        for (int i=0;i<n;i++)
+            data[i] = d[i].d;
+        //   blackbox(SystemCSim)%%
+        //          for (i=0 ; i<n ; i++)
+        //               delete d[i];
+        //        delete[] d;
+        //        %%;
+    }
+    public update void read(double[][] data,int n,int m) {
+        int i,j;
+        yapidouble[][] d = new yapidouble[n][m];
+        for (i=0;i<n;i++)
+            for (j=0;j<m;j++)
+                d[i][j] = new yapidouble(0.0);
+        read((Object[][])d,n,m);
+        for (int i=0;i<n;i++)
+            for (int j=0;j<m;j++)
+                data[i][j] = d[i][j].d;
+        //  blackbox(SystemCSim)%%
+        //           for (i=0 ; i<n ; i++) {
+        //                      for (j=0; j< m ;j++)
+        //                        delete d[i][j];
+        //                      delete[] d[i];
+        //           }
+        //        delete[] d;
+        //                  %%;
+    }
+
+
+    //This is used in the select function
+    //n number of tokens
+    //dir is direction (0 means input, others' means output)
+    //if n is -1 then it just returns false (menas that the port
+    //was input/output and I'm considering it as output/input
+    //then is it is input the function checks for availabel tokens
+    //if it is output the return true (unbounded fifo)
+
+
+    public eval boolean checkfifo(int n,int dir) {
+        await{
+            (true;this.wri,this.rdi;this.cki)
+                {
+                    if (n == -1)
+                        return false;
+                    else
+                        if (dir == 0) //input
+                            return ntokens >= n;
+                        else
+                            return true; //output is never blocked
+                }
+        }
+    }
+
+}
+
+
+
+public process yapiprocess{
+    port yapiininterface inport0;
+    port yapiininterface inport1;
+    port yapiininterface inport2;
+    port yapiininterface inport3;
+
+    port yapioutinterface outport0;
+    port yapioutinterface outport1;
+    port yapioutinterface outport2;
+    port yapioutinterface outport3;
+
+    public yapiprocess(String n) {
+        super(n);
+    }
+
+    //Select fucation always select over all
+    //inputs and outputs.
+    //-1 for number of tokens/spaces means do not consider that input/output
+    //the returned value is from 0 to 7 where 0-3 are inputs
+    //and 4-7 are outputs
+
+
+    public int select(int nin0,int nin1,int nin2,int nin3,int nout0, int nout1, int nout2,int nout3) {
+        await{
+            (inport0.checkfifo(nin0,0);;) {
+                blackbox(SystemCSim)%%
+                    // cout << name() << ": select: inport0" << endl;
+                    %%;
+                return 0;
+            }
+            (inport1.checkfifo(nin1,0);;) {
+                blackbox(SystemCSim)%%
+                    // cout << name() << ": select: inport1" << endl;
+                    %%;
+                return 1;
+            }
+            (inport2.checkfifo(nin2,0);;) {
+                blackbox(SystemCSim)%%
+                    // cout << name() << ": select: inport2" << endl;
+                    %%;
+                return 2;
+            }
+            (inport3.checkfifo(nin3,0);;) {
+                blackbox(SystemCSim)%%
+                    // cout << name() << ": select: inport3" << endl;
+                    %%;
+                return 3;
+            }
+            (outport0.checkfifo(nout0,1);;) {
+                blackbox(SystemCSim)%%
+                    // cout << name() << ": select: outport0" << endl;
+                    %%;
+                return 4;
+            }
+            (outport1.checkfifo(nout1,1);;) {
+                blackbox(SystemCSim)%%
+                    // cout << name() << ": select: outport1" << endl;
+                    %%;
+                return 5;
+            }
+            (outport2.checkfifo(nout2,1);;) {
+                blackbox(SystemCSim)%%
+                    // cout << name() << ": select: outport2" << endl;
+                    %%;
+                return 6;
+            }
+            (outport3.checkfifo(nout3,1);;) {
+                blackbox(SystemCSim)%%
+                    // cout << name() << ": select: outport3" << endl;
+                    %%;
+                return 7;
+            }
+        }
+    }
+
+    void thread() {
+        execute();
+    }
+    public void execute(){}
+}
+
+public netlist yapinetlist {
+
+    public yapinetlist(String n) {
+        super(n);
+    }
+
+}

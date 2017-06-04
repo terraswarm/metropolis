@@ -1,0 +1,62 @@
+<!-- $Id: package.html,v 1.6 2004/07/28 15:12:46 cxh Exp $ -->
+<html>
+<head>
+<title>metropolis.metamodel.shell</title>
+</head>
+<body>
+Classes that add Metropolis specific commands to a Jacl shell.
+<p>
+ <br>Jacl is a 100% Java implementation of a subset of Tcl.
+ <p>We use a 
+<a href="http://ptolemy.eecs.berkeley.edu/~cxh/java/jacl/ptjacl.html" target="_top">version of Jacl from the Ptolemy Project</a>.
+This version is based on Jacl 1.1.1
+ <p>For more information about Jacl, see
+<a href="http://www.tcl.tk/software/java/" target="_top">http://www.tcl.tk/software/java/</a>
+ <p>Jacl adds the <CODE>java::</CODE> Tcl command to provide
+access to Java objects.  For details, see the 
+<a href="http://ptolemy.eecs.berkeley.edu/ptolemyII/ptIIlatest/ptII/doc/coding/tcljava.htm" target="_top">java:: man page</a>
+
+<h2>Adding Backends to the shell</h2>
+In order to add a backend to the metroshell, do the following:
+
+<ol>
+<li> 
+ Write a file, say NewCmd.java, that contains a subclass of
+   MetropolisCmd, say NewCmd, which implements the following methods: 
+<pre>
+       public void cmdProc(Interp interp, TclObject objv[])
+       public HelpTopic getHelpTopic()
+</pre>
+   The first parses the command line arguments and calls the backend,
+   while the second implements a description displayed by the help
+   command.    
+
+ <p>   See {@link metropolis.metamodel.shell.SimulateCmd} as an example of their implementations.
+
+
+
+<li> In Shell.java, add the constructor of the subclass to a variable
+   called _commandObject[], e.g.
+<pre>
+       private static String _commandObjects[] = 
+                                 { ... , new NewCmd()  }
+
+</pre>
+
+
+<li> In Shell.java, add the name of the new command, say newcmd, to a
+   variable called _commandNames[], e.g.
+<pre>
+       private static String _commandNames[] = 
+                                 { ..., "newcmd" }
+</pre>
+
+ 
+
+<li> In Makefile, add the name of the new file, NewCmd.java, to the
+   variable JSRCS.
+</ol>
+<p>
+@since Metropolis-1.0
+</body>
+</html>

@@ -1,0 +1,318 @@
+<!--$Id: releasemgt.htm,v 1.4 2006/10/12 16:46:01 cxh Exp $ -->
+<html>
+<head>
+<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=iso-8859-1">
+<link href="../default.css" rel="stylesheet" type="text/css">
+<title>Release Management</title>
+</head>
+<body>
+<h1>Release Management</h1>
+This page describes how we release software.
+ <p>The following pages might be of use:
+<menu>
+<li> <a href="cleaning.htm">Cleaning</A>
+<li> <a href="testing.htm">Testing</A>
+</menu>
+
+<h2><a name="Building a release">Building a release</a></h2>
+
+<ol> 
+<li>Check the nightly build output:
+     <ul>
+     <li> Is the code coverage sufficient?  
+     <li> Check for <a href="http://www.gigascale.org/metropolis/src/metro/doc/doccheck/">doccheck</a> errors  
+     Or run <code>cd $METRO/doc; make doccheck</code> and look at the output.
+     <ul>
+
+<li> Things to check for:
+     <ul>
+     <li>Under Linux, check that none of the text files have
+     control-m characters
+<pre>
+adm/bin/metrotxtfiles > /tmp/f
+cat /tmp/f | xargs $PTII/util/testsuite/controlm
+</pre>
+Note that it is ok if tex and bib files have control-m charactoers
+Use dos2unix on a Solaris box to fix problems
+<br>Also, check that text files that have control-ms are not
+checked in to cvs with -kb:
+<pre>
+cat /tmp/f | xargs cvs status >& /tmp/cv.out
+</pre>
+Then search /tmp/cv.out for <code>-kb</code>
+
+     <li>Check that all the .java files have properly expanded
+     cvs tags.
+<pre>
+adm/bin/metrotxtfiles | egrep '.java$' > /tmp/jfiles
+cat /tmp/jfiles | xargs grep '\$Id' | grep -v '\$Id:'
+</pre>
+     The nodetypes files will have just $Id: releasemgt.htm,v 1.4 2006/10/12 16:46:01 cxh Exp $, everything else shoul
+     have expanded $Id tags
+
+     <li>Convert tabs to spaces in the .java, .mmm and .cpp files 
+     <pre>
+adm/bin/metrotxtfiles | egrep '.java$|.mmm$|.cpp$' &gt; /tmp/sourcefiles
+cat /tmp/sourcefiles | xargs util/testsuite/rmtabs -n &gt;&amp; /tmp/tabs.out
+     </pre>
+     Review the output of /tmp/tabs.out and then rerun without the -n
+     </ul>
+
+<li> Optional: Run <code>cd $METRO; make checkjunk</code> to look for 
+files that are in the tree but not added to the makefile.
+In the makefile, files are added to <code>JSRC</code>
+or <code>MISC_FILES</code>.   Usually we only add files
+that are being shipped.  We do this step in the main branch
+so that when we do it later, we don't have to update makefiles in 
+both the main branch and the release branch.
+
+
+<li> Generate the javadoc output and run ptspell on the results:
+<pre>
+cd $METRO/doc
+make install
+find codeDoc -type f -print &gt; /tmp/htmlfiles
+cat `cat /tmp/htmlfiles` &gt; /tmp/allhtmlfiles
+spell /tmp/allhtmlfiles
+</pre>
+If you have access to the Ptolemy tree, use 
+<code>$PTII/util/testsuite/ptspell</code>
+instead of spell.
+
+<br> The easiest way to find places where there are spelling problems
+is use glimpse to create an index:
+<pre>
+cd $METRO
+make glimpse
+</pre>
+and then search the glimpse index:
+<pre>
+glimpse -H $METRO foobar
+</pre>
+
+
+<li> Consider using 
+<a href="http://gcc.gnu.org/java/">GCJ: The GNU Compiler for Java</a>
+to report unused variables and other problems.  Note
+that GCJ3.4 will fail to compile awt and swing classes, but
+it is still worth getting the other error messages.
+<pre>
+cd $METRO
+make clean
+make -k JAVAC=gcj34 JFLAGS="-O2 -Wunused -Wextraneous-semicolon -Wno-deprecated -C" all &gt;&amp; make.out &amp;
+
+</pre>
+<li> Run fix-files to fix common formatting errors:
+<pre>
+cat /tmp/jfiles | xargs ~/ptII/adm/bin/fix-files
+</pre>
+
+<li> Optional: We use Jalopy to reformat files.
+Run Jalopy to add curly brackets around single statement if,
+while and other statements:
+
+<br>Wrong:
+<pre>
+if (foo == bar) 
+    return; 
+</pre>
+
+Right:
+<pre>
+if (foo == bar) {
+    return; 
+}
+</pre>
+
+The reason this is important is because if one does
+<pre>
+if (foo == bar) 
+    System.out.println("About to return");
+    return; 
+</pre>
+then the return is not part of the if statement.
+
+<p>We indent using Jalopy to add braces and then reindent using
+jindent or Eclipse 
+<p>
+To set up Jalopy: 
+ <ol>
+ <li> Download the console version from
+<a href="http://jalopy.sourceforge.net/download.html"><code>http://jalopy.sourceforge.net/download.html</code></a>
+
+ <li> Create a directory to unzip the download into and unzip it.
+ <br>Note: the zip file will create directories like
+ <code>bin</code>, <code>docs</code> and <code>lib</code> in the current
+ directory, so be sure to unzip it inside an empty directory.
+ <br> See also <a href="http://jalopy.sourceforge.net/plugin-console.html"><code>http://jalopy.sourceforge.net/plugin-console.html</code></a>
+ 
+ <li> Run <code>bin/preferences.sh</code>
+   <br>If you get
+   <pre>
+c:/Program: not found
+   </pre>
+   You may need to edit <code>bin/preferences.sh</code> and put double
+   quotes around <code>JAVACMD</code> in the last line:
+   <pre>
+"$JAVACMD" -classpath "$LOCALCLASSPATH" de.hunsicker.jalopy.swing.SettingsDialog
+   </pre>
+ <li> Note that under Windows, the settings are stored in
+   <code>c:/Documents and Settings/<i>username</i>/.jalopy
+   <br>If things get confusing, you may want to remove that directory
+   and start <code>bin/preferences.sh</code> over again
+ <li> In the "Jalopy Settings" window, under Printer -&gt; Braces
+   -&gt Misc, click all the boxes in the Insert braces section
+ <li> Disable sorting: under Printer -&gt; Sorting -&gt; Declarations.
+   uncheck "Sort class elements"
+   <br>If sorting is not disabled, then the fields will be before the methods
+ <li> Change the wrapping so we wrap before operators:
+   under Printer -&gt; Wrapping, in the Policy section, select
+   "Wrap before operators"
+ <li>Close the Jalopy Settings window, you are now ready to indent
+ </ol>
+<li> Run <CODE>$PTII/adm/copyright/fixcopyrights</CODE> (not shipped with
+the release) and update the copyrights on the <CODE>.java</CODE>, <CODE>.tcl</CODE> and makefiles
+
+<li> Run the nightly build, build a release and run
+<CODE>$PTII/adm/copyright/chkcopyright</CODE> on all the files.
+
+<pre>
+find . -type f -print &gt; ~/tmp/ff
+sh ~ptII/adm/copyright/chkcopyright `cat ~/tmp/ff | grep -v .class | grep -v codeDoc | grep -v xml | grep -v alljtests.tcl | grep -v .htm | grep -v qcf | grep -v .dtd | grep -v gif`
+</pre>
+
+<li> Use Eclipse to fix the imports of the entire tree.
+     <ol>
+     <li> Check out the tree into <a href="eclipse.htm">Eclipse</a>
+     <li> Go the Package Explorer, right click on the metro project,
+     select Source -&gt; Organize Imports
+     </ol>
+     
+<li> Consider fixing other Eclipse warnings.
+
+<li> If you don't use Jalopy to reformat, then use 
+<code>$METRO/util/testsuite/jindent</code>.
+     <ol>
+     <li>Generate a list of java files with:
+     <pre>
+     cd $METRO
+     adm/bin/metrotxtfiles | egrep '.java$' > /tmp/jfiles
+     </pre>
+     <li>Review the contents of <pre>/tmp/jfiles</pre> and remove
+     any files that are generated by tools.  These files include
+         <ul>
+	 <li><code>src/metropolis/metamodel/frontend/lexer/Lexer.java<code>
+	 <li><code>src/metropolis/metamodel/MetaModelVisitor.java</code>
+	 <li><code>src/metropolis/metamodel/nodetypes/*java</code>
+	 </ul>
+     <li> Use the <code>xargs</code> command to run jindent
+     on all the files, but don't actually do the indent, just
+     show what would be done.
+
+     <pre>
+     cat /tmp/jfiles | xargs $METRO/util/testsuite/jindent -n &gt;& /tmp/jindent.out
+     </pre>
+
+     <li>Inspect <code>/tmp/jindent.out</code> and update
+     <code>/tmp/jfiles</code> accordingly.  Also, watch out for
+     java files that do a trailing new line as the last character.
+
+     <li> Run jindent for real with out the <code>-n</code> option:
+     <pre>
+     cat /tmp/jfiles | xargs $METRO/util/testsuite/jindent &gt;&amp; /tmp/jindent.out
+     </pre>
+     </ol>
+
+<li> Indent the <code>.mmm</code> files in a similar fashion:
+<pre>
+     cd $METRO
+     adm/bin/metrotxtfiles | egrep '.mmm$' > /tmp/mfiles
+     cat /tmp/mfiles | xargs $METRO/util/testsuite/mmmindent -n &gt;& /tmp/mindent.out
+</pre>
+and then check <code>/tmp/mindent.out</code> and then run:
+<pre>
+     cat /tmp/mfiles | xargs $METRO/util/testsuite/mmmindent &gt;& /tmp/mindent.out
+</pre>
+
+<li> Do the same for the .cpp files with 
+<code>$METRO/util/testsuite/cindent</code>
+
+<li> Rebuild using <code>cd $METRO; make -k update tests &gt;&amp; make.out</code>
+and look for test errors
+
+<li> Tag the tree as the release tree and create a branch
+For more information about CVS, see the
+<a href="http://www.gigascale.org/softdevel/faq/1/" target="_top">Gigascale CVS Pages</a>
+
+ <p>To make a branch for 2.0-beta, use the following command:
+<pre>
+cd $METRO
+cvs tag -b rel-2-0-beta
+</pre>
+Then check out the release branch  with
+<pre>
+cd ~/src
+cvs co -r rel-2-0-beta metro
+mv metro   metropolis-2-0-beta
+</pre>
+<li>Important: <b>Set <code>METRO</code> to the new location</b>:
+<pre>
+setenv METRO ~/src/metropolis-2-0-beta
+</pre>
+
+<li> Run <code>cd $METRO; make sources</code> and fix accordingly.
+
+<li> Run <code>cd $METRO; make checkjunk</code> and either 
+add files or directories to the makefile or else remove 
+them from the cvs <b>branch</b>.
+
+<li><code>$METRO/adm/gen-<i>latest</i>/makefile</code> includes rules to
+build tar files.  For each major release, we increment 
+<code><i>latest</i></code>, create a new directory and copy
+the old files in.  The reason to do this is so that we can have
+both the nightly build and the release build available without using
+branches.
+<p>For example, if the next release was <code>2.0</code>, we would do
+<pre>
+cd $METRO/adm
+mkdir gen-2.0
+cvs add gen-2.0
+cd gen-2.0
+cp ../gen-1.1/{makefile,src.ex,src1.ex,findclean} .
+cvs add makefile src.ex src1.ex findclean
+cvs commit -m "Setting up for 2.0"
+</pre>
+
+<li>Build and test the tar file
+<pre>
+make USER=$USER METROHOME=$METRO clean all test>& make.out &
+</pre>
+
+<li>Note that for Linux users we ship a <b>tar</b> file that
+has Unix line endings and for Windows users, we ship a <b>zip</b>
+file that has Windows line endings.  The best thing to do is to work
+on the release on the fastest machine, probably Linux and then
+check out the release branch under Windows, create the source tar file
+and then use a Windows zip tool to create the Windows download.
+<br>Under Windows with Cygwin, the commands might look like
+<pre>
+cd ~/src
+cvs co -r rel-2-0-beta metro
+mv metro metropolis-2-0-beta
+export METRO c:/cxh/src/metropolis-2-0-beta
+cd $METRO/adm/gen-2.0
+make USER=$USER METROHOME=/cygdrive/c/cxh/src/metropolis-2-0-beta clean all test>& make.out &
+</pre>
+The zip up the contents of the <code>src/</code> directory.
+
+<li>When you are ready to release, diff the old release and the new
+release and check for new files that are present in the new release
+but should not be shipped.
+
+</ol>
+
+<p><font size="2" color="#cc0000">Last Updated: $Date: 2006/10/12 16:46:01 $</font>
+</body>
+</html>
+
+

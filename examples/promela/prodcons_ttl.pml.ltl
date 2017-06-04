@@ -1,0 +1,466 @@
+#define start	vdatagen_dg1_iteration == 30
+#define finish	vdatagen_dg1_iteration == 0
+
+	/*
+	 * Formula As Typed: [](start -> (<> finish))
+	 * The Never Claim Below Corresponds
+	 * To The Negated Formula !([](start -> (<> finish)))
+	 * (formalizing violations of the original)
+	 */
+
+never {    /* !([](start -> (<> finish))) */
+T0_init:
+	if
+	:: (! ((finish)) && (start)) -> goto accept_S4
+	:: (1) -> goto T0_init
+	fi;
+accept_S4:
+	if
+	:: (! ((finish))) -> goto accept_S4
+	fi;
+}
+
+#ifdef NOTES
+Use Load to open a file or a template.
+
+
+
+
+
+
+
+#endif
+#ifdef RESULT
+warning: for p.o. reduction to be valid the never claim must be stutter-closed
+(never claims generated from LTL formulae are stutter-closed)
+Depth=   45167 States=   1e+06 Transitions= 1.46846e+06 Memory= 682.849
+Depth=   45167 States=   2e+06 Transitions= 2.97684e+06 Memory= 682.849
+Depth=   45167 States=   3e+06 Transitions= 4.47207e+06 Memory= 682.849
+Depth=   45167 States=   4e+06 Transitions= 5.97318e+06 Memory= 682.849
+Depth=   45167 States=   5e+06 Transitions= 7.50225e+06 Memory= 682.849
+Depth=   45167 States=   6e+06 Transitions= 9.02822e+06 Memory= 682.849
+Depth=   45167 States=   7e+06 Transitions= 1.05558e+07 Memory= 682.849
+Depth=   45167 States=   8e+06 Transitions= 1.20776e+07 Memory= 682.849
+Depth=   45175 States=   9e+06 Transitions= 1.35746e+07 Memory= 682.849
+Depth=   45265 States=   1e+07 Transitions= 1.50483e+07 Memory= 682.849
+Depth=   45265 States= 1.1e+07 Transitions= 1.65465e+07 Memory= 682.849
+Depth=   45377 States= 1.2e+07 Transitions= 1.80376e+07 Memory= 682.849
+Depth=   45377 States= 1.3e+07 Transitions= 1.95401e+07 Memory= 682.849
+Depth=   45377 States= 1.4e+07 Transitions= 2.10362e+07 Memory= 682.849
+Depth=   45377 States= 1.5e+07 Transitions= 2.25284e+07 Memory= 682.849
+Depth=   45377 States= 1.6e+07 Transitions= 2.40236e+07 Memory= 682.849
+Depth=   45377 States= 1.7e+07 Transitions= 2.54927e+07 Memory= 682.849
+Depth=   45377 States= 1.8e+07 Transitions= 2.70004e+07 Memory= 682.849
+Depth=   45381 States= 1.9e+07 Transitions= 2.84895e+07 Memory= 682.969
+Depth=   45381 States=   2e+07 Transitions= 2.99742e+07 Memory= 682.969
+Depth=   45381 States= 2.1e+07 Transitions= 3.14545e+07 Memory= 682.969
+Depth=   45381 States= 2.2e+07 Transitions= 3.29787e+07 Memory= 682.969
+Depth=   45381 States= 2.3e+07 Transitions= 3.44999e+07 Memory= 682.969
+Depth=   45381 States= 2.4e+07 Transitions= 3.59994e+07 Memory= 682.969
+Depth=   45457 States= 2.5e+07 Transitions= 3.74835e+07 Memory= 682.969
+Depth=   45457 States= 2.6e+07 Transitions= 3.89764e+07 Memory= 682.969
+Depth=   45457 States= 2.7e+07 Transitions= 4.04654e+07 Memory= 682.969
+Depth=   45457 States= 2.8e+07 Transitions= 4.19648e+07 Memory= 682.969
+Depth=   45457 States= 2.9e+07 Transitions= 4.34727e+07 Memory= 682.969
+Depth=   45457 States=   3e+07 Transitions= 4.49788e+07 Memory= 682.969
+Depth=   45457 States= 3.1e+07 Transitions= 4.6487e+07 Memory= 682.969
+Depth=   45457 States= 3.2e+07 Transitions= 4.79942e+07 Memory= 682.969
+Depth=   45457 States= 3.3e+07 Transitions= 4.95016e+07 Memory= 682.969
+Depth=   45491 States= 3.4e+07 Transitions= 5.09883e+07 Memory= 682.969
+Depth=   45491 States= 3.5e+07 Transitions= 5.24631e+07 Memory= 682.969
+Depth=   45491 States= 3.6e+07 Transitions= 5.39557e+07 Memory= 682.969
+Depth=   45491 States= 3.7e+07 Transitions= 5.54589e+07 Memory= 682.969
+Depth=   45491 States= 3.8e+07 Transitions= 5.69644e+07 Memory= 682.969
+Depth=   45491 States= 3.9e+07 Transitions= 5.84477e+07 Memory= 682.969
+Depth=   45491 States=   4e+07 Transitions= 5.99373e+07 Memory= 682.969
+Depth=   45491 States= 4.1e+07 Transitions= 6.14133e+07 Memory= 682.969
+Depth=   45491 States= 4.2e+07 Transitions= 6.2915e+07 Memory= 682.969
+Depth=   45491 States= 4.3e+07 Transitions= 6.43821e+07 Memory= 682.969
+Depth=   45491 States= 4.4e+07 Transitions= 6.58597e+07 Memory= 682.969
+Depth=   45491 States= 4.5e+07 Transitions= 6.73553e+07 Memory= 682.969
+Depth=   45491 States= 4.6e+07 Transitions= 6.88687e+07 Memory= 682.969
+Depth=   45491 States= 4.7e+07 Transitions= 7.0368e+07 Memory= 682.969
+Depth=   45491 States= 4.8e+07 Transitions= 7.18717e+07 Memory= 682.969
+Depth=   45491 States= 4.9e+07 Transitions= 7.33495e+07 Memory= 682.969
+Depth=   45491 States=   5e+07 Transitions= 7.48563e+07 Memory= 682.969
+Depth=   45491 States= 5.1e+07 Transitions= 7.63466e+07 Memory= 682.969
+Depth=   45491 States= 5.2e+07 Transitions= 7.78354e+07 Memory= 682.969
+Depth=   45491 States= 5.3e+07 Transitions= 7.93431e+07 Memory= 682.969
+Depth=   45491 States= 5.4e+07 Transitions= 8.08448e+07 Memory= 682.969
+Depth=   45491 States= 5.5e+07 Transitions= 8.23327e+07 Memory= 682.969
+Depth=   45491 States= 5.6e+07 Transitions= 8.38316e+07 Memory= 682.969
+Depth=   45491 States= 5.7e+07 Transitions= 8.53221e+07 Memory= 682.969
+Depth=   45491 States= 5.8e+07 Transitions= 8.68165e+07 Memory= 682.969
+Depth=   45491 States= 5.9e+07 Transitions= 8.83108e+07 Memory= 682.969
+Depth=   45491 States=   6e+07 Transitions= 8.98077e+07 Memory= 682.969
+Depth=   45491 States= 6.1e+07 Transitions= 9.13059e+07 Memory= 682.969
+Depth=   45491 States= 6.2e+07 Transitions= 9.27961e+07 Memory= 682.969
+Depth=   45491 States= 6.3e+07 Transitions= 9.43028e+07 Memory= 682.969
+Depth=   45491 States= 6.4e+07 Transitions= 9.58103e+07 Memory= 682.969
+Depth=   45491 States= 6.5e+07 Transitions= 9.73109e+07 Memory= 682.969
+Depth=   45491 States= 6.6e+07 Transitions= 9.88083e+07 Memory= 682.969
+Depth=   45491 States= 6.7e+07 Transitions= 1.0033e+08 Memory= 682.969
+Depth=   45491 States= 6.8e+07 Transitions= 1.01818e+08 Memory= 682.969
+Depth=   45491 States= 6.9e+07 Transitions= 1.03357e+08 Memory= 682.969
+Depth=   45491 States=   7e+07 Transitions= 1.04855e+08 Memory= 682.969
+Depth=   45491 States= 7.1e+07 Transitions= 1.06336e+08 Memory= 682.969
+Depth=   45491 States= 7.2e+07 Transitions= 1.07854e+08 Memory= 682.969
+Depth=   45491 States= 7.3e+07 Transitions= 1.09342e+08 Memory= 682.969
+Depth=   45491 States= 7.4e+07 Transitions= 1.10824e+08 Memory= 682.969
+Depth=   45491 States= 7.5e+07 Transitions= 1.12326e+08 Memory= 682.969
+Depth=   45491 States= 7.6e+07 Transitions= 1.13813e+08 Memory= 682.969
+Depth=   45491 States= 7.7e+07 Transitions= 1.15317e+08 Memory= 682.969
+Depth=   45491 States= 7.8e+07 Transitions= 1.16807e+08 Memory= 682.969
+Depth=   45491 States= 7.9e+07 Transitions= 1.18278e+08 Memory= 682.969
+Depth=   45491 States=   8e+07 Transitions= 1.1975e+08 Memory= 682.969
+Depth=   45491 States= 8.1e+07 Transitions= 1.21251e+08 Memory= 682.969
+Depth=   45491 States= 8.2e+07 Transitions= 1.22792e+08 Memory= 682.969
+Depth=   45491 States= 8.3e+07 Transitions= 1.24289e+08 Memory= 682.969
+Depth=   45491 States= 8.4e+07 Transitions= 1.25818e+08 Memory= 682.969
+Depth=   45491 States= 8.5e+07 Transitions= 1.27331e+08 Memory= 682.969
+Depth=   45491 States= 8.6e+07 Transitions= 1.28777e+08 Memory= 682.969
+Depth=   45491 States= 8.7e+07 Transitions= 1.3032e+08 Memory= 682.969
+Depth=   45491 States= 8.8e+07 Transitions= 1.31867e+08 Memory= 682.969
+Depth=   45491 States= 8.9e+07 Transitions= 1.33379e+08 Memory= 682.969
+Depth=   45491 States=   9e+07 Transitions= 1.34903e+08 Memory= 682.969
+Depth=   45491 States= 9.1e+07 Transitions= 1.36405e+08 Memory= 682.969
+Depth=   45491 States= 9.2e+07 Transitions= 1.37894e+08 Memory= 682.969
+Depth=   45491 States= 9.3e+07 Transitions= 1.39392e+08 Memory= 682.969
+Depth=   45491 States= 9.4e+07 Transitions= 1.4098e+08 Memory= 682.969
+Depth=   45491 States= 9.5e+07 Transitions= 1.42503e+08 Memory= 682.969
+Depth=   45491 States= 9.6e+07 Transitions= 1.4405e+08 Memory= 682.969
+Depth=   45491 States= 9.7e+07 Transitions= 1.45573e+08 Memory= 682.969
+Depth=   45491 States= 9.8e+07 Transitions= 1.47063e+08 Memory= 682.969
+Depth=   45491 States= 9.9e+07 Transitions= 1.48598e+08 Memory= 682.969
+Depth=   45491 States=   1e+08 Transitions= 1.50116e+08 Memory= 682.969
+Depth=   45491 States= 1.01e+08 Transitions= 1.51626e+08 Memory= 682.969
+Depth=   45491 States= 1.02e+08 Transitions= 1.5314e+08 Memory= 682.969
+Depth=   45491 States= 1.03e+08 Transitions= 1.5465e+08 Memory= 682.969
+Depth=   45491 States= 1.04e+08 Transitions= 1.5616e+08 Memory= 682.969
+Depth=   45491 States= 1.05e+08 Transitions= 1.57687e+08 Memory= 682.969
+Depth=   45491 States= 1.06e+08 Transitions= 1.59152e+08 Memory= 682.969
+Depth=   45491 States= 1.07e+08 Transitions= 1.60724e+08 Memory= 682.969
+Depth=   45491 States= 1.08e+08 Transitions= 1.6225e+08 Memory= 682.969
+Depth=   45491 States= 1.09e+08 Transitions= 1.63773e+08 Memory= 682.969
+Depth=   45491 States= 1.1e+08 Transitions= 1.65293e+08 Memory= 682.969
+Depth=   45491 States= 1.11e+08 Transitions= 1.66788e+08 Memory= 682.969
+Depth=   45491 States= 1.12e+08 Transitions= 1.68305e+08 Memory= 682.969
+Depth=   45491 States= 1.13e+08 Transitions= 1.6982e+08 Memory= 682.969
+Depth=   45491 States= 1.14e+08 Transitions= 1.71264e+08 Memory= 682.969
+Depth=   45491 States= 1.15e+08 Transitions= 1.72722e+08 Memory= 682.969
+Depth=   45491 States= 1.16e+08 Transitions= 1.74176e+08 Memory= 682.969
+Depth=   45491 States= 1.17e+08 Transitions= 1.75636e+08 Memory= 682.969
+Depth=   45491 States= 1.18e+08 Transitions= 1.77098e+08 Memory= 682.969
+Depth=   45491 States= 1.19e+08 Transitions= 1.78606e+08 Memory= 682.969
+Depth=   45491 States= 1.2e+08 Transitions= 1.80111e+08 Memory= 682.969
+Depth=   45491 States= 1.21e+08 Transitions= 1.81622e+08 Memory= 682.969
+Depth=   45491 States= 1.22e+08 Transitions= 1.83119e+08 Memory= 682.969
+Depth=   45491 States= 1.23e+08 Transitions= 1.84576e+08 Memory= 682.969
+Depth=   45491 States= 1.24e+08 Transitions= 1.86032e+08 Memory= 682.969
+Depth=   45491 States= 1.25e+08 Transitions= 1.87499e+08 Memory= 682.969
+Depth=   45491 States= 1.26e+08 Transitions= 1.88964e+08 Memory= 682.969
+Depth=   45491 States= 1.27e+08 Transitions= 1.90421e+08 Memory= 682.969
+Depth=   45491 States= 1.28e+08 Transitions= 1.91886e+08 Memory= 682.969
+Depth=   45491 States= 1.29e+08 Transitions= 1.9333e+08 Memory= 682.969
+Depth=   45491 States= 1.3e+08 Transitions= 1.94772e+08 Memory= 682.969
+Depth=   45540 States= 1.31e+08 Transitions= 1.96212e+08 Memory= 682.969
+Depth=   45540 States= 1.32e+08 Transitions= 1.97716e+08 Memory= 682.969
+Depth=   45540 States= 1.33e+08 Transitions= 1.99298e+08 Memory= 682.969
+Depth=   45540 States= 1.34e+08 Transitions= 2.00895e+08 Memory= 682.969
+Depth=   45540 States= 1.35e+08 Transitions= 2.02488e+08 Memory= 682.969
+Depth=   45540 States= 1.36e+08 Transitions= 2.04071e+08 Memory= 682.969
+Depth=   45540 States= 1.37e+08 Transitions= 2.05672e+08 Memory= 682.969
+Depth=   45540 States= 1.38e+08 Transitions= 2.07266e+08 Memory= 682.969
+Depth=   45540 States= 1.39e+08 Transitions= 2.08851e+08 Memory= 682.969
+Depth=   45540 States= 1.4e+08 Transitions= 2.10449e+08 Memory= 682.969
+Depth=   45540 States= 1.41e+08 Transitions= 2.12045e+08 Memory= 682.969
+Depth=   45540 States= 1.42e+08 Transitions= 2.13647e+08 Memory= 682.969
+Depth=   45540 States= 1.43e+08 Transitions= 2.15173e+08 Memory= 682.969
+Depth=   45540 States= 1.44e+08 Transitions= 2.16705e+08 Memory= 682.969
+Depth=   45540 States= 1.45e+08 Transitions= 2.18235e+08 Memory= 682.969
+Depth=   45540 States= 1.46e+08 Transitions= 2.19755e+08 Memory= 682.969
+Depth=   45540 States= 1.47e+08 Transitions= 2.2131e+08 Memory= 682.969
+Depth=   45540 States= 1.48e+08 Transitions= 2.22879e+08 Memory= 682.969
+Depth=   45540 States= 1.49e+08 Transitions= 2.24453e+08 Memory= 682.969
+Depth=   45540 States= 1.5e+08 Transitions= 2.25965e+08 Memory= 682.969
+Depth=   45540 States= 1.51e+08 Transitions= 2.27471e+08 Memory= 682.969
+Depth=   45540 States= 1.52e+08 Transitions= 2.28983e+08 Memory= 682.969
+Depth=   45540 States= 1.53e+08 Transitions= 2.30443e+08 Memory= 682.969
+Depth=   45540 States= 1.54e+08 Transitions= 2.3191e+08 Memory= 682.969
+Depth=   45540 States= 1.55e+08 Transitions= 2.33362e+08 Memory= 682.969
+Depth=   45540 States= 1.56e+08 Transitions= 2.34811e+08 Memory= 682.969
+Depth=   45540 States= 1.57e+08 Transitions= 2.36256e+08 Memory= 682.969
+Depth=   45540 States= 1.58e+08 Transitions= 2.37708e+08 Memory= 682.969
+Depth=   45540 States= 1.59e+08 Transitions= 2.39169e+08 Memory= 682.969
+Depth=   45540 States= 1.6e+08 Transitions= 2.40637e+08 Memory= 682.969
+Depth=   45540 States= 1.61e+08 Transitions= 2.42193e+08 Memory= 682.969
+Depth=   45540 States= 1.62e+08 Transitions= 2.43786e+08 Memory= 682.969
+Depth=   45540 States= 1.63e+08 Transitions= 2.45372e+08 Memory= 682.969
+Depth=   45604 States= 1.64e+08 Transitions= 2.46936e+08 Memory= 682.969
+Depth=   45604 States= 1.65e+08 Transitions= 2.48511e+08 Memory= 682.969
+Depth=   45604 States= 1.66e+08 Transitions= 2.50096e+08 Memory= 682.969
+Depth=   45604 States= 1.67e+08 Transitions= 2.51673e+08 Memory= 682.969
+Depth=   45604 States= 1.68e+08 Transitions= 2.53251e+08 Memory= 682.969
+Depth=   45685 States= 1.69e+08 Transitions= 2.54788e+08 Memory= 682.969
+Depth=   45685 States= 1.7e+08 Transitions= 2.56265e+08 Memory= 682.969
+Depth=   45685 States= 1.71e+08 Transitions= 2.57725e+08 Memory= 682.969
+Depth=   45685 States= 1.72e+08 Transitions= 2.59202e+08 Memory= 682.969
+Depth=   45685 States= 1.73e+08 Transitions= 2.60671e+08 Memory= 682.969
+Depth=   45685 States= 1.74e+08 Transitions= 2.62139e+08 Memory= 682.969
+Depth=   45685 States= 1.75e+08 Transitions= 2.63626e+08 Memory= 682.969
+Depth=   45685 States= 1.76e+08 Transitions= 2.65094e+08 Memory= 682.969
+Depth=   45685 States= 1.77e+08 Transitions= 2.66567e+08 Memory= 682.969
+Depth=   45685 States= 1.78e+08 Transitions= 2.68041e+08 Memory= 682.969
+Depth=   45685 States= 1.79e+08 Transitions= 2.69504e+08 Memory= 682.969
+Depth=   45685 States= 1.8e+08 Transitions= 2.70986e+08 Memory= 682.969
+Depth=   45685 States= 1.81e+08 Transitions= 2.72458e+08 Memory= 682.969
+Depth=   45685 States= 1.82e+08 Transitions= 2.73956e+08 Memory= 682.969
+Depth=   45685 States= 1.83e+08 Transitions= 2.7554e+08 Memory= 682.969
+Depth=   45685 States= 1.84e+08 Transitions= 2.77144e+08 Memory= 682.969
+Depth=   45685 States= 1.85e+08 Transitions= 2.78721e+08 Memory= 682.969
+Depth=   45685 States= 1.86e+08 Transitions= 2.80317e+08 Memory= 682.969
+Depth=   45685 States= 1.87e+08 Transitions= 2.81923e+08 Memory= 682.969
+Depth=   45685 States= 1.88e+08 Transitions= 2.83501e+08 Memory= 682.969
+Depth=   45685 States= 1.89e+08 Transitions= 2.851e+08 Memory= 682.969
+Depth=   45685 States= 1.9e+08 Transitions= 2.86682e+08 Memory= 682.969
+Depth=   45685 States= 1.91e+08 Transitions= 2.88287e+08 Memory= 682.969
+Depth=   45685 States= 1.92e+08 Transitions= 2.8983e+08 Memory= 682.969
+Depth=   45685 States= 1.93e+08 Transitions= 2.91412e+08 Memory= 682.969
+Depth=   45685 States= 1.94e+08 Transitions= 2.92978e+08 Memory= 682.969
+Depth=   45685 States= 1.95e+08 Transitions= 2.94475e+08 Memory= 682.969
+Depth=   45685 States= 1.96e+08 Transitions= 2.95955e+08 Memory= 682.969
+Depth=   45685 States= 1.97e+08 Transitions= 2.97432e+08 Memory= 682.969
+Depth=   45685 States= 1.98e+08 Transitions= 2.98919e+08 Memory= 682.969
+Depth=   45685 States= 1.99e+08 Transitions= 3.00399e+08 Memory= 682.969
+Depth=   45685 States=   2e+08 Transitions= 3.01889e+08 Memory= 682.969
+Depth=   45685 States= 2.01e+08 Transitions= 3.0342e+08 Memory= 682.969
+Depth=   45685 States= 2.02e+08 Transitions= 3.05005e+08 Memory= 682.969
+Depth=   45685 States= 2.03e+08 Transitions= 3.06583e+08 Memory= 682.969
+Depth=   45685 States= 2.04e+08 Transitions= 3.08178e+08 Memory= 682.969
+Depth=   45685 States= 2.05e+08 Transitions= 3.09761e+08 Memory= 682.969
+Depth=   45685 States= 2.06e+08 Transitions= 3.11325e+08 Memory= 682.969
+Depth=   45685 States= 2.07e+08 Transitions= 3.12924e+08 Memory= 682.969
+Depth=   45685 States= 2.08e+08 Transitions= 3.14503e+08 Memory= 682.969
+Depth=   45685 States= 2.09e+08 Transitions= 3.16064e+08 Memory= 682.969
+Depth=   45685 States= 2.1e+08 Transitions= 3.17578e+08 Memory= 682.969
+Depth=   45685 States= 2.11e+08 Transitions= 3.19053e+08 Memory= 682.969
+Depth=   45685 States= 2.12e+08 Transitions= 3.20575e+08 Memory= 682.969
+Depth=   45685 States= 2.13e+08 Transitions= 3.22125e+08 Memory= 682.969
+Depth=   45685 States= 2.14e+08 Transitions= 3.23685e+08 Memory= 682.969
+Depth=   45685 States= 2.15e+08 Transitions= 3.25186e+08 Memory= 682.969
+Depth=   45685 States= 2.16e+08 Transitions= 3.26757e+08 Memory= 682.969
+Depth=   45685 States= 2.17e+08 Transitions= 3.28355e+08 Memory= 682.969
+Depth=   45685 States= 2.18e+08 Transitions= 3.29946e+08 Memory= 682.969
+Depth=   45685 States= 2.19e+08 Transitions= 3.31493e+08 Memory= 682.969
+Depth=   45685 States= 2.2e+08 Transitions= 3.33064e+08 Memory= 682.969
+Depth=   45685 States= 2.21e+08 Transitions= 3.34662e+08 Memory= 682.969
+Depth=   45685 States= 2.22e+08 Transitions= 3.3625e+08 Memory= 682.969
+Depth=   45685 States= 2.23e+08 Transitions= 3.37823e+08 Memory= 682.969
+Depth=   45685 States= 2.24e+08 Transitions= 3.39314e+08 Memory= 682.969
+Depth=   45685 States= 2.25e+08 Transitions= 3.40805e+08 Memory= 682.969
+Depth=   45685 States= 2.26e+08 Transitions= 3.42382e+08 Memory= 682.969
+Depth=   45685 States= 2.27e+08 Transitions= 3.43971e+08 Memory= 682.969
+Depth=   45685 States= 2.28e+08 Transitions= 3.45542e+08 Memory= 682.969
+Depth=   45685 States= 2.29e+08 Transitions= 3.47097e+08 Memory= 682.969
+Depth=   45685 States= 2.3e+08 Transitions= 3.48642e+08 Memory= 682.969
+Depth=   45685 States= 2.31e+08 Transitions= 3.50147e+08 Memory= 682.969
+Depth=   45685 States= 2.32e+08 Transitions= 3.51643e+08 Memory= 682.969
+Depth=   45685 States= 2.33e+08 Transitions= 3.53136e+08 Memory= 682.969
+Depth=   45685 States= 2.34e+08 Transitions= 3.5463e+08 Memory= 682.969
+Depth=   45685 States= 2.35e+08 Transitions= 3.56136e+08 Memory= 682.969
+Depth=   45685 States= 2.36e+08 Transitions= 3.5764e+08 Memory= 682.969
+Depth=   45685 States= 2.37e+08 Transitions= 3.59134e+08 Memory= 682.969
+Depth=   45685 States= 2.38e+08 Transitions= 3.60628e+08 Memory= 682.969
+Depth=   45685 States= 2.39e+08 Transitions= 3.62198e+08 Memory= 682.969
+Depth=   45685 States= 2.4e+08 Transitions= 3.63736e+08 Memory= 682.969
+Depth=   45685 States= 2.41e+08 Transitions= 3.65305e+08 Memory= 682.969
+Depth=   45685 States= 2.42e+08 Transitions= 3.66904e+08 Memory= 682.969
+Depth=   45685 States= 2.43e+08 Transitions= 3.68482e+08 Memory= 682.969
+Depth=   45685 States= 2.44e+08 Transitions= 3.70081e+08 Memory= 682.969
+Depth=   45685 States= 2.45e+08 Transitions= 3.71688e+08 Memory= 682.969
+Depth=   45685 States= 2.46e+08 Transitions= 3.73243e+08 Memory= 682.969
+Depth=   45685 States= 2.47e+08 Transitions= 3.74736e+08 Memory= 682.969
+Depth=   45685 States= 2.48e+08 Transitions= 3.76231e+08 Memory= 682.969
+Depth=   45685 States= 2.49e+08 Transitions= 3.77731e+08 Memory= 682.969
+Depth=   45685 States= 2.5e+08 Transitions= 3.79228e+08 Memory= 682.969
+Depth=   45685 States= 2.51e+08 Transitions= 3.80724e+08 Memory= 682.969
+Depth=   45685 States= 2.52e+08 Transitions= 3.8223e+08 Memory= 682.969
+Depth=   45685 States= 2.53e+08 Transitions= 3.83739e+08 Memory= 682.969
+Depth=   45685 States= 2.54e+08 Transitions= 3.85242e+08 Memory= 682.969
+Depth=   45685 States= 2.55e+08 Transitions= 3.86747e+08 Memory= 682.969
+Depth=   45685 States= 2.56e+08 Transitions= 3.88275e+08 Memory= 682.969
+Depth=   45685 States= 2.57e+08 Transitions= 3.89786e+08 Memory= 682.969
+Depth=   45685 States= 2.58e+08 Transitions= 3.91295e+08 Memory= 682.969
+Depth=   45685 States= 2.59e+08 Transitions= 3.92801e+08 Memory= 682.969
+Depth=   45685 States= 2.6e+08 Transitions= 3.94305e+08 Memory= 682.969
+Depth=   45685 States= 2.61e+08 Transitions= 3.95813e+08 Memory= 682.969
+Depth=   45685 States= 2.62e+08 Transitions= 3.97397e+08 Memory= 682.969
+Depth=   45685 States= 2.63e+08 Transitions= 3.98976e+08 Memory= 682.969
+Depth=   45685 States= 2.64e+08 Transitions= 4.00566e+08 Memory= 682.969
+Depth=   45685 States= 2.65e+08 Transitions= 4.02141e+08 Memory= 682.969
+Depth=   45685 States= 2.66e+08 Transitions= 4.03699e+08 Memory= 682.969
+Depth=   45685 States= 2.67e+08 Transitions= 4.05213e+08 Memory= 682.969
+Depth=   45685 States= 2.68e+08 Transitions= 4.06729e+08 Memory= 682.969
+Depth=   45685 States= 2.69e+08 Transitions= 4.0824e+08 Memory= 682.969
+Depth=   45685 States= 2.7e+08 Transitions= 4.09749e+08 Memory= 682.969
+Depth=   45685 States= 2.71e+08 Transitions= 4.11262e+08 Memory= 682.969
+Depth=   45685 States= 2.72e+08 Transitions= 4.12778e+08 Memory= 682.969
+Depth=   45685 States= 2.73e+08 Transitions= 4.14293e+08 Memory= 682.969
+Depth=   45685 States= 2.74e+08 Transitions= 4.1581e+08 Memory= 682.969
+Depth=   45685 States= 2.75e+08 Transitions= 4.17375e+08 Memory= 682.969
+Depth=   45685 States= 2.76e+08 Transitions= 4.18975e+08 Memory= 682.969
+Depth=   45685 States= 2.77e+08 Transitions= 4.20567e+08 Memory= 682.969
+Depth=   45685 States= 2.78e+08 Transitions= 4.22165e+08 Memory= 682.969
+Depth=   45685 States= 2.79e+08 Transitions= 4.23747e+08 Memory= 682.969
+Depth=   45685 States= 2.8e+08 Transitions= 4.25346e+08 Memory= 682.969
+Depth=   45685 States= 2.81e+08 Transitions= 4.26947e+08 Memory= 682.969
+Depth=   45685 States= 2.82e+08 Transitions= 4.2855e+08 Memory= 682.969
+Depth=   45685 States= 2.83e+08 Transitions= 4.3016e+08 Memory= 682.969
+Depth=   45685 States= 2.84e+08 Transitions= 4.31761e+08 Memory= 682.969
+Depth=   45685 States= 2.85e+08 Transitions= 4.33293e+08 Memory= 682.969
+Depth=   45685 States= 2.86e+08 Transitions= 4.34812e+08 Memory= 682.969
+Depth=   45685 States= 2.87e+08 Transitions= 4.36365e+08 Memory= 682.969
+Depth=   45685 States= 2.88e+08 Transitions= 4.37941e+08 Memory= 682.969
+Depth=   45685 States= 2.89e+08 Transitions= 4.39486e+08 Memory= 682.969
+Depth=   45685 States= 2.9e+08 Transitions= 4.41053e+08 Memory= 682.969
+Depth=   45685 States= 2.91e+08 Transitions= 4.42592e+08 Memory= 682.969
+Depth=   45685 States= 2.92e+08 Transitions= 4.44127e+08 Memory= 682.969
+Depth=   45685 States= 2.93e+08 Transitions= 4.45683e+08 Memory= 682.969
+Depth=   45685 States= 2.94e+08 Transitions= 4.47211e+08 Memory= 682.969
+Depth=   45685 States= 2.95e+08 Transitions= 4.4878e+08 Memory= 682.969
+Depth=   45685 States= 2.96e+08 Transitions= 4.50329e+08 Memory= 682.969
+Depth=   45685 States= 2.97e+08 Transitions= 4.51867e+08 Memory= 682.969
+Depth=   45685 States= 2.98e+08 Transitions= 4.53395e+08 Memory= 682.969
+Depth=   45685 States= 2.99e+08 Transitions= 4.54935e+08 Memory= 682.969
+Depth=   45685 States=   3e+08 Transitions= 4.56505e+08 Memory= 682.969
+Depth=   45685 States= 3.01e+08 Transitions= 4.58065e+08 Memory= 682.969
+Depth=   45685 States= 3.02e+08 Transitions= 4.596e+08 Memory= 682.969
+Depth=   45685 States= 3.03e+08 Transitions= 4.61147e+08 Memory= 682.969
+Depth=   45685 States= 3.04e+08 Transitions= 4.62701e+08 Memory= 682.969
+Depth=   45685 States= 3.05e+08 Transitions= 4.64237e+08 Memory= 682.969
+Depth=   45685 States= 3.06e+08 Transitions= 4.65773e+08 Memory= 682.969
+Depth=   45685 States= 3.07e+08 Transitions= 4.67328e+08 Memory= 682.969
+Depth=   45685 States= 3.08e+08 Transitions= 4.68881e+08 Memory= 682.969
+Depth=   45685 States= 3.09e+08 Transitions= 4.7043e+08 Memory= 682.969
+Depth=   45685 States= 3.1e+08 Transitions= 4.71988e+08 Memory= 682.969
+Depth=   45685 States= 3.11e+08 Transitions= 4.73544e+08 Memory= 682.969
+Depth=   45685 States= 3.12e+08 Transitions= 4.75088e+08 Memory= 682.969
+(Spin Version 3.4.16 -- 2 June 2002)
+	+ Partial Order Reduction
+
+Bit statespace search for:
+	never-claim         	+
+	assertion violations	+ (if within scope of claim)
+	acceptance   cycles 	+ (fairness enabled)
+	invalid endstates	- (disabled by never-claim)
+
+State-vector 388 byte, depth reached 45685, errors: 0
+3.12042e+08 states, stored
+1.63114e+08 states, matched
+4.75156e+08 transitions (= stored+matched)
+1.22255e+07 atomic steps
+hash factor: 3.44102 (best coverage if >100)
+(max size 2^30 states)
+
+Stats on memory usage (in Megabytes):
+124816.760	equivalent memory usage for states (stored*(State-vector + overhead))
+134.218	memory used for hash-array (-w30)
+536.871	memory used for bit stack
+2.400 	memory used for DFS stack (-m100000)
+682.969	total actual memory usage
+
+unreached in proctype sum_s1_thread
+	line 126, state 16, "syncsum_s1_thread = 1"
+	line 123, state 20, "((yapiM_m0_yapiininterface_state[1]==0))"
+	line 123, state 20, "else"
+	line 146, state 39, "((i_0<datatobetransferred_0))"
+	line 146, state 39, "else"
+	line 152, state 42, "index_0 = (index_0+1)"
+	line 143, state 44, "(1)"
+	line 161, state 53, "((i_0<vyapiM_m0_untransferredread))"
+	line 161, state 53, "else"
+	line 158, state 57, "(1)"
+	line 170, state 60, "vyapiM_m0_untransferredread = (vyapiM_m0_untransferredread-datatobetransferred_0)"
+	line 172, state 61, "datatobetransferred_0 = 0"
+	line 190, state 74, "function_return_0 = 1"
+	line 249, state 128, "function_return_0 = 1"
+	line 309, state 186, "function_return_0 = 1"
+	line 348, state 223, "function_return_0 = 1"
+	line 425, state 296, "function_return_0 = 1"
+	line 461, state 331, "function_return_0 = 1"
+	line 493, state 362, "function_return_0 = 1"
+	line 525, state 393, "function_return_0 = 1"
+	line 557, state 422, "(1)"
+	line 559, state 425, "function_return_0 = 1"
+	line 556, state 427, "((syncsum_s1_yapiM_m0_read==1))"
+	line 556, state 427, "((syncsum_s1_yapiM_m0_read==0))"
+	line 594, state 461, "function_return_0 = 1"
+	line 657, state 517, "function_return_0 = 1"
+	line 717, state 575, "function_return_0 = 1"
+	line 766, state 623, "function_return_0 = 1"
+	line 796, state 651, "(1)"
+	line 798, state 654, "function_return_0 = 1"
+	line 795, state 656, "((syncsum_s1_yapiM_m0_read==1))"
+	line 795, state 656, "((syncsum_s1_yapiM_m0_read==0))"
+	line 828, state 684, "function_return_0 = 1"
+	line 848, state 702, "(1)"
+	line 850, state 705, "function_return_0 = 1"
+	line 847, state 707, "((syncsum_s1_yapiM_m0_read==1))"
+	line 847, state 707, "((syncsum_s1_yapiM_m0_read==0))"
+	line 898, state 752, "function_return_0 = 1"
+	line 928, state 780, "(1)"
+	line 930, state 783, "function_return_0 = 1"
+	line 927, state 785, "((syncsum_s1_yapiM_m0_read==1))"
+	line 927, state 785, "((syncsum_s1_yapiM_m0_read==0))"
+	line 960, state 813, "function_return_0 = 1"
+	line 980, state 831, "(1)"
+	line 982, state 834, "function_return_0 = 1"
+	line 979, state 836, "((syncsum_s1_yapiM_m0_read==1))"
+	line 979, state 836, "((syncsum_s1_yapiM_m0_read==0))"
+	line 1910, state 893, "-end-"
+	(40 of 893 states)
+unreached in proctype datagen_dg1_thread
+	line 1056, state 35, "syncdatagen_dg1_thread = 1"
+	line 1053, state 39, "((yapiM_m0_yapioutinterface_state[1]==0))"
+	line 1053, state 39, "else"
+	line 1107, state 80, "function_return_0 = 1"
+	line 1156, state 126, "function_return_0 = 1"
+	line 1228, state 193, "function_return_0 = 1"
+	line 1299, state 259, "function_return_0 = 1"
+	line 1331, state 290, "function_return_0 = 1"
+	line 1363, state 321, "function_return_0 = 1"
+	line 1395, state 350, "(1)"
+	line 1397, state 353, "function_return_0 = 1"
+	line 1394, state 355, "((syncdatagen_dg1_yapiM_m0_write==1))"
+	line 1394, state 355, "((syncdatagen_dg1_yapiM_m0_write==0))"
+	line 1432, state 389, "function_return_0 = 1"
+	line 1485, state 437, "function_return_0 = 1"
+	line 1559, state 505, "function_return_0 = 1"
+	line 1617, state 561, "function_return_0 = 1"
+	line 1647, state 589, "(1)"
+	line 1649, state 592, "function_return_0 = 1"
+	line 1646, state 594, "((syncdatagen_dg1_yapiM_m0_write==1))"
+	line 1646, state 594, "((syncdatagen_dg1_yapiM_m0_write==0))"
+	line 1681, state 623, "function_return_0 = 1"
+	line 1701, state 641, "(1)"
+	line 1703, state 644, "function_return_0 = 1"
+	line 1700, state 646, "((syncdatagen_dg1_yapiM_m0_write==1))"
+	line 1700, state 646, "((syncdatagen_dg1_yapiM_m0_write==0))"
+	line 1747, state 689, "function_return_0 = 1"
+	line 1777, state 717, "(1)"
+	line 1779, state 720, "function_return_0 = 1"
+	line 1776, state 722, "((syncdatagen_dg1_yapiM_m0_write==1))"
+	line 1776, state 722, "((syncdatagen_dg1_yapiM_m0_write==0))"
+	line 1811, state 751, "function_return_0 = 1"
+	line 1831, state 769, "(1)"
+	line 1833, state 772, "function_return_0 = 1"
+	line 1830, state 774, "((syncdatagen_dg1_yapiM_m0_write==1))"
+	line 1830, state 774, "((syncdatagen_dg1_yapiM_m0_write==0))"
+	line 1954, state 823, "-end-"
+	(31 of 823 states)
+unreached in proctype :init:
+	(0 of 48 states)
+9661.47user 18.90system 2:42:03elapsed 99%CPU (0avgtext+0avgdata 0maxresident)k
+0inputs+0outputs (1479major+570820minor)pagefaults 0swaps
+
+#endif

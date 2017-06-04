@@ -1,0 +1,429 @@
+/*
+
+Copyright (c) 2004-2005 The Regents of the University of California.
+All rights reserved.
+
+Permission is hereby granted, without written agreement and without
+license or royalty fees, to use, copy, modify, and distribute this
+software and its documentation for any purpose, provided that the
+above copyright notice and the following two paragraphs appear in all
+copies of this software and that appropriate acknowledgments are made
+to the research of the Metropolis group.
+
+IN NO EVENT SHALL THE UNIVERSITY OF CALIFORNIA BE LIABLE TO ANY PARTY
+FOR DIRECT, INDIRECT, SPECIAL, INCIDENTAL, OR CONSEQUENTIAL DAMAGES
+ARISING OUT OF THE USE OF THIS SOFTWARE AND ITS DOCUMENTATION, EVEN IF
+THE UNIVERSITY OF CALIFORNIA HAS BEEN ADVISED OF THE POSSIBILITY OF
+SUCH DAMAGE.
+
+THE UNIVERSITY OF CALIFORNIA SPECIFICALLY DISCLAIMS ANY WARRANTIES,
+INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. THE SOFTWARE
+PROVIDED HEREUNDER IS ON AN "AS IS" BASIS, AND THE UNIVERSITY OF
+CALIFORNIA HAS NO OBLIGATION TO PROVIDE MAINTENANCE, SUPPORT, UPDATES,
+ENHANCEMENTS, OR MODIFICATIONS.
+
+METROPOLIS_COPYRIGHT_VERSION_1
+COPYRIGHTENDKEY
+
+*/
+
+
+package pip.architecture.simple;
+
+quantity SchedulerTimeSliceBased extends MyScheduler
+{
+    final static int SERVICE_ID_REQUEST        = 0;
+    final static int SERVICE_ID_READ_INIT = 1;
+    final static int SERVICE_ID_READ        = 2;
+    final static int SERVICE_ID_READ_PROTECTED_INIT        = 3;
+    final static int SERVICE_ID_READ_PROTECTED = 4;
+    final static int SERVICE_ID_WRITE_INIT        = 5;
+    final static int SERVICE_ID_WRITE = 6;
+    final static int SERVICE_ID_WRITE_PROTECTED_INIT = 7;
+    final static int SERVICE_ID_WRITE_PROTECTED = 8;
+    final static int SERVICE_ID_RELEASE        = 9;
+    final static int SERVICE_ID_CONTEXT_SWITCH = 10;
+    final static int NUMBER_OF_SERVICES = 11;
+
+    private String _name;
+    private int _schID;
+    private double _clk;
+    private double _time_slice;
+    private int _nSM;
+
+    private int[] _servCycle;
+
+    private ArrayList _pendingList;
+    private ArrayList _preemptedList;
+
+    private int _currentSMID;
+    private process _currentProc;
+    private int _preSMID;
+    private process _preProc;
+
+    private ProcessAccount _processAccount;
+    private double _local_time;
+    private event _current_pick;
+    private event _current_pick_release;
+
+    private boolean _stable;
+
+    SchedulerTimeSliceBased(String n, int id, double clock, double time_slice, int[] service_cycle,
+            int num_sms, int[] sms) {
+
+        super(n, num_sms);
+
+        _name = n;
+        _schID = id;
+
+        _clk = clock;
+        _time_slice = time_slice;
+        _nSM = num_sms;
+
+        _currentProc = null;
+        _currentSMID = -1;
+        _preProc = null;
+        _preSMID = -1;
+
+        _servCycle = new int[NUMBER_OF_SERVICES];
+
+        for (int i=0; i<NUMBER_OF_SERVICES; i++) {
+            _servCycle[i] = service_cycle[i];
+        }
+
+        _pendingList = new ArrayList();
+        _preemptedList = new ArrayList();
+
+        _pendingList.clear();
+        _preemptedList.clear();
+
+        _processAccount = new ProcessAccount();
+
+        _stable = false;
+        _local_time = 0;
+        _current_pick = null;
+        _current_pick_release = null;
+    }
+
+    public eval void request(event e, RequestClass rc) {
+        /*
+          blackbox(SystemCSim)%%
+          cout << "\nrequest() started";
+          cout << "\nProcess:- " << caller->name()
+          << " Address :- " << caller << " Event:- " << e<<endl;
+          %%;
+        */
+        SchedReqClass csr = (SchedReqClass)rc;
+
+        blackbox(SystemCSim)%%
+            /*
+              cout << "Process:- " << caller->name()
+              << " Event:- " << e  << " requested " << *_name;
+              cout << " cycles = "
+              << (csr->getAmount((process *)&_mng) * this->_servCycle[csr->getServiceID((process *)&_mng)])
+              << endl;
+              cout << "service type = " << csr->getServiceID((process*)&_mng) << endl;
+            */
+            %%;
+        csr.setOwnerID(getprocess(e));
+
+        int i = csr.getServiceID();
+        if ((i>=NUMBER_OF_SERVICES) || (i<0)) {
+            blackbox(SystemCSim)%%
+                cout << "Unknonwn service id "<<i<<endl;
+            exit(-1);
+            %%;
+        }
+
+        _processAccount.addToProcessAccount(e, (SchedReqClass)csr);
+
+        if (!_isAdded(csr)) {
+            _pendingList.add((Object)csr.clone());
+        }
+
+        /*
+          blackbox(SystemCSim)%%
+          cout << "\nrequest() ended";
+          %%;
+        */
+    }
+
+    public update void resolve() {
+        blackbox(SystemCSim)%%
+            cout << "ProcessAccount size = " << _processAccount->size(caller) << endl;
+        %%;
+        //if ((_processAccount.size()+1) == _nSM) {
+        if ((_processAccount.size()) >0) {
+            if ((_current_pick == null) && (_current_pick_release == null))
+                {
+                    _local_time = 0;
+                    while (true)
+                        {
+                            calculate_priorities();
+                            SchedReqClass cpureq = getHighestPriorityReleaseRequest();
+                            if (cpureq!=null)
+                                {
+                                    _current_pick_release = cpureq.getReqEvent();
+                                    int SMID1 = _smID(getprocess(_current_pick_release));
+                                    /*
+                                      int _req_amount = cpureq.getAmount();
+                                      int _serv_cycle = _servCycle[cpureq.getServiceID()];
+                                      int _cpuUsage = _processAccount.getCpuUsage(cpureq.getOwnerID());
+                                      blackbox(SystemCSim)%%
+                                      cout << "ReqAmount = " << _req_amount << endl;
+                                      cout << "Servcycle = " << _serv_cycle << endl;
+                                      cout << "CpuUsage = " <<_cpuUsage << endl;
+                                      %%;
+                                    */
+                                    if (((cpureq.getAmount() *
+                                                 _servCycle[cpureq.getServiceID()] * _clk)
+                                                - _processAccount.getCpuUsage(cpureq.getOwnerID())) >
+                                            (_clk * _time_slice))
+                                        {
+                                            _local_time = _local_time + _clk * _time_slice;
+                                            _current_pick_release = null;
+                                            _preemptedList.add((Object)cpureq.clone());
+                                            _processAccount.setCpuUsage (cpureq.getOwnerID(),
+                                                    _clk * _time_slice);
+                                            blackbox(SystemCSim)%%
+                                                cout << "SchedulerTimeSliceBased Time slice expired" << endl;
+                                            %%;
+                                        }
+                                    else
+                                        {
+                                            double _tmp = (cpureq.getAmount() *
+                                                    _servCycle[cpureq.getServiceID()] * _clk
+                                                    - _processAccount.getCpuUsage(cpureq.getOwnerID()));
+                                            _local_time+=_tmp;
+
+                                            _processAccount.setCpuUsage (cpureq.getOwnerID(),_tmp);
+                                            break;
+                                        }
+                                }
+
+                            cpureq = getHighestPriorityRequest();
+                            /*
+                              _req_amount = cpureq.getAmount();
+                              _serv_cycle = _servCycle[cpureq.getServiceID()];
+                              _cpuUsage = _processAccount.getCpuUsage(cpureq.getOwnerID());
+                              blackbox(SystemCSim)%%
+                              cout << "ReqAmount = " << _req_amount << endl;
+                              cout << "Servcycle = " << _serv_cycle << endl;
+                              cout << "CpuUsage = " <<_cpuUsage << endl;
+                              %%;
+                            */
+                            blackbox(SystemCSim)%%
+                                //cout << "SchedulerTimeSliceBased chosen req is :- " << cpureq << endl;
+                                %%;
+                            if (cpureq != null)
+                                {
+                                    _current_pick = cpureq.getReqEvent();
+                                    int SMID2 = _smID(getprocess(_current_pick));
+                                    if (((cpureq.getAmount() *
+                                                 _servCycle[cpureq.getServiceID()] * _clk)
+                                                - _processAccount.getCpuUsage(cpureq.getOwnerID())) >
+                                            (_clk * _time_slice))
+                                        {
+                                            _local_time = _local_time + _clk * _time_slice;
+                                            _current_pick = null;
+                                            _preemptedList.add((Object)cpureq.clone());
+                                            _processAccount.setCpuUsage (cpureq.getOwnerID(),
+                                                    _clk * _time_slice);
+                                            blackbox(SystemCSim)%%
+                                                cout << "SchedulerTimeSliceBased Time slice expired" << endl;
+                                            //cout << "Preempted Task " << getprocess(_current_pick) << endl;
+                                            %%;
+                                            _current_pick = null;
+                                        }
+                                    else
+                                        {
+                                            blackbox(SystemCSim)%%
+                                                cout << "Chose task " <<  (_current_pick)->getProcess()->name() << endl;
+                                            %%;
+                                            double _tmp = (cpureq.getAmount() *
+                                                    _servCycle[cpureq.getServiceID()] * _clk
+                                                    - _processAccount.getCpuUsage(cpureq.getOwnerID()));
+                                            _local_time+=_tmp;
+
+                                            _processAccount.setCpuUsage (cpureq.getOwnerID(),_tmp);
+                                            break;
+                                        }
+                                }
+                        }
+
+                    if (_current_pick != null)
+                        {
+                            double t;
+                            t = _portGT.getCurrentTime();
+
+                            _portGT.request(_current_pick, new GlobalTimeRequestClass(t + _local_time));
+                            /*
+                              blackbox(SystemCSim)%%
+                              cout << "\nGTime request made from SchedulerTimeSliceBased " << t + _local_time;
+                              %%;
+                            */
+                        }
+
+                    if (_current_pick_release != null)
+                        {
+                            double t;
+                            t = _portGT.getCurrentTime();
+                            _portGT.request(_current_pick_release, new GlobalTimeRequestClass(t + _local_time));
+                            /*
+                              blackbox(SystemCSim)%%
+                              cout << "\nGTime request made from SchedulerTimeSliceBased " << t + _local_time;
+                              %%;
+                            */
+                        }
+                }
+            else
+                {
+                    boolean check1=false, check2=false;
+                    if (_current_pick != null)
+                        {
+                            if (!_portSM[_smID(getprocess(_current_pick))].isEventEnabled(_current_pick)) {
+                                check1=true;
+                            }
+                            else {
+                                _processAccount.removeFromProcessAccount(_current_pick);
+                            }
+                        }
+                    if (_current_pick_release != null)
+                        {
+                            if (!_portSM[_smID(getprocess(_current_pick_release))].isEventEnabled(_current_pick_release)) {
+                                check2 = true;
+                            }
+                            else {
+                                _processAccount.removeFromProcessAccount(_current_pick_release);
+                            }
+                        }
+
+                    if ((check1==true)||(check2==true))
+                        {
+                            //_local_time = 0;
+                            int cnt = 0;
+                            while (cnt < _preemptedList.size() )
+                                {
+                                    process temp =
+                                        (process)(((SchedReqClass)
+                                                          _preemptedList.get(cnt)).getOwnerID());
+                                    _processAccount.rollbackCpuUsage(temp, _time_slice*_clk);
+                                    _local_time = _local_time - _time_slice*_clk;
+                                    cnt++;
+                                }
+
+                            if (_current_pick_release!=null) {
+                                _processAccount.rollbackCpuUsage(getprocess(_current_pick_release), _local_time);
+                                _local_time = 0;
+                            }
+
+                            if (_current_pick!=null) {
+                                _processAccount.rollbackCpuUsage(getprocess(_current_pick), _local_time);
+                                _local_time = 0;
+                            }
+
+                            if (_local_time != 0)  {
+                                blackbox(SystemCSim) %%
+                                    exit(1);
+                                %%;
+                            }
+                            _current_pick = null;
+                            _current_pick_release = null;
+                        }
+                    /*
+                      else {
+                      if (_current_pick!=null) {
+                      _processAccount.removeFromProcessAccount(_current_pick);
+                      }
+                      if (_current_pick_release!=null) {
+                      _processAccount.removeFromProcessAccount(_current_pick_release);
+                      }
+                      }*/
+                    _preemptedList.clear();
+                    _stable = true;
+                }
+        }
+        else {
+            _stable = true;
+        }
+    }
+
+
+    public update void postcond()
+        {
+            int i, j, smid;
+            SchedReqClass csr;
+            event req_event;
+            for (i=0; i < _pendingList.size(); i++)
+                {
+                    csr = (SchedReqClass)_pendingList.get(i);
+                    req_event = csr.getReqEvent();
+                    smid = _smID(getprocess(req_event));
+                    if (!((req_event == _current_pick) ||
+                                (req_event == _current_pick_release))) {
+                        _portSM[smid].setMustNotDo(req_event);
+                    }
+                    //    else
+                    //    {
+                    //       sm[smid].setMustNotDo(req_event);
+                    //    }
+                }
+            _pendingList.clear();
+            _preemptedList.clear();
+            _current_pick = null;
+            _current_pick_release = null;
+            _local_time = 0;
+            _stable = false;
+        }
+
+    public eval boolean stable() {
+        return _stable;
+    }
+
+    private void calculate_priorities()
+        {
+            _processAccount.updatePriorities();
+        }
+
+    SchedReqClass getHighestPriorityRequest()
+        {
+            return _processAccount.getHighestPriorityRequest();
+        }
+
+    SchedReqClass getHighestPriorityReleaseRequest()
+        {
+            return _processAccount.getHighestPriorityReleaseRequest();
+        }
+
+    private int _smID(process p)
+        {
+            int i;
+            for (i=0; i < _nSM; i++)
+                {
+                    if (_portSM[i].getProcess() == p)
+                        {
+                            return i;
+                        }
+                }
+            blackbox(SystemCSim)%%
+                cout << "\nSchedulerTimeSliceBased, smID: unknown process" << endl;
+            %%;
+            return -1;
+        }
+
+    private boolean _isAdded(SchedReqClass src) {
+        int i;
+        SchedReqClass pending_csr;
+        event pending_event;
+
+        for (i=0; i<_pendingList.size(); i++) {
+            pending_csr         = (SchedReqClass)_pendingList.get(i);
+            pending_event = pending_csr.getReqEvent();
+
+            if (src.getReqEvent()==pending_event) return true;
+        }
+
+        return false;
+    }
+}

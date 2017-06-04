@@ -1,0 +1,242 @@
+/* A medium that take care of the requests for a synchronous process
+
+Copyright (c) 2004-2005 The Regents of the University of California.
+All rights reserved.
+
+Permission is hereby granted, without written agreement and without
+license or royalty fees, to use, copy, modify, and distribute this
+software and its documentation for any purpose, provided that the
+above copyright notice and the following two paragraphs appear in all
+copies of this software and that appropriate acknowledgments are made
+to the research of the Metropolis group.
+
+IN NO EVENT SHALL THE UNIVERSITY OF CALIFORNIA BE LIABLE TO ANY PARTY
+FOR DIRECT, INDIRECT, SPECIAL, INCIDENTAL, OR CONSEQUENTIAL DAMAGES
+ARISING OUT OF THE USE OF THIS SOFTWARE AND ITS DOCUMENTATION, EVEN IF
+THE UNIVERSITY OF CALIFORNIA HAS BEEN ADVISED OF THE POSSIBILITY OF
+SUCH DAMAGE.
+
+THE UNIVERSITY OF CALIFORNIA SPECIFICALLY DISCLAIMS ANY WARRANTIES,
+INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. THE SOFTWARE
+PROVIDED HEREUNDER IS ON AN "AS IS" BASIS, AND THE UNIVERSITY OF
+CALIFORNIA HAS NO OBLIGATION TO PROVIDE MAINTENANCE, SUPPORT, UPDATES,
+ENHANCEMENTS, OR MODIFICATIONS.
+
+METROPOLIS_COPYRIGHT_VERSION_1
+COPYRIGHTENDKEY
+
+@ProposedRating yellow apinto@eecs.berkeley.edu
+
+*/
+
+package metamodel.plt.polychronyscaled;
+
+//////////////////////////////////////////////////////////////////////////
+//// SynchClockAssistant
+/**
+   SynchClockAssistant is a medium that is used handle the clock requests
+   coming form the synchronous process associated with it
+   ( @see metamodel.plt.polychronyscaled.SynchProcess ). It implements
+   interfaces for making requests. It is used as a way of decoupling who make
+   requests form how the requests are granted. In particular the acknowledge
+   can come form a quantitiy manager or can be generated internally after
+   desynchronization.
+
+   @author Alessandro Pinto
+   @version $Id: SynchClockAssistant.mmm,v 1.13 2006/10/13 03:35:12 cxh Exp $
+*/
+
+public medium SynchClockAssistant implements SynchClockRequestable,SynchSafeSettable {
+
+
+    ///////////////////////////////////////////////////////////////////
+    ////                         Ports                             ////
+
+    /**Port to the statemedium connected to the round quantity manager*/
+    port SynchRequestable tostatemedium;
+
+
+    ///////////////////////////////////////////////////////////////////
+    ////                      Constructors                         ////
+
+    /**The constructor takes a name, the number of input and output
+     *ports of the porcess connected to the clock assistant and a
+     *boolean specifying if the netlist is synchronous or has already
+     *benn desynchronized.This boolean will be used in the request
+     *method to understand whether the request has to be forwarded to the
+     *quantity manager or it has to be handled internally.
+     */
+    public SynchClockAssistant(String n,int nin, int nout,boolean inrefinement) {
+        super(n);
+        _inrefinement = inrefinement;
+        _outputsafe = new boolean[nout];
+        _inputsafe = new boolean[nin];
+        _numberofinput = nin;
+        _numberofoutput = nout;
+        int i;
+        for (i=0;i<_numberofinput;i++) {
+            _inputsafe[i] = false;
+        };
+        for (i=0;i<_numberofoutput;i++) {
+            _outputsafe[i] = false;
+        };
+    }
+
+    ///////////////////////////////////////////////////////////////////
+    ////                  Elaboration Methods                      ////
+
+    /**Sets the level of abstraction (synchronous or desynchonized)*/
+    public elaborate void setInRefinement(boolean inrefinement) {
+        _inrefinement = inrefinement;
+    }
+
+    /**Returns the level of abstraction (synchronous or desynchonized)*/
+    public elaborate boolean getInRefinement() {
+        return _inrefinement;
+    }
+
+    /**Returns the unique number associated with the clock assistant
+     *This number has to match the number of the unique process
+     *connected to this clock assistant.
+     */
+    public elaborate int getClockAssistantNumber() {
+        return _clockassistantnumber;
+    }
+
+    /**Sets the unique number associated with the clock assistant
+     *This number has to match the number of the unique process
+     *connected to this clock assistant.
+     */
+    public elaborate void setClockAssistantNumber(int nm) {
+        _clockassistantnumber=nm;
+    }
+
+
+    ///////////////////////////////////////////////////////////////////
+    ////                         public methods                    ////
+
+    /**This method handles the clock request issued by the process
+     *connected to this clock assistant. If the model has not been refined
+     *then the request is passed to the rounds quantity manager. If the
+     *model has been desynchronized then the request is granted when
+     *all the inputs and outputs are safe.
+     *
+     */
+    public update void request(SynchRequest sr) {
+
+        if (!_inrefinement){
+            //blackbox(SystemCSim)%%
+            ///                    cout << "Clock Assistant number "  << _clockassistantnumber << "is making a request"<< endl;
+            //        %%;
+            req{@ ;
+ {$ beg{
+     sr.setEvent(beg(getthread(), this.req));
+     tostatemedium.request(beg(getthread(), this.req),sr );
+ }
+ $}
+ @};
+        }else {
+            await{
+                ((numberOfSafeOutput() == _numberofoutput)&&(numberOfSafeInput() == _numberofinput);;) {
+                    ;}
+            }
+            int i; //reset safe flags
+            for (i=0;i<_numberofoutput;i++) {
+                if (_outputsafe[i] == true) {
+                    _outputsafe[i] = false;
+                };
+            };
+            for (i=0;i<_numberofinput;i++) {
+                if (_inputsafe[i] == true) {
+                    _inputsafe[i] = false;
+                };
+            };
+
+        };
+
+    }
+
+
+    /**Sets safe the input port pn*/
+    public update void setInputSafe(int pn) {
+        _inputsafe[pn] = true;
+    }
+
+    /**Sets safe the output port pn*/
+    public update void setOutputSafe(int pn) {
+        _outputsafe[pn] = true;
+    }
+
+
+    ///////////////////////////////////////////////////////////////////
+    ////                         private methods                   ////
+
+
+    /**Returns the number of safe outputs of the process connected to this
+     *clock assistant
+     */
+    int numberOfSafeOutput() {
+        int n;
+        n = 0;
+        for (int i=0;i<_numberofoutput;i++) {
+            if (_outputsafe[i] == true) {
+                n++;
+            };
+        };
+        return n;
+    }
+
+
+    /**Returns the number of safe inputs of the process connected to this
+     *clock assistant
+     */
+    int numberOfSafeInput() {
+        int n;
+        n = 0;
+        for (int i=0;i<_numberofinput;i++) {
+            if (_inputsafe[i] == true) {
+                n++;
+            };
+        };
+        return n;
+    }
+
+
+    ///////////////////////////////////////////////////////////////////
+    ////                         private variables                 ////
+
+
+    /**It is true if the netlist has been desynchronized*/
+    boolean _inrefinement;
+
+    /**The i-th element is true if the
+     *i-th output port is safe
+     */
+    boolean _outputsafe[];
+
+
+    /**The i-th element is true if the
+     *i-th input port is safe
+     */
+    boolean _inputsafe[];
+
+    /**Number of input ports of the process connected to this
+     *clock assistant
+     */
+    int _numberofinput;
+
+
+    /**Number of output ports of the process connected to this
+     *clock assistant
+     */
+    int _numberofoutput;
+
+    /**Unique identifier of this clock assistant. It has to match
+     *the identified of the process connected to it.
+     */
+    int _clockassistantnumber;
+
+
+
+}

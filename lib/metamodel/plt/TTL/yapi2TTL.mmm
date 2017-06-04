@@ -1,0 +1,927 @@
+/*
+  Copyright (c) 2004-2005 The Regents of the University of California.
+  All rights reserved.
+
+  Permission is hereby granted, without written agreement and without
+  license or royalty fees, to use, copy, modify, and distribute this
+  software and its documentation for any purpose, provided that the
+  above copyright notice and the following two paragraphs appear in all
+  copies of this software and that appropriate acknowledgments are made
+  to the research of the Metropolis group.
+
+  IN NO EVENT SHALL THE UNIVERSITY OF CALIFORNIA BE LIABLE TO ANY PARTY
+  FOR DIRECT, INDIRECT, SPECIAL, INCIDENTAL, OR CONSEQUENTIAL DAMAGES
+  ARISING OUT OF THE USE OF THIS SOFTWARE AND ITS DOCUMENTATION, EVEN IF
+  THE UNIVERSITY OF CALIFORNIA HAS BEEN ADVISED OF THE POSSIBILITY OF
+  SUCH DAMAGE.
+
+  THE UNIVERSITY OF CALIFORNIA SPECIFICALLY DISCLAIMS ANY WARRANTIES,
+  INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+  MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. THE SOFTWARE
+  PROVIDED HEREUNDER IS ON AN "AS IS" BASIS, AND THE UNIVERSITY OF
+  CALIFORNIA HAS NO OBLIGATION TO PROVIDE MAINTENANCE, SUPPORT, UPDATES,
+  ENHANCEMENTS, OR MODIFICATIONS.
+
+  METROPOLIS_COPYRIGHT_VERSION_1
+  COPYRIGHTENDKEY
+*/
+package metamodel.plt.TTL;
+
+import metamodel.plt.yapi.*;
+
+
+//user defined space/tokens functions
+public class stfunc {
+    int f(int x,int n) {
+        return n;
+    }
+}
+
+
+public interface rdwrthresholdinterface extends Port {
+    update void setwritethreshold(int th);
+    update void setreadthreshold(int th);
+    eval int getwritethreshold();
+    eval int guard_getwritethreshold();
+    eval int guard_getreadthreshold();
+    eval int getreadthreshold();
+    update void wakeuprd();
+    eval boolean testwakeuprd();
+    update void resetwakeuprd();
+    update void wakeupwr();
+    eval boolean testwakeupwr();
+    update void resetwakeupwr();
+
+}
+
+interface rdrdi extends Port {
+}
+interface wrrdi extends Port {
+}
+
+interface rdwri extends Port {
+}
+
+interface wrwri extends Port {
+}
+
+interface rdwkrdi extends Port {
+}
+interface wrwkrdi extends Port {
+}
+
+interface rdwkwri extends Port {
+}
+
+interface wrwkwri extends Port {
+}
+
+public medium rdwrthreshold implements  rdwrthresholdinterface,
+    rdrdi,
+    wrrdi,
+    rdwri,
+    wrwri,
+    rdwkrdi,
+    wrwkrdi,
+    rdwkwri,
+    wrwkwri {
+
+    int wtr,rtr;
+    boolean wkrd,wkwr;
+    public rdwrthreshold (String n) {
+        super(n);
+        wtr = 0;
+        rtr = 0;
+    }
+
+    public update void setwritethreshold(int th) {
+        await{
+            (true;this.rdwri;this.wrwri)
+                {
+                    blackbox(SystemCSim)%%
+                        // cout << name() << ": WriteTh=" << th << endl;
+                        %%;
+
+                    wtr=th;
+                }
+        }
+    }
+
+    public update void setreadthreshold(int th) {
+        await{
+            (true;this.rdrdi;this.wrrdi)
+                {
+                    blackbox(SystemCSim)%%
+                        // cout << name() << ": ReadTh = " << th << endl;
+                        %%;
+                    rtr=th;
+                }
+        }
+    }
+
+    public eval int getwritethreshold() {
+        await{
+            (true;this.wrwri;this.rdwri) {
+                blackbox(SystemCSim)%%
+                    // cout << name() << ": Eval WriteTh = " << wtr << endl;
+                    %%;
+                return wtr;
+            }
+        }
+    }
+
+    public eval int guard_getwritethreshold() {
+        blackbox(SystemCSim)%%
+            //        cout << name() << ": Eval WriteTh = " << wtr << endl;
+            %%;
+        return wtr;
+    }
+
+    public eval int guard_getreadthreshold() {
+        blackbox(SystemCSim)%%
+            // cout << name() << ": Guard Eval ReadTh = " << rtr << endl;
+            %%;
+        return rtr;
+    }
+
+    public eval int getreadthreshold() {
+        await{
+            (true;this.wrrdi;this.rdrdi) {
+                blackbox(SystemCSim)%%
+                    //        cout << name() << ": Eval ReadTh = " << rtr << endl;
+                    %%;
+                return rtr;
+            }
+        }
+    }
+
+    public update void wakeuprd() {
+        await{
+            (true;this.rdwkrdi;this.wrwkrdi)
+                {
+                    blackbox(SystemCSim)%%
+                        // cout << name() << ": Wake-up Reader" << endl;
+                        %%;
+
+                    wkrd = true;
+                }
+        }
+    }
+
+    public eval boolean testwakeuprd() {
+        /*
+          await{
+          (true;this.wrwkrdi;this.rdwkrdi) {
+          blackbox(SystemCSim)%%
+          // cout << name() << ": Eval wkrd" << endl;
+          %%;
+
+          return wkrd;
+          }
+          }
+        */
+        blackbox(SystemCSim)%%
+            //        cout << name() << ": Eval wkrd = " << wkrd << endl;
+            %%;
+
+        return wkrd;
+    }
+
+    public update void resetwakeuprd() {
+        await{
+            (true;this.rdwkrdi;this.wrwkrdi)
+                {
+                    blackbox(SystemCSim)%%
+                        // cout << name() << ": wkrd set false" << endl;
+                        %%;
+
+                    wkrd = false;
+                }
+        }
+    }
+
+    public update void wakeupwr() {
+        await{
+            (true;this.rdwkwri;this.wrwkwri)
+                {
+                    blackbox(SystemCSim)%%
+                        // cout << name() << ": Wake-up Writer" << endl;
+                        %%;
+
+                    wkwr =true;
+                }
+        }
+    }
+
+    public eval boolean testwakeupwr() {
+        /*
+          await{
+          (true;this.wrwkwri;this.rdwkwri) {
+          blackbox(SystemCSim)%%
+          // cout << name() << ": Eval wkwr" << endl;
+          %%;
+
+          return wkwr;
+          }
+          }
+        */
+        blackbox(SystemCSim)%%
+            //        cout << name() << ": Eval wkwr = " << wkwr << endl;
+            %%;
+
+        return wkwr;
+    }
+
+    public update void resetwakeupwr() {
+        await{
+            (true;this.rdwkwri;this.wrwkwri)
+                {
+                    blackbox(SystemCSim)%%
+                        // cout << name() << ": wkwr set false" << endl;
+                        %%;
+
+                    wkwr=false;
+                }
+        }
+    }
+}
+
+
+public medium yapi2TTLchannel implements yapioutinterface {
+
+    port boundedfifooutinterface tofifo;
+    port boundedfifoininterface fromfifo;
+    port rdwrthresholdinterface rdwrth;
+
+    parameter int tokensize;
+    parameter int numberoftokens;
+
+    int untransferredwrite;
+
+    Object[] buffercopywrite;
+
+
+    stfunc spacetokens;
+
+    public yapi2TTLchannel(String n,int ts,int nt,stfunc stf) {
+        super(n);
+        spacetokens = stf;
+        tokensize = ts;
+        numberoftokens = nt;
+        buffercopywrite = new Object[tokensize];
+        untransferredwrite = 0;  // added by YW
+    }
+
+    public update void write(Object[][] data,int n,int m) {
+
+        int i,j;
+        Object[] MtoV = new Object[n*m];
+        for (i=0;i<n;i++)
+            for (j=0;j<m;j++) {
+                MtoV[i*m + j] = data[i][j].clone();
+            };
+        write(MtoV,n*m);
+        blackbox(SystemCSim)%%
+            for (i=0;i<n*m;i++)
+                delete MtoV[i];
+        delete[] MtoV;
+        %%;
+
+
+    }
+
+    public update void write(Object data) {
+        Object[] DtoV = new Object[1];
+
+        DtoV[0] = data.clone();
+        write(DtoV,1);
+        blackbox(SystemCSim)%%
+            delete DtoV[0];
+        delete[] DtoV;
+        %%;
+    }
+
+    public update void write(int data) {
+        yapiint d = new yapiint(data);
+        write((Object)d);
+
+        blackbox(SystemCSim)%%
+            delete d;
+        %%;
+    }
+
+    public update void write(int[] data,int n) {
+        int i;
+        yapiint[]  d = new yapiint[n];
+        for (i=0;i<n;i++)
+            d[i] = new yapiint(data[i]);
+        write((Object[])d,n);
+        blackbox(SystemCSim)%%
+            for (i=0;i<n;i++)
+                delete d[i] ;
+        delete[] d;
+        %%;
+    }
+
+    public update void write(int[][] data,int n,int m) {
+        int i,j;
+        yapiint[][]  d = new yapiint[n][m];
+        for (i=0;i<n;i++)
+            for (j=0;j<m;i++)
+                d[i][j] = new yapiint(data[i][j]);
+        write((Object[][])d,n,m);
+        blackbox(SystemCSim)%%
+            for (i=0;i<n;i++) {
+                for (j=0;j<m;i++)
+                    delete d[i][j];
+            }
+        for (i=0;i<n;i++)
+            delete[] d[i];
+        delete[] d;
+        %%;
+
+    }
+
+    public update void write(short data) {
+        yapishort d = new yapishort(data);
+        write((Object)d);
+        blackbox(SystemCSim)%%
+            delete d;
+        %%;
+    }
+
+    public update void write(short[] data,int n) {
+        int i;
+        yapishort[]  d = new yapishort[n];
+        for (i=0;i<n;i++)
+            d[i] = new yapishort(data[i]);
+        write((Object[])d,n);
+        blackbox(SystemCSim)%%
+            for (i=0;i<n;i++)
+                delete d[i];
+        delete[] d;
+        %%;
+    }
+
+    public update void write(short[][] data,int n,int m) {
+        int i,j;
+        yapishort[][]  d = new yapishort[n][m];
+        for (i=0;i<n;i++)
+            for (j=0;j<m;i++)
+                d[i][j] = new yapishort(data[i][j]);
+        write((Object[][])d,n,m);
+        blackbox(SystemCSim)%%
+            for (i=0;i<n;i++) {
+                for (j=0;j<m;i++)
+                    delete d[i][j];
+            }
+        for (i=0;i<n;i++)
+            delete[] d[i];
+        delete[] d;
+        %%;
+    }
+
+    public update void write(double data) {
+        yapidouble d= new yapidouble(data);
+        write((Object)d);
+    }
+
+    public update void write(double[] data,int n) {
+        int i;
+        yapidouble[]  d = new yapidouble[n];
+        for (i=0;i<n;i++)
+            d[i] = new yapidouble(data[i]);
+        write((Object[])d,n);
+        blackbox(SystemCSim)%%
+            for (i=0;i<n;i++)
+                delete d[i];
+        delete[] d;
+        %%;
+    }
+
+    public update void write(double[][] data,int n,int m) {
+        int i,j;
+        yapidouble[][]  d = new yapidouble[n][m];
+        for (i=0;i<n;i++)
+            for (j=0;j<m;i++)
+                d[i][j] = new yapidouble(data[i][j]);
+        write((Object[][])d,n,m);
+        blackbox(SystemCSim)%%
+            for (i=0;i<n;i++) {
+                for (j=0;j<m;i++)
+                    delete d[i][j];
+            }
+        for (i=0;i<n;i++)
+            delete[] d[i];
+        delete[] d;
+        %%;
+    }
+
+
+
+    public update void write(Object[] data,int n) {
+        int datatobetransferred = n;
+        int spaces,i;
+        int transferredtokens;
+        int tokenstobetransferred;
+        int threshold;
+        int index = 0;
+
+        while (datatobetransferred > 0) {
+            if ((untransferredwrite + datatobetransferred) < tokensize){ // x <= 0
+                for (i=0;i<datatobetransferred;i++)
+                    buffercopywrite[untransferredwrite + i] = data[index++].clone();
+                untransferredwrite = untransferredwrite + datatobetransferred;
+                datatobetransferred = 0;
+            }
+            else { //x > 0
+
+                transferredtokens = 0;
+                spaces = tofifo.query_space();
+
+                if ((datatobetransferred + untransferredwrite) <= tokensize * spaces){  // x <= spaces
+                    //transfer all tokens
+                    for (i=untransferredwrite;i<tokensize;i++)
+                        buffercopywrite[i] = data[index++].clone();
+                    tofifo.release_data(buffercopywrite);
+                    blackbox(SystemCSim)%%
+                        for (i=0;i<tokensize;i++)
+                            delete buffercopywrite[i];
+                    %%;
+                    datatobetransferred = datatobetransferred - (tokensize - untransferredwrite);
+
+                    while (datatobetransferred >= tokensize) {
+                        for (i=0;i<tokensize;i++)
+                            buffercopywrite[i] = data[index++].clone();
+                        tofifo.release_data(buffercopywrite);
+                        blackbox(SystemCSim)%%
+                            for (i=0;i<tokensize;i++)
+                                delete buffercopywrite[i];
+                        %%;
+                        datatobetransferred = datatobetransferred - tokensize;
+                        transferredtokens++;
+                    }
+
+                    for (i=0;i<datatobetransferred;i++)
+                        buffercopywrite[i] = data[index++].clone();
+                    untransferredwrite = datatobetransferred;
+                    datatobetransferred = 0;
+                    rdwrth.setwritethreshold(0);
+
+                    if ((rdwrth.getreadthreshold() > 0) &&
+                            (fromfifo.query_data() >= rdwrth.getreadthreshold())){
+                        rdwrth.wakeuprd();
+                    }
+                }
+                else {
+
+                    if ( rdwrth.getreadthreshold() > 0){ // rtr > 0
+                        tokenstobetransferred = spacetokens.f(((datatobetransferred + untransferredwrite)/tokensize),spaces);
+
+                        if (tokenstobetransferred > 0) {
+                            //transfer x' tokens
+                            for (i=untransferredwrite;i<tokensize;i++)
+                                buffercopywrite[i] = data[index++].clone();
+                            tofifo.release_data(buffercopywrite);
+                            blackbox(SystemCSim)%%
+                                for (i=0;i<tokensize;i++)
+                                    delete buffercopywrite[i];
+                            %%;
+                            transferredtokens++;
+
+                            datatobetransferred = datatobetransferred - (tokensize - untransferredwrite);
+
+                            while (transferredtokens < tokenstobetransferred) {
+                                for (i=0;i<tokensize;i++)
+                                    buffercopywrite[i] = data[index++].clone();
+                                tofifo.release_data(buffercopywrite);
+                                blackbox(SystemCSim)%%
+                                    for (i=0;i<tokensize;i++)
+                                        delete buffercopywrite[i];
+                                %%;
+                                datatobetransferred = datatobetransferred - tokensize;
+                                transferredtokens++;
+                            }
+                            untransferredwrite = 0;
+
+                        }
+                        threshold = datatobetransferred/tokensize; // YW
+                        rdwrth.setwritethreshold(threshold);
+                        rdwrth.wakeuprd();
+                        //blackbox(SystemCSim)%%
+                        //  cout << " Data to be send " << datatobetransferred/tokensize << endl;
+                        //%%;
+                        if (threshold > 0){ // YW
+                            await{
+                                (rdwrth.testwakeupwr();;)
+                                    {
+                                        rdwrth.resetwakeupwr();
+                                    }
+                            }
+                        }
+                    }
+                    else {
+                        threshold = (untransferredwrite + datatobetransferred)/tokensize; // YW
+                        rdwrth.setwritethreshold(threshold);
+                        // rdwrth.wakeuprd();  YW
+                        rdwrth.wakeuprd();
+                        //blackbox(SystemCSim)%%
+                        //  cout << " Data to be send " << datatobetransferred/tokensize << endl;
+                        //%%;
+                        if (threshold > 0){  // YW
+                            await{
+                                (rdwrth.testwakeupwr();;)
+                                    {
+                                        rdwrth.resetwakeupwr();
+                                    }
+                            }
+                        }
+                    }
+
+                }
+
+            }
+        }
+
+    }
+
+
+    //int f(int x,int space) {
+    //return space;
+    //}
+
+
+    public eval boolean checkfifo(int n,int dir) {
+        // return true; commented out by YW
+        return (tofifo.guard_query_space()*tokensize > n);
+    }
+
+}
+
+
+
+public medium TTL2yapichannel implements yapiininterface {
+
+    port boundedfifoininterface fromfifo;
+    port boundedfifooutinterface tofifo;
+    port rdwrthresholdinterface rdwrth;
+
+    parameter int tokensize;
+    parameter int numberoftokens;
+
+    int untransferredread;
+    Object[] buffercopyread;
+
+    stfunc spacetokens;
+
+    public TTL2yapichannel(String n,int ts,int nt,stfunc stf) {
+        super(n);
+        spacetokens = stf;
+        tokensize = ts;
+        numberoftokens = nt;
+        buffercopyread = new Object[tokensize];
+        untransferredread = 0; // added by YW
+    }
+
+
+    public update void read(Object[] data,int n) {
+        int datatobetransferred = n;
+        int tokens,i;
+        int transferredtokens;
+        int tokenstobetransferred;
+        int threshold;
+        int index = 0;
+        blackbox(SystemCSim)%%
+            for (int i=0 ; i<n ; i++)
+                if (data[i]) delete data[i];
+        %%;
+        while (datatobetransferred > 0) {
+            if (untransferredread >= datatobetransferred){ // x <= 0
+                for (i=0;i<datatobetransferred;i++) {
+                    //data[index++] = buffercopyread[i].clone();
+                    data[index++] = buffercopyread[i]; // TM
+                }
+                for (i=datatobetransferred;i<untransferredread;i++)
+                    buffercopyread[i - datatobetransferred] = buffercopyread[i].clone();
+                untransferredread = untransferredread - datatobetransferred;
+                datatobetransferred = 0;
+            }
+            else { //x > 0
+
+                transferredtokens = 0;
+                tokens = fromfifo.query_data();
+
+                // if (((datatobetransferred - untransferredread)/tokensize) + 1 <= tokens){  // x <= n
+                if (datatobetransferred - untransferredread <= tokensize * tokens){  // x <= n
+                    //transfer all tokens
+
+                    //flush previous read data
+                    for (i=0;i<untransferredread;i++)
+                        data[index++] = buffercopyread[i].clone();
+                    datatobetransferred = datatobetransferred - untransferredread;
+
+                    //read until the remaining data to be transferred are less then a token
+                    while (datatobetransferred >= tokensize) {
+                        fromfifo.claim_data(buffercopyread);
+                        for (i=0;i<tokensize;i++)
+                            data[index++] = buffercopyread[i].clone();
+                        fromfifo.release_space();
+                        blackbox(SystemCSim)%%  //AP
+                            for (i=0;i<tokensize;i++) //AP
+                                delete buffercopyread[i]; //AP
+                        %% //AP;;
+                            datatobetransferred = datatobetransferred - tokensize;
+                            transferredtokens++;
+                    }
+
+                    //read the last data
+                    if (datatobetransferred > 0){ // YW
+                        fromfifo.claim_data(buffercopyread);
+                        for (i=0;i<datatobetransferred;i++)
+                            data[index++] = buffercopyread[i]; // TM
+                        for (i=datatobetransferred;i<tokensize;i++)
+                            buffercopyread[i - datatobetransferred] = buffercopyread[i];
+                        untransferredread = tokensize - datatobetransferred;
+                        datatobetransferred = 0;
+                        fromfifo.release_space();
+
+                    }
+                    else {
+                        untransferredread = 0;  // YW
+                    }
+                    rdwrth.setreadthreshold(0);
+
+                    if ((rdwrth.getwritethreshold() > 0)
+                            && (tofifo.query_space() >= rdwrth.getwritethreshold()))
+                        rdwrth.wakeupwr();
+
+                }
+                else {
+
+                    if (rdwrth.getwritethreshold() > 0){ // wtr > 0
+                        tokenstobetransferred = spacetokens.f(((datatobetransferred - untransferredread)/tokensize),tokens);
+                        //transfer x' tokens
+                        if (tokenstobetransferred > 0) {
+                            for (i=0;i<untransferredread;i++)
+                                data[index++]=buffercopyread[i].clone();
+                            datatobetransferred = datatobetransferred - untransferredread;
+
+                            while (transferredtokens < tokenstobetransferred){
+
+                                fromfifo.claim_data(buffercopyread);
+                                for (i=0;i<tokensize;i++)
+                                    data[index++]=buffercopyread[i].clone();
+                                fromfifo.release_space();
+                                blackbox(SystemCSim)%%  //AP
+                                    for (i=0;i<tokensize;i++) //AP
+                                        delete buffercopyread[i]; //AP
+                                %% //AP;;
+                                    datatobetransferred = datatobetransferred - tokensize;
+                                    transferredtokens++;
+                            }
+                            untransferredread = 0;
+
+                        }
+                        // YW threshold = datatobetransferred / tokensize + 1;
+                        threshold = datatobetransferred / tokensize;
+                        if (tokensize * threshold != datatobetransferred) {
+                            threshold = threshold + 1;
+                        }
+                        rdwrth.setreadthreshold(threshold);
+                        rdwrth.wakeupwr();
+                        //blackbox(SystemCSim)%%
+                        //    cout << " Data to be received " << datatobetransferred/tokensize << endl;
+                        //%%;
+                        await{
+                            (rdwrth.testwakeuprd();;)
+                                {
+                                    rdwrth.resetwakeuprd();
+                                }
+                        }
+                    }
+                    else {
+                        // YW threshold = datatobetransferred/tokensize + 1;
+                        threshold = datatobetransferred/tokensize;
+                        if (tokensize * threshold != datatobetransferred) {
+                            threshold = threshold + 1;
+                        }
+                        rdwrth.setreadthreshold(threshold);
+                        // rdwrth.wakeupwr();
+                        rdwrth.wakeupwr();
+                        //blackbox(SystemCSim)%%
+                        //    cout << " Data to be received " << datatobetransferred/tokensize << endl;
+                        //%%;
+                        await{
+                            (rdwrth.testwakeuprd();;)
+                                {
+                                    rdwrth.resetwakeuprd();
+                                }
+                        }
+                    }
+
+                }
+
+            }
+        }
+
+    }
+
+
+    public update void read(Object[][] data,int n,int m) {
+        Object[] Mtov = new Object[n*m];
+        for (int i=0;i<n*m;i++)
+            Mtov[i] = null;
+        read(Mtov,n*m);
+        blackbox(SystemCSim)%%
+            for (int i=0 ; i<n ; i++)
+                for (int j=0 ; j<m ; j++)
+                    if (data[i][j]) delete data[i][j];
+        %%;
+        for (int i=0;i<n;i++)
+            for (int j=0;j<m;j++) {
+                data[i][j]= Mtov[i*m + j].clone();
+            };
+        blackbox(SystemCSim)%%
+            for (int i=0 ; i<n*m ; i++)
+                delete Mtov[i];
+        delete[] Mtov;
+        %%;
+
+    }
+
+    public update Object read() {
+        Object[] DtoV = new Object[1];
+        DtoV[0] = null;
+        read(DtoV,1);
+        return DtoV[0].clone();
+    }
+
+    public update int readint() {
+        yapiint[] d = new yapiint[1];
+        int temp; // TCM
+        //d[0] = new yapiint(0);
+        d[0] = null;
+        read((Object[])d,1);
+        temp = d[0].d; // TM
+        blackbox(SystemCSim)%%
+            delete d[0]; // TM
+        delete[] d;  // TM
+        %%;
+        return temp;
+    }
+
+    public update void read(int[] data,int n) {
+        int i;
+        yapiint[] d = new yapiint[n];
+        for (i=0;i<n;i++)
+            // d[i] = new yapiint(0);
+            d[i] = null;
+        read((Object[])d,n);
+        for (int i=0;i<n;i++)
+            data[i] = d[i].d;
+        blackbox(SystemCSim)%%
+            for (i=0 ; i<n ; i++)
+                delete d[i];
+        delete[] d;
+        %%;
+    }
+    public update void read(int[][] data,int n,int m) {
+        int i,j;
+        yapiint[][] d = new yapiint[n][m];
+        for (i=0;i<n;i++)
+            for (j=0;j<m;j++)
+                //d[i][j] = new yapiint(0);
+                d[i][j] = null;
+        read((Object[][])d,n,m);
+        for (int i=0;i<n;i++)
+            for (int j=0;j<m;j++)
+                data[i][j] = d[i][j].d;
+        blackbox(SystemCSim)%%
+            for (i=0;i<n;i++) {
+                for (j=0;j<m;i++)
+                    delete d[i][j];
+            }
+        for (i=0;i<n;i++)
+            delete[] d[i];
+        delete[] d;
+        %%;
+    }
+
+    public update short readshort() {
+        yapishort[] d = new yapishort[1];
+        short temp; // TM
+        //d[0] = new yapishort((short)0);
+        d[0] = null;
+        read((Object[])d,1);
+        temp = d[0].d; // TM
+        blackbox(SystemCSim)%%
+            delete d[0];   // TM;
+        delete[] d;   // TM
+        %%;
+        return temp;
+    }
+
+    public update void read(short[] data,int n) {
+        int i;
+        yapishort[] d = new yapishort[n];
+        for (i=0;i<n;i++)
+            //d[i] = new yapishort((short)0);
+            d[i] = null;
+        read((Object[])d,n);
+        for (int i=0;i<n;i++)
+            data[i] = d[i].d;
+        blackbox(SystemCSim)%%
+            for (i=0 ; i<n ; i++)
+                delete d[i];
+        delete[] d;
+        %%;
+    }
+
+    public update void read(short[][] data,int n,int m) {
+        int i,j;
+        yapishort[][] d = new yapishort[n][m];
+        for (i=0;i<n;i++)
+            for (j=0;j<m;j++)
+                //d[i][j] = new yapishort((short)0);
+                d[i][j] = null;
+        read((Object[][])d,n,m);
+        for (int i=0;i<n;i++)
+            for (int j=0;j<m;j++)
+                data[i][j] = d[i][j].d;
+        blackbox(SystemCSim)%%
+            for (i=0;i<n;i++) {
+                for (j=0;j<m;i++)
+                    delete d[i][j];
+            }
+        for (i=0;i<n;i++)
+            delete[] d[i];
+        delete[] d;
+        %%;
+    }
+
+    public update double readdouble() {
+        yapidouble[] d = new yapidouble[1];
+        double temp; // TM
+        //d[0] = new yapidouble(0.0);
+        d[0] = null;
+        read((Object[])d,1);
+        temp = d[0].d;//TM
+        blackbox(SystemCSim)%%
+            delete d[0];   // TM;
+        delete[] d;   // TM
+        %%;
+        return temp; // TM
+    }
+
+    public update void read(double[] data,int n) {
+        int i;
+        yapidouble[] d = new yapidouble[n];
+        for (i=0;i<n;i++)
+            //d[i] = new yapidouble(0.0);
+            d[i] = null;
+        read((Object[])d,n);
+        for (int i=0;i<n;i++)
+            data[i] = d[i].d;
+        blackbox(SystemCSim)%%
+            for (i=0 ; i<n ; i++)
+                delete d[i];
+        delete[] d;
+        %%;
+    }
+    public update void read(double[][] data,int n,int m) {
+        int i,j;
+        yapidouble[][] d = new yapidouble[n][m];
+        for (i=0;i<n;i++)
+            for (j=0;j<m;j++)
+                //d[i][j] = new yapidouble(0.0);
+                d[i][j] = null;
+        read((Object[][])d,n,m);
+        for (int i=0;i<n;i++)
+            for (int j=0;j<m;j++)
+                data[i][j] = d[i][j].d;
+        blackbox(SystemCSim)%%
+            for (i=0;i<n;i++) {
+                for (j=0;j<m;i++)
+                    delete d[i][j];
+            }
+        for (i=0;i<n;i++)
+            delete[] d[i];
+        delete[] d;
+        %%;
+    }
+
+
+
+    //int f(int x,int space) {
+    //        return space;
+    //}
+
+    public eval boolean checkfifo(int n,int dir) {
+        // return true;  commented out by YW
+        //return (fromfifo.guard_query_data() * tokensize > n);
+        int totaltokens;
+        totaltokens = rdwrth.guard_getwritethreshold()+fromfifo.guard_query_data() +tofifo.guard_query_space();
+        return (totaltokens*tokensize >= n);
+    }
+
+}

@@ -1,0 +1,273 @@
+/*
+
+Copyright (c) 2004-2005 The Regents of the University of California.
+All rights reserved.
+
+Permission is hereby granted, without written agreement and without
+license or royalty fees, to use, copy, modify, and distribute this
+software and its documentation for any purpose, provided that the
+above copyright notice and the following two paragraphs appear in all
+copies of this software and that appropriate acknowledgments are made
+to the research of the Metropolis group.
+
+IN NO EVENT SHALL THE UNIVERSITY OF CALIFORNIA BE LIABLE TO ANY PARTY
+FOR DIRECT, INDIRECT, SPECIAL, INCIDENTAL, OR CONSEQUENTIAL DAMAGES
+ARISING OUT OF THE USE OF THIS SOFTWARE AND ITS DOCUMENTATION, EVEN IF
+THE UNIVERSITY OF CALIFORNIA HAS BEEN ADVISED OF THE POSSIBILITY OF
+SUCH DAMAGE.
+
+THE UNIVERSITY OF CALIFORNIA SPECIFICALLY DISCLAIMS ANY WARRANTIES,
+INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. THE SOFTWARE
+PROVIDED HEREUNDER IS ON AN "AS IS" BASIS, AND THE UNIVERSITY OF
+CALIFORNIA HAS NO OBLIGATION TO PROVIDE MAINTENANCE, SUPPORT, UPDATES,
+ENHANCEMENTS, OR MODIFICATIONS.
+
+METROPOLIS_COPYRIGHT_VERSION_1
+COPYRIGHTENDKEY
+
+*/
+
+package pip.architecture.simple;
+
+/////////////////////////////////////////////////////////////////////
+//        Design Example of Metropolis
+//        PiP Architecture
+//
+//        Author: Alessandro Pinto
+//                                        Yoshi Watanabe
+//                                        Haibo Zeng
+/////////////////////////////////////////////////////////////////////
+
+public interface SchedReq extends Port {
+    update void request(event e, RequestClass rc);
+    eval int                 A(event e, int i);
+    eval double ATime(event e, int i);
+}
+
+
+public statemedium SchedToQuantity implements SchedReq {
+    port ResourceArbiter _portQuan;
+    private int _smid;
+
+    public SchedToQuantity(String n, int id) {
+        super(n);
+        _smid = id;
+    }
+
+    public int id() { return _smid; }
+
+    public update void request(event e, RequestClass rc) {
+        _portQuan.request(e, rc);
+    }
+
+    public eval int A(event e, int i) {
+        return _portQuan.A(e, i);
+    }
+
+    public eval double ATime(event e, int i) {
+        return _portQuan.ATime(e, i);
+    }
+}
+
+
+
+public class SchedReqClass extends RequestClass {
+
+    ///////////////////////////////////////////////////////////////////
+    ////                         public variables                  ////
+
+    ///////////////////////////////////////////////////////////////////
+    ////                         protected variables               ////
+
+
+    ///////////////////////////////////////////////////////////////////
+    ////                         private variables                 ////
+
+    private event _requestEvent;
+    private event _referenceEvent;
+    private int                _serviceID;
+    private int         _nService;
+    private int         _masterID;
+    private int         _slaveID;
+    private double _time;
+    private int                _prio;
+
+    private process _ownerID;
+
+    ///////////////////////////////////////////////////////////////////
+    ////                         public methods                    ////
+
+    // Constructors
+    public SchedReqClass() {
+        _requestEvent         = null;
+        _referenceEvent = null;
+        _serviceID                         = -1;
+        _nService                         = -1;
+        _masterID                         = -1;
+        _slaveID                                 = -1;
+        _time                                                = -1.0;
+        _prio                                                = 0;
+    }
+
+    public SchedReqClass(event e, int id, int n) {
+        _requestEvent         = e;
+        _referenceEvent = null;
+        _serviceID                         = id;
+        _nService                         = n;
+        _masterID                         = -1;
+        _slaveID                                 = -1;
+        _time                                                = -1.0;
+        _prio                                                = 0;
+    }
+
+    public SchedReqClass(event e, event r, int id, int n) {
+        _requestEvent         = e;
+        _referenceEvent = r;
+        _serviceID                         = id;
+        _nService                         = n;
+        _masterID                         = -1;
+        _slaveID                                 = -1;
+        _time                                                = -1.0;
+        _prio                                                = 0;
+    }
+
+    public SchedReqClass(event e, event r, int id, int n, int master) {
+        _requestEvent         = e;
+        _referenceEvent = r;
+        _serviceID                         = id;
+        _nService                         = n;
+        _masterID                         = master;
+        _slaveID                                 = -1;
+        _time                                                = -1.0;
+        _prio                                                = 0;
+    }
+
+    public SchedReqClass(event e, event r, int id, int n, int master, int slave) {
+        _requestEvent         = e;
+        _referenceEvent = r;
+        _serviceID                         = id;
+        _nService                         = n;
+        _masterID                         = master;
+        _slaveID                                 = slave;
+        _time                                                = -1.0;
+        _prio                                                = 0;
+    }
+
+    public SchedReqClass(event e, event r, int id, int n, int master, int slave, double t) {
+        _requestEvent         = e;
+        _referenceEvent = r;
+        _serviceID                         = id;
+        _nService                         = n;
+        _masterID                         = master;
+        _slaveID                                 = slave;
+        _time                                                = t;
+        _prio                                                = 0;
+    }
+
+    public SchedReqClass(event e, event r, int id, int n, int master, int slave, double t, int p) {
+        _requestEvent         = e;
+        _referenceEvent = r;
+        _serviceID                         = id;
+        _nService                         = n;
+        _masterID                         = master;
+        _slaveID                                 = slave;
+        _time                                                = t;
+        _prio                                                = p;
+    }
+
+    public void setSchedReqClass(event e, int id, int n) {
+        _requestEvent         = e;
+        _serviceID                         = id;
+        _nService                         = n;
+    }
+
+    public void setSchedReqClass(event e, event r, int id, int n) {
+        _requestEvent         = e;
+        _referenceEvent = r;
+        _serviceID                         = id;
+        _nService                         = n;
+    }
+
+    public void setSchedReqClass(event e, event r, int id, int n, int master) {
+        _requestEvent         = e;
+        _referenceEvent = r;
+        _serviceID                         = id;
+        _nService                         = n;
+        _masterID                         = master;
+    }
+
+    public void setSchedReqClass(event e, int id, int n, int master, int slave) {
+        _requestEvent         = e;
+        _referenceEvent = null;
+        _serviceID                         = id;
+        _nService                         = n;
+        _masterID                         = master;
+        _slaveID                                 = slave;
+    }
+
+    public void setSchedReqClass(event e, event r, int id, int n, int master, int slave) {
+        _requestEvent         = e;
+        _referenceEvent = r;
+        _serviceID                         = id;
+        _nService                         = n;
+        _masterID                         = master;
+        _slaveID                                 = slave;
+    }
+
+    public void setSlave(int slave) {
+        _slaveID = slave;
+    }
+
+    public void setAmount(int n) {
+        _time = n;
+    }
+
+    public void setTime(double t) {
+        _time = t;
+    }
+
+    public void setPrio(int p) {
+        _prio = p;
+    }
+
+    public void setOwnerID(process _oID) {
+        _ownerID = _oID;
+    }
+
+    public Object clone() {
+        SchedReqClass src = new SchedReqClass(_requestEvent, _referenceEvent, _serviceID,
+                _nService, _masterID, _slaveID, _time, _prio);
+        src.setOwnerID(_ownerID);
+        return src;
+    }
+
+    public process getOwnerID() {
+        return _ownerID;
+    }
+
+    public boolean isRelease() {
+        return (_serviceID == 9) ? true : false;
+    }
+
+    public boolean isEqual(SchedReqClass src) {
+        return (_requestEvent==src._requestEvent);
+    }
+
+
+    public event getReqEvent() { return _requestEvent; }
+    public event getRefEvent() { return _referenceEvent; }
+    public int         getServiceID(){ return _serviceID; }
+    public int         getAmount()         { return _nService; }
+    public int          getMaster()         { return _masterID; }
+    public int          getSlave()                 { return _slaveID; }
+    public double getTime()                 { return _time; }
+    public int          getPrio()                 { return _prio; }
+
+    ///////////////////////////////////////////////////////////////////
+    ////                         protected methods                 ////
+
+    ///////////////////////////////////////////////////////////////////
+    ////                         private methods                  ////
+
+}

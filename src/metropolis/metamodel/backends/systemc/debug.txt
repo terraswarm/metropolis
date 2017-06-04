@@ -1,0 +1,44 @@
+$Id: debug.txt,v 1.2 2006/04/25 00:20:46 guyang Exp $
+
+This document shows the finer control of the output of debugging information.
+In order to see the details of scoreboard, the switch -d and a debugging level
+must be specified to an executable. e.g. run.x -d 3
+If MMMDEBUGMASK is not defined, by default, all the following information will 
+be shown for a process.
+You can select from the whole set and see just those information.
+The way to do that is to define an environment variable called MMMDEBUGMASK.
+It is a string of characters. Each character represents one line of information,
+see the correspendence below.
+
+(a) process * p=0x8150508               //process object reference
+(b) process name=TestGlobalTimeProc22   //process name
+(c) process id=4                        //unique process ID
+(d) int mode=EXEC                       //whether it is in regular executing (EXEC) or await guards evalution (TRY)
+(e) node obj={TestGlobalTimeProc22, }   //the action to be scheduled
+(f) String stLabel=                     //the label if any of the current action
+(g) int SchedState=UNKNOW               //scheduling state
+(h) pending events={                    //the pending events to be scheduled in this process
+    TestGlobalTimeProc22, (TestGlobalTimeProc22 :: gtr), BEGIN CS#=0 RefCount=0 ImplCount=-1
+    }
+(i) in synch=no                         //whether the current event is in synch or not
+(j) int funcType=10 [ LABEL ANNOTATION ]//the type of the current action (await, function call etc.)
+(k) bool * cond={}                      //await: the guard conditions for each critical sections
+(l) int selected=-1                     //await: which critical section is scheduled to run
+(m) csOrder={ }                         //await: critical section order (for true random simulation)
+(n) testList={ }                        //await: await testList
+(o) setList ={ }                        //await: await setList
+(p) preventList={ }                     //await: after entering a critical section,
+                                        //       move the corresponding setList to preventList
+(q) nodeList=[ (TestGlobalTimeProc22,)] //a list recording nested actions
+(r) labelList=[ ()]                     //a list recording nested labels
+(s) SchedStateList=[ (RUN)]             //a list recording nested scheduling states
+(t) funcTypeList=[ ()]                  //a list recording nested function types
+(u) potentialUsedMedia=[ ]              //potentially used media
+(v) potentialUsedMediaList={ #[]# }     //a list recording nested media that have been used
+
+For instance, if you want to see the debugging information of process name, SchedState and 
+pending events, you can define
+setenv MMMDEBUGMASK bgh
+Note that the value is order insensitive and case sensitive.
+
+
