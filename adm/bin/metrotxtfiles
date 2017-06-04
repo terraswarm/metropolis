@@ -1,0 +1,25 @@
+#!/bin/sh
+# $Id: metrotxtfiles 3104 2004-09-13 16:55:54Z cxh $
+# Return all the text source files (with exceptions) in the Metropolis
+
+$METRO/adm/bin/metrofiles | egrep -v '\.#' |egrep -v '\.au$' \
+	| egrep -v '\.bin' |egrep -v '\.bmp' \
+	| egrep -v '\.class'  | egrep -v '\clo' |egrep -v '\.cvsignore' \
+        | egrep -v '\.dat' |egrep -v '\.data' \
+	| egrep -v '\.dll' |egrep -v '\.doc' | egrep -v '\.dvi' \
+	| egrep -v '\.dsp' |egrep -v '\.dsw' \
+        | egrep -v '\.fig' | egrep -v '\.fm' \
+	| egrep -v '\.epf' \
+	| egrep -v '\.eps' | egrep -v '\.gz' \
+        | egrep -v '\.gif' |egrep -v '\.ico' | egrep -v '\.ide' \
+        | egrep -v '\.isj' \
+	| egrep -v '\.jar' |egrep -v '\.jpg' \
+	| egrep -v '\.nqc' |egrep -v '\.psd' \
+	| egrep -v '\.ncb' \
+	| egrep -v '\.nqc' |egrep -v '\.png' | egrep -v '\.psd' \
+	| egrep -v '\.ps' \
+	| egrep -v '\.pdf' |egrep -v '\.ppt' \
+	| egrep -v '\.qcf' |egrep -v '\.suo' \
+	| egrep -v '\.vsb' \
+	| egrep -v '\.wav' |egrep -v '\.xls'
+

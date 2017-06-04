@@ -1,0 +1,6 @@
+#!/bin/bash
+#
+# Check that all .java files have properly expanded CVS keywords.
+# $Id: ckCVSkeywords 3949 2005-10-24 19:27:30Z allenh $
+
+find . -name '*.java' ! -exec egrep -q '\$Id:' {} \; -print

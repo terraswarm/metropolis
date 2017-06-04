@@ -1,0 +1,40 @@
+#!/bin/bash
+#
+# Show all .java files that have tabs in them.
+# $Id: ckTabs 3951 2005-10-24 23:06:07Z allenh $
+
+PROG=${0##*/}
+T=/tmp/${PROG}$$
+EXPAND=/usr/bin/expand
+
+USAGE="usage: ${PROG} [-fv]
+        -f:     Fix all files, by turning tabs to spaces, based on 8-col tabs.
+        -v:     Verbose."
+
+trap "/bin/rm -f ${T}*" 0
+
+unset FIXING
+unset VERBOSE
+OPTIND=1
+while getopts "fv" opt; do
+    case ${opt} in
+    f)  FIXING=yes ;;
+    v)  VERBOSE=yes ;;
+    *)  echo "${USAGE}" 1>&2; exit 1 ;;
+    esac
+done
+
+find ${METRO} -name '*.java' -exec egrep -l '	' {} \; > ${T}.files
+
+if [ "${FIXING}" ]; then
+    while read f; do
+        if [ "${VERBOSE}" ]; then
+            echo $f
+        fi
+        cat /dev/null > ${T}.expanded
+        ${EXPAND} $f > ${T}.expanded
+        mv -f ${T}.expanded $f
+    done < ${T}.files
+else
+    cat ${T}.files
+fi

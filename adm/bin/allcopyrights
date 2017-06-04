@@ -1,0 +1,35 @@
+#!/bin/sh
+# %W% %G%
+# allcopyrights - a script to fix up copyrights.
+# .java .c .cc and .h files are taken care of by:
+# allcopyrights
+# insertcopyright
+#
+# allcopyrights runs through all directories listed in it and applys
+# insertcopyright to each.  insertcopyright does the actual checking and
+# corrections.
+#
+
+
+SRCDIRS=`$METRO/adm/bin/metrodirs`
+
+echo $SRCDIRS
+
+for d in $SRCDIRS
+do
+    if [ ! -d $d ]; then
+	echo "Warning: $d doesnt exist.  Skipping..."
+	continue
+    fi
+
+    case $d in
+	*/src/com/*)   echo "Skipping $d it is in the src/com directory"
+		       continue	
+		    ;;
+    esac
+
+    echo 
+    echo "------------------------------- $d "
+    (chdir $d; COPYRIGHT_TXT=$METRO/adm/copyright.txt \
+	    $PTII/mescal/adm/copyright/insertcopyright)
+done
